@@ -10,41 +10,7 @@ import subprocess
 import sys
 
 
-DEFAULTS = {"topic_bytes": 4096, "topics_total_bytes": 16384}
-COMMIT = re.compile(r"[0-9a-fA-F]{7,40}\Z")
-
-
-def git(root, *args):
-    return subprocess.run(["git", "--literal-pathspecs", "-C", str(root), *args], capture_output=True)
-
-
-def local_file(root, name):
-    path = Path(name)
-    if path.is_absolute() or ".." in path.parts or any(ord(c) < 32 for c in name):
-        return None
-    dest = root / path
-    if not dest.resolve().is_relative_to(root):
-        return None
-    if any(p.is_symlink() for p in [dest, *dest.parents] if p != root and p.is_relative_to(root)):
-        return None
-    return dest
-
-
-def budgets(root):
-    path = root / "memory/.memory-budget.json"
-    if not path.exists() and not path.is_symlink():
-        return DEFAULTS.copy()
-    if local_file(root, "memory/.memory-budget.json") is None:
-        raise ValueError("config must be a regular local file")
-    try:
-        config = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
-        raise ValueError(f"invalid config: {exc}") from exc
-    if not isinstance(config, dict) or set(config) - DEFAULTS.keys():
-        raise ValueError("config allows only topic_bytes and topics_total_bytes")
-    if any(type(value) is not int or value < 1 for value in config.values()):
-        raise ValueError("config budgets must be positive integer bytes")
-    return DEFAULTS | config
+from memory_common import COMMIT, budgets, git, local_file, source_matches
 
 
 def check(root):
@@ -104,7 +70,7 @@ def check(root):
             continue
         raw, text = result
         total += len(raw)
-        if len(raw) > limits["topic_bytes"]:
+        if limits['topic_bytes'] is not None and len(raw) > limits["topic_bytes"]:
             report("topic-budget", f"{name}: {len(raw)}/{limits['topic_bytes']} bytes")
         for number, line in enumerate(text.splitlines(), 1):
             match = re.match(r"^\s*-\s+(.+)", line)
@@ -163,14 +129,11 @@ def check(root):
                     if git(root, "ls-files", "--error-unmatch", "--", source).returncode:
                         code = "untracked-source"
                     else:
-                        worktree = git(root, "diff", "--quiet", verified, "--", source)
-                        index = git(root, "diff", "--cached", "--quiet", verified, "--", source)
-                        statuses = (worktree.returncode, index.returncode)
-                        code = "git-check-failed" if any(status > 1 for status in statuses) else ("changed-source" if any(statuses) else None)
+                        code = None if source_matches(root, source, verified) else 'changed-source'
                     source_cache[key] = code
                 if source_cache[key]:
                     report(source_cache[key], loc + " " + source)
-    if total > limits["topics_total_bytes"]:
+    if limits['topics_total_bytes'] is not None and total > limits["topics_total_bytes"]:
         report("topics-total-budget", f"{total}/{limits['topics_total_bytes']} bytes")
     return findings, len(topic_paths), total
 

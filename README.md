@@ -1,6 +1,6 @@
 # Agent skills
 
-Portable skills for coding agents, starting with **lean-context-memory v2.3**:
+Portable skills for coding agents, starting with **lean-context-memory v2.4**:
 compact, source-backed project memory, bounded dependency exploration and measured token usage.
 
 ## Install
@@ -36,7 +36,8 @@ It does not automatically certify memory, run a model, or establish token saving
 
 | Skill | Purpose | Guide |
 |---|---|---|
-| `lean-context-memory` | Source-backed memory, adaptive dependency exploration, usage comparison | [Setup and measurement](skills/lean-context-memory/README.md) |
+| `lean-context-memory` | Source-backed memory, bounded recall, reviewed maintenance and exploration | [Setup and migration](skills/lean-context-memory/README.md) |
+| `lean-context-usage` | Optional reported-token comparison; no API calls or SDKs | [Benchmark protocol](skills/lean-context-usage/references/benchmark.md) |
 
 ```bash
 # Discover available skills without installing
@@ -53,6 +54,17 @@ For a reviewed snapshot, use a GitHub tree URL with a specific commit instead of
 See the [installer reference](https://github.com/vercel-labs/skills/blob/main/docs/commands.md).
 
 ## Existing installations
+
+v2.4 separates daily memory from benchmarking. Update memory and rerun initialization to
+refresh marked rules and helper paths. For the optional measurement tools, install:
+
+```bash
+npx skills add vzubcu/lean-context-memory-skill --skill lean-context-usage
+```
+
+The old memory skill's `scripts/usage-report.py` path moves to the usage companion.
+Default sync is advisory; use `--strict` for review gates. Storage caps are now opt-in,
+and `memory-read.py` enforces a separate recall-output budget.
 
 Skill sources now live in `skills/lean-context-memory/`. Existing installed copies continue to work.
 If you run helpers directly from a clone, change `scripts/...` to

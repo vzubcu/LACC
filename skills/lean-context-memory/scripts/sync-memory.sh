@@ -4,6 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 python3 - "$SCRIPT_DIR" "$@" <<'PY'
 from pathlib import Path
+import hashlib
+import json
 import re
 import subprocess
 import sys
@@ -11,9 +13,10 @@ import sys
 script_dir = Path(sys.argv[1])
 args = sys.argv[2:]
 stamp = "--stamp" in args
-args = [a for a in args if a != "--stamp"]
+strict = "--strict" in args or stamp
+args = [a for a in args if a not in {"--stamp", "--strict"}]
 if len(args) > 1 or any(a.startswith("--") for a in args):
-    print("Usage: bash sync-memory.sh [project_dir] [--stamp]", file=sys.stderr)
+    print("Usage: bash sync-memory.sh [project_dir] [--strict | --stamp]", file=sys.stderr)
     sys.exit(2)
 root = Path(args[0] if args else ".").resolve()
 state = root / "memory/ACTIVE_STATE.md"
@@ -40,7 +43,7 @@ pattern = r"(?m)^- \*\*Last Synced Commit\*\*: \x60([^\x60]+)\x60[ \t]*$"
 match = re.findall(pattern, text)
 if len(match) != 1:
     print("REVIEW: exactly one Last Synced Commit field is required.")
-    sys.exit(1)
+    sys.exit(1 if strict else 0)
 synced = match[0]
 head = git("rev-parse", "--verify", "HEAD")
 if head.returncode:
@@ -54,7 +57,7 @@ if head.returncode:
             if path.is_file() and not path.is_symlink() and path.stat().st_mtime > state.stat().st_mtime:
                 hints.append(rel.as_posix())
         display("Modification-time hints only", sorted(hints))
-    sys.exit(1)
+    sys.exit(1 if strict else 0)
 head = head.stdout.decode().strip()
 valid = bool(re.fullmatch(r"[0-9a-fA-F]{7,40}", synced)) and git("rev-parse", "--verify", synced + "^{commit}").returncode == 0
 paths = ["--", ".", ":(exclude)memory/**"]
@@ -63,6 +66,24 @@ if dirty.returncode:
     print("ERROR: Git status failed.", file=sys.stderr)
     sys.exit(2)
 dirty_lines = dirty.stdout.decode("utf-8", errors="backslashreplace").splitlines()
+manifest = root / 'memory/.bootstrap.json'
+try:
+    generated = json.loads(manifest.read_text()) if manifest.is_file() and not manifest.is_symlink() else {}
+    if not isinstance(generated, dict):
+        raise ValueError('bootstrap metadata must be an object')
+except (OSError, ValueError):
+    generated = {}
+allowed = {'AGENTS.md', 'CLAUDE.md', 'GEMINI.md', '.roo/rules/lean-context-memory.md'}
+def bootstrap_only(line):
+    name = line[3:]
+    path = root / name
+    try:
+        return (line.startswith('?? ') and name in allowed and not path.is_symlink()
+                and not any(parent.is_symlink() for parent in path.parents if parent.is_relative_to(root) and parent != root)
+                and hashlib.sha256(path.read_bytes()).hexdigest() == generated.get(name))
+    except OSError:
+        return False
+dirty_lines = [line for line in dirty_lines if not bootstrap_only(line)]
 changes = []
 if valid:
     diff = git("diff", "--name-status", synced, head, *paths)
@@ -77,9 +98,10 @@ display("Working-tree drift", dirty_lines)
 if stamp and dirty_lines:
     print("REVIEW: source changes are uncommitted; leave checkpoint pending.")
     sys.exit(1)
-health = subprocess.run([sys.executable, str(script_dir / "memory-health.py"), str(root)])
-if health.returncode:
-    sys.exit(health.returncode)
+if strict:
+    health = subprocess.run([sys.executable, str(script_dir / "memory-health.py"), str(root)])
+    if health.returncode:
+        sys.exit(health.returncode)
 if stamp:
     updated = re.sub(pattern, lambda _: f"- **Last Synced Commit**: {chr(96)}{head}{chr(96)}", text)
     if len(updated.splitlines()) > 30 or len(updated.encode("utf-8")) > 2048:
@@ -90,6 +112,6 @@ if stamp:
     sys.exit(0)
 if not valid or changes or dirty_lines:
     print("REVIEW: inspect affected facts, update evidence, then --stamp when sources are clean.")
-    sys.exit(1)
+    sys.exit(1 if strict else 0)
 print("NO SOURCE DRIFT detected; this is not proof of semantic completeness.")
 PY

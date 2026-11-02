@@ -91,6 +91,7 @@ class MemoryHealthTests(ProjectCase):
         self.assertIn("pending-review", result.stdout)
 
     def test_over_budget_memory_is_reported_without_deleting_invariants(self):
+        self.write('memory/.memory-budget.json', '{"topic_bytes": 4096}')
         self.write("memory/topics/gotchas.md", "# Old notes\n" + "old terminal output " * 400)
         before = self.snapshot()
         result = self.health()
@@ -194,7 +195,7 @@ class SyncTests(ProjectCase):
         self.write("src/new.ts", "export const n = 1;\n")
         self.git("add", "src/new.ts")
         self.git("commit", "-qm", "external committed change")
-        result = self.run_tool("sync-memory.sh", str(self.root))
+        result = self.run_tool("sync-memory.sh", str(self.root), "--strict")
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertIn("src/new.ts", result.stdout)
 
@@ -202,13 +203,13 @@ class SyncTests(ProjectCase):
         self.write("src/tenant.ts", "changed\n")
         self.git("add", "src/tenant.ts")
         self.write("src/untracked file.ts", "new\n")
-        result = self.run_tool("sync-memory.sh", str(self.root))
+        result = self.run_tool("sync-memory.sh", str(self.root), "--strict")
         self.assertEqual(result.returncode, 1)
         self.assertIn("src/untracked file.ts", result.stdout)
 
     def test_invalid_checkpoint_is_not_treated_as_synced(self):
         self.write("memory/ACTIVE_STATE.md", "- **Last Synced Commit**: `deadbee`\n")
-        result = self.run_tool("sync-memory.sh", str(self.root))
+        result = self.run_tool("sync-memory.sh", str(self.root), "--strict")
         self.assertEqual(result.returncode, 1)
         self.assertIn("unavailable", result.stdout.lower())
 
@@ -296,7 +297,7 @@ class BootstrapTests(ProjectCase):
                     env.pop("UNSET_TEST_VARIABLE", None)
                     command = match.group(2).strip()
                     follow = subprocess.run(["bash", "-c", command], cwd=self.root, env=env, text=True, capture_output=True)
-                    self.assertEqual(follow.returncode, 1, follow.stdout + follow.stderr)
+                    self.assertEqual(follow.returncode, 0, follow.stdout + follow.stderr)
                     self.assertIn("Committed drift", follow.stdout)
                     self.assertFalse((self.root / "INJECTED").exists())
 
@@ -349,7 +350,7 @@ class BootstrapTests(ProjectCase):
         state = (self.root / "memory/ACTIVE_STATE.md").read_text()
         self.assertIn("`UNSYNCED`", state)
         self.assertNotIn(self.commit, state)
-        self.assertEqual(self.health().returncode, 1)
+        self.assertEqual(self.health().returncode, 0)
 
     def test_reinitialization_preserves_memory_and_existing_agent_instructions(self):
         self.write("AGENTS.md", "# User rules\nPreserve this instruction.\n")
