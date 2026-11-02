@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 
-SCRIPT = Path(__file__).resolve().parents[1] / "scripts/usage-report.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "skills/lean-context-memory/scripts/usage-report.py"
 
 
 class UsageReportTests(unittest.TestCase):

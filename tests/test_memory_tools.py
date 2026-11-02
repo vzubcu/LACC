@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 
-TOOLS = Path(__file__).resolve().parents[1] / "scripts"
+TOOLS = Path(__file__).resolve().parents[1] / "skills/lean-context-memory/scripts"
 
 
 class ProjectCase(unittest.TestCase):
