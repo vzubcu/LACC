@@ -1,5 +1,7 @@
 # Measure lean-context-memory
 
+An optional measurement skill from **LACC — Lean Agent Capabilities Collection**.
+
 This optional skill compares reported usage; it does not launch model runs, collect billing,
 or automatically capture every agent client's logs. No real-model A/B savings result has been
 established by this repository's synthetic tests.
@@ -7,7 +9,7 @@ established by this repository's synthetic tests.
 ## Install
 
 ```bash
-npx skills add vzubcu/lean-context-memory-skill --skill lean-context-usage
+npx skills add vzubcu/LACC --skill lean-context-usage
 ```
 
 Requires Python 3.9+. Locate the installed skill directory through your agent or `npx skills list`.

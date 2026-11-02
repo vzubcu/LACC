@@ -1,14 +1,18 @@
-# Agent skills
+# LACC — Lean Agent Capabilities Collection
 
-Portable skills for coding agents, starting with **lean-context-memory v2.4**:
-compact, source-backed project memory, bounded dependency exploration and tools for measuring token usage.
+**Portable skills for AI agents.**
+
+LACC is an extensible collection of independently installable skills. The first available
+skills cover project memory and usage measurement. Planned domains include .NET Framework,
+security, compliance and other workflows; their implementation will be listed in the catalog
+when available. The catalog is independent of any one agent, provider or programming language.
 
 ## Install
 
 From your project directory, run:
 
 ```bash
-npx skills add vzubcu/lean-context-memory-skill --skill lean-context-memory
+npx skills add vzubcu/LACC --skill lean-context-memory
 ```
 
 Choose your agent in the installer. Node.js 22.20+ and Git are needed for installation.
@@ -18,7 +22,7 @@ No model-provider SDK is required. The examples use the installer's current stab
 For a specific agent, without interactive prompts:
 
 ```bash
-npx skills add vzubcu/lean-context-memory-skill --skill lean-context-memory --agent claude-code -y
+npx skills add vzubcu/LACC --skill lean-context-memory --agent claude-code -y
 ```
 
 Replace `claude-code` with `codex`, `gemini-cli` or `roo`; multiple agents can follow `--agent`.
@@ -41,7 +45,10 @@ It does not automatically certify memory, run a model, or establish token saving
 
 ```bash
 # Discover available skills without installing
-npx skills add vzubcu/lean-context-memory-skill --list
+npx skills add vzubcu/LACC --list
+
+# Choose skills and agents interactively
+npx skills add vzubcu/LACC
 
 # Update this skill (project scope)
 npx skills update lean-context-memory -p -y
@@ -78,11 +85,37 @@ See the [measurement quick start](skills/lean-context-usage/README.md),
 
 ## Existing installations
 
+The repository was renamed to `vzubcu/LACC`; installed skill names remain unchanged.
+Existing clones can update their remote:
+
+```bash
+git remote set-url origin https://github.com/vzubcu/LACC.git
+```
+
+For installer-managed updates, use the original scope:
+
+```bash
+npx skills update lean-context-memory -p -y
+# Global installation instead:
+npx skills update lean-context-memory -g -y
+```
+
+If an older/manual installation has no source metadata, or you want to rebind its source
+to the renamed catalog, reinstall into the same scope and agent. For a global Codex copy:
+
+```bash
+npx skills add vzubcu/LACC --skill lean-context-memory --agent codex -g --copy -y
+```
+
+Preserve any custom edits to the installed package before replacement. Project `memory/`
+files are separate from installed skill resources; rerun initialization afterward to refresh
+marked rules and helper paths while preserving existing project facts.
+
 v2.4 separates daily memory from benchmarking. Update memory and rerun initialization to
 refresh marked rules and helper paths. For the optional measurement tools, install:
 
 ```bash
-npx skills add vzubcu/lean-context-memory-skill --skill lean-context-usage
+npx skills add vzubcu/LACC --skill lean-context-usage
 ```
 
 The old memory skill's `scripts/usage-report.py` path moves to the usage companion.

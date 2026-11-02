@@ -1,5 +1,6 @@
 # lean-context-memory v2.4
 
+A skill from **LACC — Lean Agent Capabilities Collection**.
 Portable project memory for agents with Bash, Git and Python 3.9+. No daemon, embeddings
 or provider SDK. On Windows provide Git Bash or WSL and Python. Use interpreter commands;
 executable bits are not required. Tests cover Linux helper/installer behavior, not every agent client.
@@ -7,7 +8,7 @@ executable bits are not required. Tests cover Linux helper/installer behavior, n
 ## Install and initialize
 
 ```bash
-npx skills add vzubcu/lean-context-memory-skill --skill lean-context-memory
+npx skills add vzubcu/LACC --skill lean-context-memory
 ```
 
 Ask the agent to initialize the installed skill and populate memory from verified project sources.

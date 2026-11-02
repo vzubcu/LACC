@@ -2,6 +2,9 @@
 
 ## v2.4 — review-driven improvements
 
+- Rename the catalog to LACC (Lean Agent Capabilities Collection), with independent skill
+  names and installation commands using vzubcu/LACC. Document project/global source rebinding.
+
 - Secure temporary stdin logs, validate limits and clean up on normal exit/SIGTERM.
 - Bound content scans as well as output; preserve source directories and prioritize qualified imports.
 - Repair declaration extraction and state clearly where it is heuristic.

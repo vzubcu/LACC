@@ -1,4 +1,9 @@
-# Maintaining the skill catalog
+# Maintaining LACC
+
+LACC means Lean Agent Capabilities Collection: portable skills for AI agents. Skills may
+cover different languages and domains; each catalog entry must state its actual requirements
+and supported operations. Keep planned skills separate from available entries. Use stable,
+domain-specific skill names, independent of the repository's brand.
 
 Keep each distributable skill under `skills/<unique-name>/`. Its SKILL.md frontmatter
 must contain the matching `name` and a clear `description`. Keep runtime scripts,
@@ -23,6 +28,8 @@ to fetch `skills@1.7.4` if uncached. It installs the local catalog into disposab
 directories, never into your global agent directories. It checks both symlink and copy
 installs for Codex, Claude Code, Gemini CLI and Roo, compares all shipped files, and
 initializes project memory through the installed helpers. It does not run those agent clients.
+CI also installs the exact commit from the current GitHub repository URL, so renamed-source
+discovery and package download are checked as well as local installation.
 
 To upgrade the CI installer, change its pin in tests/install_smoke.py and this contributor guide together,
 run the checks, and review any CLI behavior changes. Keep provider versions, measurements
@@ -37,6 +44,7 @@ against an existing fixture to check that user memory and unrelated instructions
 ## Renaming the repository
 
 The catalog title and individual skill names are independent of the GitHub repository name.
+The current source is `vzubcu/LACC`; use that shorthand in installation examples and links.
 Keep installed names such as lean-context-memory stable when changing the catalog URL.
 Rename the existing repository in GitHub settings, then update installation examples and
 repository references together. Do not replace working source URLs with a proposed destination

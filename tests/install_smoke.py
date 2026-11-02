@@ -1,5 +1,6 @@
 """Real installer integration; isolated project installs, no global agent changes."""
 from pathlib import Path
+import argparse
 import os
 import subprocess
 import tempfile
@@ -18,11 +19,14 @@ def run(args, cwd):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--source', default=str(ROOT), help='Local catalog or remote repository/tree URL')
+    args = parser.parse_args()
     sources = sorted(path for path in (ROOT/'skills').iterdir() if (path/'SKILL.md').is_file())
     for copy in (False, True):
         with tempfile.TemporaryDirectory(prefix='skill install ') as directory:
             project = Path(directory)
-            run(CLI + ['add', str(ROOT), '--skill', '*', '--agent', *AGENTS, '-y',
+            run(CLI + ['add', args.source, '--skill', '*', '--agent', *AGENTS, '-y',
                        *(['--copy'] if copy else [])], project)
             for agent, folder in AGENTS.items():
                 for source in sources:
