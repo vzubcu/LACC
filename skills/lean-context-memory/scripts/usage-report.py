@@ -28,32 +28,7 @@ def usage(value, peak=True):
     if result["cached_input_tokens"] > result["input_tokens"]:
         raise ValueError("cached input is a subset of input tokens")
     result["cache_write_input_tokens"] = count(value.get("cache_write_input_tokens", 0))
-    if "total_tokens" in value and count(value["total_tokens"]) != result["input_tokens"] + result["output_tokens"]:
-        raise ValueError("inconsistent total_tokens; synthetic context-window counts are not usage")
-    if peak:
-        result["peak_input_tokens"] = count(value["peak_input_tokens"])
-        if result["peak_input_tokens"] > result["input_tokens"]:
-            raise ValueError("peak input cannot exceed cumulative input")
-    return result
-
-
-def rows(path):
-    with Path(path).open(encoding="utf-8") as stream:
-        for number, line in enumerate(stream, 1):
-            if line.strip():
-                try:
-                    item = json.loads(line)
-                    if not isinstance(item, dict):
-                        raise ValueError("record must be an object")
-                    yield item
-                except ValueError as exc:
-                    raise ValueError(f"{path}:{number}: {exc}") from exc
-
-
-def load_runs(path):
-    runs = {}
-    for row in rows(path):
-        if any(not isinstance(row.get(key), str) or not row[key] for key in IDENTITY + ("trace_path",)):
+    if "total_tokens" in value and count(value["total_token…259 tokens truncated…), str) or not row[key] for key in IDENTITY + ("trace_path",)):
             raise ValueError("each run requires task_id, pair_id, model, fixture_commit, config_id, cache_mode and trace_path")
         if row["cache_mode"] not in {"cold", "warm"}:
             raise ValueError("cache_mode must be cold or warm")
