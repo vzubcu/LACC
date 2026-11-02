@@ -1,98 +1,105 @@
 #!/usr/bin/env bash
-# Initializes the Two-Tiered CRUD Memory structure AND auto-injects enforcement rules
-# into AGENTS.md (and CLAUDE.md if present) idempotently.
-# Usage: ./init-memory.sh [target_project_dir]
-
+# Shared memory protocol with thin native instruction bridges for coding agents.
 set -euo pipefail
+SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+python3 - "$SKILL_DIR" "$@" <<'PY'
+import argparse
+from pathlib import Path
+import re
+import shutil
+import shlex
+import sys
 
-SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PROJECT_DIR="${1:-$(pwd)}"
-MEM_DIR="$PROJECT_DIR/memory"
+skill = Path(sys.argv[1]).resolve()
+parser = argparse.ArgumentParser(description="Initialize shared memory and agent-native instruction bridges.")
+parser.add_argument("project_dir", nargs="?", default=".")
+parser.add_argument("--agent", choices=["auto", "codex", "claude", "gemini", "roo", "all"], default="auto")
+args = parser.parse_args(sys.argv[2:])
+root = Path(args.project_dir).resolve()
+if not root.is_dir():
+    parser.error("project directory must exist")
 
-mkdir -p "$MEM_DIR/topics"
+start = "<!-- LEAN-CONTEXT-MEMORY:START -->"
+end = "<!-- LEAN-CONTEXT-MEMORY:END -->"
 
-# 1. Copy memory templates if they don't exist
-for tpl in MEMORY_INDEX.md ACTIVE_STATE.md; do
-  if [ ! -f "$MEM_DIR/$tpl" ]; then
-    cp "$SKILL_DIR/templates/$tpl" "$MEM_DIR/$tpl"
-    echo "[+] Created $MEM_DIR/$tpl"
-  else
-    echo "[=] Exists  $MEM_DIR/$tpl (kept existing)"
-  fi
-done
+def markdown_code(value):
+    width = max((len(run) for run in re.findall(r"\x60+", value)), default=0) + 1
+    fence = chr(96) * width
+    return fence + " " + value + " " + fence
 
-for topic in architecture.md db-and-api.md gotchas.md; do
-  if [ ! -f "$MEM_DIR/topics/$topic" ]; then
-    cp "$SKILL_DIR/templates/topics/$topic" "$MEM_DIR/topics/$topic"
-    echo "[+] Created $MEM_DIR/topics/$topic"
-  else
-    echo "[=] Exists  $MEM_DIR/topics/$topic (kept existing)"
-  fi
-done
+skill_reference = markdown_code((skill / "SKILL.md").as_posix())
+sync_command = markdown_code("bash " + shlex.quote((skill / "scripts/sync-memory.sh").as_posix()))
+health_command = markdown_code("python3 " + shlex.quote((skill / "scripts/memory-health.py").as_posix()))
+common = f"""{start}
+## Context, Token & Memory Protocol (lean-context-memory v2.3)
+- Read the shared skill at {skill_reference} when needed; the protocol is agent-neutral.
+- Keep exact errors, required checks and source-backed project knowledge; use the host's native read/search/edit/terminal tools.
+- Start with 1-hop references; expand on named contract/event/schema/test evidence using the dependency helper.
+- Read the index/checkpoint once; run {sync_command}; lazy-load relevant topics.
+- Durable topic facts require source paths and a checked commit; unconfirmed claims/progress stay in ACTIVE_STATE.md.
+- Replace contradicted facts and remove proven obsolete entries or exact duplicates; age or budget alone does not justify deletion.
+- Budgets: index 60 lines; checkpoint 30 lines/2048 bytes; topics 4096 bytes each/16384 total, configurable.
+- Preserve security/data-integrity invariants; after changes update affected memory and run {health_command}.
+- Stamp only after semantic checks and structural validation pass with clean sources; pending work never advances Last Synced Commit.
+- Report unresolved checks and incomplete search coverage; provider-reported usage, not bytes, establishes token consumption.
+{end}"""
+bridge = f"""{start}
+## Shared context and memory
+Read the marked lean-context-memory block in project-root `AGENTS.md` once per session.
+If it is already loaded, reuse it; use the same `memory/` files and the host's native tools.
+The memory workflow does not require Codex or a usage collector.
+{end}"""
+native = {"claude": "CLAUDE.md", "gemini": "GEMINI.md", "roo": ".roo/rules/lean-context-memory.md"}
+targets = {"AGENTS.md": common}
+for agent, name in native.items():
+    if args.agent in {agent, "all"} or (root / name).exists() or (root / name).is_symlink():
+        targets[name] = bridge
+templates = ["MEMORY_INDEX.md", "ACTIVE_STATE.md", "topics/architecture.md", "topics/db-and-api.md", "topics/gotchas.md"]
+pattern = re.compile(re.escape(start) + r".*?" + re.escape(end), re.DOTALL)
 
-# Stamp current git HEAD into ACTIVE_STATE.md if still UNSYNCED
-if git -C "$PROJECT_DIR" rev-parse --short HEAD >/dev/null 2>&1; then
-  CUR_HASH=$(git -C "$PROJECT_DIR" rev-parse --short HEAD)
-  if grep -q "UNSYNCED" "$MEM_DIR/ACTIVE_STATE.md" 2>/dev/null; then
-    sed -i.bak "s/UNSYNCED/$CUR_HASH/" "$MEM_DIR/ACTIVE_STATE.md" && rm -f "$MEM_DIR/ACTIVE_STATE.md.bak"
-  fi
-fi
+def safe_file(name):
+    dest = root / name
+    if not dest.resolve().is_relative_to(root):
+        raise ValueError(f"destination escapes project root: {name}")
+    cursor = root
+    parts = dest.relative_to(root).parts
+    for number, part in enumerate(parts):
+        cursor = cursor / part
+        if cursor.is_symlink():
+            raise ValueError(f"refusing symlink destination: {name}")
+        if number < len(parts) - 1 and cursor.exists() and not cursor.is_dir():
+            raise ValueError(f"destination parent is not a directory: {name}")
+    if dest.exists() and not dest.is_file():
+        raise ValueError(f"destination is not a file: {name}")
+    return dest
 
-# 2. Auto-inject protocol block into AGENTS.md (and CLAUDE.md if it exists)
-MARKER_START="<!-- LEAN-CONTEXT-MEMORY:START -->"
-MARKER_END="<!-- LEAN-CONTEXT-MEMORY:END -->"
-
-read -r -d '' AGENT_BLOCK << 'EOF' || true
-<!-- LEAN-CONTEXT-MEMORY:START -->
-## Context, Token & Memory Protocol (`lean-context-memory`)
-- **Always-On Skill**: Enforce the `lean-context-memory` skill on ALL coding, debugging, exploration, and shell tasks.
-- **Caveman & Ponytail**: Zero fluff/narration in responses. Follow YAGNI ladder (Native -> StdLib -> Existing -> Minimal Code).
-- **Surgical Context & Graphify**: Never read full files >150 lines first; run `ast-skeleton.sh` and `dep-graph.sh` (1-hop blast radius). Filter noisy commands (`git status -s`, `git diff -U2`, `ctx-slice.sh` 60/40 truncation). Keep >5KB outputs in `/tmp`.
-- **Session Start (Memory Read & Drift Check)**:
-  1. Read `memory/MEMORY_INDEX.md` and `memory/ACTIVE_STATE.md`.
-  2. Run `sync-memory.sh` (or check `git status -s` / `git diff --name-status` against `Last Synced Commit`). If external changes occurred, update `memory/` first.
-  3. Lazy-load `memory/topics/*.md` ONLY when the task touches that domain.
-- **Definition of Done (Mandatory Auto-Sync on Code Changes)**:
-  - Any task that modifies code/schemas/configs MUST update `memory/ACTIVE_STATE.md` (including `Last Synced Commit`) before finishing.
-  - If routes, module boundaries, DB schemas, API contracts, or critical gotchas changed, update the corresponding entry in `memory/MEMORY_INDEX.md` or `memory/topics/*.md` IN-PLACE (CRUD, never append-only).
-<!-- LEAN-CONTEXT-MEMORY:END -->
-EOF
-
-inject_into_file() {
-  local target_file="$1"
-  if [ ! -f "$target_file" ]; then
-    printf "# Agent Instructions
-
-%s
-" "$AGENT_BLOCK" > "$target_file"
-    echo "[+] Created $target_file with lean-context-memory rules"
-  elif grep -q "$MARKER_START" "$target_file"; then
-    # Replace existing block between markers
-    python3 - "$target_file" "$AGENT_BLOCK" << 'PYEOF'
-import sys, re
-path, block = sys.argv[1], sys.argv[2]
-with open(path, "r", encoding="utf-8") as f:
-    content = f.read()
-pattern = re.compile(r"<!-- LEAN-CONTEXT-MEMORY:START -->.*?<!-- LEAN-CONTEXT-MEMORY:END -->", re.DOTALL)
-new_content = pattern.sub(block, content)
-with open(path, "w", encoding="utf-8") as f:
-    f.write(new_content)
-PYEOF
-    echo "[~] Updated lean-context-memory block in $target_file"
-  else
-    printf "
-
-%s
-" "$AGENT_BLOCK" >> "$target_file"
-    echo "[+] Appended lean-context-memory block to $target_file"
-  fi
-}
-
-inject_into_file "$PROJECT_DIR/AGENTS.md"
-
-if [ -f "$PROJECT_DIR/CLAUDE.md" ]; then
-  inject_into_file "$PROJECT_DIR/CLAUDE.md"
-fi
-
-echo "[OK] Lean Context Memory initialized at $MEM_DIR and linked in AGENTS.md"
-echo "[NEXT] Agent must now scan project manifests and populate memory/MEMORY_INDEX.md."
+try:
+    # Preflight every destination and existing instruction block before any writes.
+    memory = [(safe_file("memory/" + name), skill / "templates" / name) for name in templates]
+    updates = []
+    for name, block in targets.items():
+        path = safe_file(name)
+        text = path.read_text(encoding="utf-8") if path.exists() else "# Agent Instructions\n"
+        if text.count(start) != text.count(end) or text.count(start) > 1:
+            raise ValueError(f"ambiguous protocol markers: {name}")
+        if start in text:
+            if not pattern.search(text):
+                raise ValueError(f"invalid protocol marker order: {name}")
+            updated = pattern.sub(lambda _: block, text)
+        else:
+            updated = text.rstrip("\n") + "\n\n" + block + "\n"
+        updates.append((path, updated))
+    for dest, source in memory:
+        if not dest.exists():
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, dest)
+            print("[+] Created " + dest.relative_to(root).as_posix())
+    for path, updated in updates:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(updated, encoding="utf-8")
+        print("[OK] Linked " + path.relative_to(root).as_posix())
+except (OSError, UnicodeError, ValueError) as exc:
+    print(f"ERROR: {exc}", file=sys.stderr)
+    sys.exit(2)
+print("[NEXT] Populate and verify shared memory; templates remain UNSYNCED until reviewed.")
+PY
