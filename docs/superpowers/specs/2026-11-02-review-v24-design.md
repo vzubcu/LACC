@@ -33,9 +33,9 @@ disabled or silently migrated; the project chooses one canonical store of facts.
   and updates their checked commit only after acknowledgement. Both write commands
   require --apply and the digest from the preview; reject changed or unsafe inputs.
   Semantic condensation remains an agent-reviewed diff preserving evidence/invariants.
-- Reduce SKILL.md to the daily recipe; move detail into references. Move existing
-  usage tools and benchmark documentation into an optional lean-context-usage skill,
-  with migration instructions and no runtime dependency from the memory core.
+- Reduce SKILL.md to the daily recipe; move detail into references. Keep existing
+  usage tools and benchmark documentation inside lean-context-memory as optional tooling,
+  with no execution dependency from the daily memory workflow.
 
 ## Validation
 

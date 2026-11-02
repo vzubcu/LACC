@@ -71,8 +71,8 @@ Existing topics and checkpoint are preserved. Remove only unused example bullets
 - Default sync is now advisory; use `--strict` for shell/CI review gates.
 - Default disk caps are removed. Existing configured `topic_bytes`/`topics_total_bytes` still apply.
 - `load_bytes` controls recall output; storage is never silently deleted.
-- `usage-report.py` moved to the optional **lean-context-usage** skill. Install it separately
-  and update old measurement script paths; memory operations do not depend on it.
+- `usage-report.py` remains optional tooling in this skill under `scripts/`; normal memory
+  operations do not invoke it. See [benchmark protocol](references/benchmark.md) before measuring.
 - No hooks are installed. Agent-specific automation and measured A/B savings remain separate work.
 
 Update installed skills using their original scope (`-p` project, `-g` global):
@@ -83,3 +83,10 @@ npx skills update lean-context-memory -g -y
 
 An older manually copied skill without source metadata first needs `skills add` from this repository
 in the same scope/agent. Back up local customizations before replacing an installed copy.
+
+## Optional usage benchmarking
+
+Benchmarking is bundled with this skill but is not part of the daily memory path. It makes no
+provider API calls and does not run automatically. Read [the benchmark protocol](references/benchmark.md)
+first, then use `python3 scripts/usage-report.py --help` for supported import and comparison commands.
+Real token savings require matched end-to-end model runs; synthetic tests do not establish a savings claim.

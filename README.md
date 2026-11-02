@@ -3,9 +3,10 @@
 **Portable skills for AI agents.**
 
 LACC is an extensible collection of independently installable skills. The first available
-skills cover project memory and usage measurement. Planned domains include .NET Framework,
-security, compliance and other workflows; their implementation will be listed in the catalog
-when available. The catalog is independent of any one agent, provider or programming language.
+skill is lean-context-memory, which includes optional token-usage benchmarking tools. Planned
+domains include .NET Framework, security, compliance and other workflows; their implementation
+will be listed in the catalog when available. The catalog is independent of any one agent,
+provider or programming language.
 
 ## Install
 
@@ -40,8 +41,7 @@ It does not automatically certify memory, run a model, or establish token saving
 
 | Skill | Purpose | Guide |
 |---|---|---|
-| `lean-context-memory` | Source-backed memory, bounded recall, reviewed maintenance and exploration | [Setup and migration](skills/lean-context-memory/README.md) |
-| `lean-context-usage` | Optional reported-token comparison; no API calls or SDKs | [Measurement quick start](skills/lean-context-usage/README.md) |
+| `lean-context-memory` | Source-backed memory, bounded recall, reviewed maintenance, exploration and optional usage benchmarking | [Setup and migration](skills/lean-context-memory/README.md) |
 
 ```bash
 # Discover available skills without installing
@@ -71,7 +71,7 @@ installer checks, a handoff exercise or shrinking SKILL.md do not establish net 
    permissions and acceptance tests. Alternate variant order and start with five pairs per task.
 3. Count the complete run: instructions, bootstrap, exploration, retries, memory maintenance,
    compaction and final checks. Keep cold-start and warmed-memory experiments separate.
-4. Import actual provider/host-reported usage with the optional lean-context-usage skill.
+4. Import actual provider/host-reported usage with `lean-context-memory/scripts/usage-report.py`.
    Compare normalized records and report failures as well as increases in usage.
 
 Report total input/output tokens, cached input, paired median/range and acceptance pass rates.
@@ -79,8 +79,7 @@ Peak observed request input is a context proxy, not exact context-window occupan
 depends on cache/pricing and must be reported separately. A byte limit is not a token measurement.
 Savings are `(baseline - skill) / baseline * 100`; a failed/unverified output blocks a savings claim.
 
-See the [measurement quick start](skills/lean-context-usage/README.md),
-[full protocol](skills/lean-context-usage/references/benchmark.md) and
+See the [measurement protocol](skills/lean-context-memory/references/benchmark.md) and
 [benchmark plan/status](benchmarks/README.md). The importer does not launch or pay for model runs.
 
 ## Existing installations
@@ -111,14 +110,10 @@ Preserve any custom edits to the installed package before replacement. Project `
 files are separate from installed skill resources; rerun initialization afterward to refresh
 marked rules and helper paths while preserving existing project facts.
 
-v2.4 separates daily memory from benchmarking. Update memory and rerun initialization to
-refresh marked rules and helper paths. For the optional measurement tools, install:
-
-```bash
-npx skills add vzubcu/LACC --skill lean-context-usage
-```
-
-The old memory skill's `scripts/usage-report.py` path moves to the usage companion.
+v2.4 keeps daily memory and benchmarking operationally separate without splitting them into
+different installable skills. Update lean-context-memory and rerun initialization to refresh
+marked rules and helper paths. The optional measurement tools remain under
+`skills/lean-context-memory/scripts/` and do not run during normal memory operations.
 Default sync is advisory; use `--strict` for review gates. Storage caps are now opt-in,
 and `memory-read.py` enforces a separate recall-output budget.
 

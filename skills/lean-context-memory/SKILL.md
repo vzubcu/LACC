@@ -40,7 +40,7 @@ ripgrep is optional. Use the host agent's normal tools.
 - For stale facts, overflow, exact deduplication or batch revalidation, read [maintenance](references/maintenance.md).
 - For initialization, upgrades, native instruction imports and Git/Windows limitations, read [setup](README.md).
 - For bounded search, signature extraction and private log handling, read [exploration](references/exploration.md).
-- For token measurement, install the optional `lean-context-usage` skill from the same catalog.
+- For token measurement, read [benchmark protocol](references/benchmark.md) and use the bundled optional `scripts/usage-report.py`.
 
 The default recall limit is 8192 UTF-8 bytes per read, including notices. Disk caps are optional.
 The index remains at most 60 lines; the checkpoint at most 30 lines and 2048 bytes.
