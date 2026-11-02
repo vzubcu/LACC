@@ -1,14 +1,6 @@
-# Architecture & Topology Graph (Tier 2 - Lazy Loaded)
-> **GRAPHIFY CRUD RULE**: No prose paragraphs. Express architecture strictly as directed edges (`[Source] --(verb/contract)--> [Target]`). Update in-place when modules change.
+# Architecture
+> Confirm reusable facts; update in place; retain invariants and source evidence.
+> Each durable bullet needs real source paths and an existing checked commit.
+> Default 4096 bytes/file; topic aggregate 16384 bytes; limits are configurable.
 
-## Module Dependency Graph (Edges)
-- `[Entry/Route]` --(DTO)--> `[Controller/Handler]` --(calls)--> `[DomainService]` --(queries)--> `[Repository/DB]`
-- `[DomainService]` --(publishes event)--> `[Queue/Worker]`
-
-## Directory & Layer Map
-- `src/...` -> [Responsibility]
-
-## Cross-Cutting Contracts
-- **Auth**: `[Request]` -> `[AuthGuard/Middleware]` -> `[Context/UserPrincipal]`
-- **Error Handling**: `[Thrown Exception]` -> `[GlobalFilter]` -> `[StandardErrorDTO]`
-- **Cache**: `[Service]` -> `[RedisKey: prefix:id (TTL)]`
+- [Entry] --(contract)--> [Service] | source: `path/to/entry`, `path/to/service` | verified: `<checked-commit>`

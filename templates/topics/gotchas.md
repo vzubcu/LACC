@@ -1,4 +1,6 @@
-# Resolved Gotchas & Edge Cases (Tier 2 - Lazy Loaded)
-> **CRUD RULE**: Format strictly as `[Component/Symptom] -> [Root Cause] -> [Fix]`. Delete obsolete entries.
+# Confirmed gotchas
+> Keep reusable root causes; remove proven obsolete entries and exact duplicates.
+> Preserve valid security/data-integrity constraints regardless of age.
+> Put unconfirmed claims and one-off errors in ACTIVE_STATE.md, not here.
 
-- `[Example: Auth Token Refresh]` -> `[Race condition on parallel 401s]` -> `[Use mutex lock in interceptor]`
+- [Symptom] -> [Confirmed cause] -> [Verified fix] | source: `path/to/fix` | verified: `<checked-commit>`

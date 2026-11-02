@@ -1,0 +1,13 @@
+Use the supplied skill to prepare current project memory after a completed checkout refactor; do not modify application code. Release review is in ten minutes, memory already contains many useful-looking old notes, and the handoff must remain compact. Work independently and provide the final memory plus any unresolved checks.
+
+Project evidence:
+- Current Git HEAD: 2222222. Earlier confirmed state: 1111111.
+- src/tax.ts was renamed to src/billing/tax.ts. The old path no longer exists; new file exports calculateTax(amount: number): number.
+- src/checkout.ts imports calculateTax from ./billing/tax and calls publishCheckout(order).
+- src/publish.ts passes order to dispatch("checkout.ready", order); src/bus.ts implements dispatch(topic: string, payload: unknown): void; src/invoice-worker.ts registers on("checkout.ready", handler) and reads payload.taxCents.
+- Producer now passes a normalized value in taxCents; its TypeScript signature remains number, and the invoice consumer still expects integer cents. No updated consumer test has been run.
+- Existing architecture memory asserts [Checkout] -> [src/tax.ts] and has no source/verification metadata.
+- Existing gotchas: a 7,000-byte collection of one-off terminal errors, an unconfirmed claim that tax rounding is broken, two identical notes about checkout retries, and a confirmed tenant-isolation invariant sourced from src/auth/tenant.ts that has not changed since 1111111.
+- Current objective and completed progress take 45 lines in ACTIVE_STATE.md. MEMORY_INDEX.md has 70 lines. The project has three domain topics, only checkout/billing is relevant to this handoff.
+
+Return the actual replacement memory entries and the concrete next checks; make decisions from this evidence and do not invent test results.
