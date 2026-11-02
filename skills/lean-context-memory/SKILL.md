@@ -17,11 +17,16 @@ ripgrep is optional. Use the host agent's normal tools.
    Read the hot index/checkpoint once with `python3 <skill_dir>/scripts/memory-read.py .`.
    Load only relevant topics: `python3 <skill_dir>/scripts/memory-read.py . --topic architecture.md`.
    A truncation notice means narrow the read or inspect specific local ranges.
-3. Before changing shared behavior, search direct references:
+3. When the host exposes current/main-request input tokens and the exact active-model context window,
+   run `python3 <skill_dir>/scripts/context-pressure.py --input-tokens N --context-window W`.
+   At 70% refresh ACTIVE_STATE; at 80% checkpoint then recommend the host-native context compact;
+   at 90% avoid substantial new exploration until checkpoint + compaction. Do not infer missing
+   usage/window values and never invoke compaction automatically. After host compaction, reload hot memory.
+4. Before changing shared behavior, search direct references:
    `bash <skill_dir>/scripts/dep-graph.sh src/checkout.ts publishCheckout`.
    Expand using a named event/contract: append `--signal checkout.ready`.
    Read candidate code and tests to verify coupling; inspect additional consumers when evidence requires it.
-4. Keep current work and hypotheses in `memory/ACTIVE_STATE.md`. Retain confirmed reusable
+5. Keep current work and hypotheses in `memory/ACTIVE_STATE.md`. Retain confirmed reusable
    contracts, commands, invariants and root causes in topics. Each durable fact is a plain bullet:
 
    ```markdown
@@ -30,7 +35,7 @@ ripgrep is optional. Use the host agent's normal tools.
 
    Use actual source paths and the commit checked. A source change requests review; it does not prove the fact false.
    Keep unresolved facts marked `| state: review`; preserve their previous checked commit.
-5. At handoff, update affected facts and run `python3 <skill_dir>/scripts/memory-health.py .`.
+6. At handoff, update affected facts and run `python3 <skill_dir>/scripts/memory-health.py .`.
    Preserve the checkpoint field exactly: ``- **Last Synced Commit**: `<commit-or-UNSYNCED>` ``.
    After semantic checks, use `bash <skill_dir>/scripts/sync-memory.sh . --stamp` only with clean sources.
    Pending checks leave the checkpoint unchanged.
@@ -40,7 +45,7 @@ ripgrep is optional. Use the host agent's normal tools.
 - For stale facts, overflow, exact deduplication or batch revalidation, read [maintenance](references/maintenance.md).
 - For initialization, upgrades, native instruction imports and Git/Windows limitations, read [setup](README.md).
 - For bounded search, signature extraction and private log handling, read [exploration](references/exploration.md).
-- For token measurement, install the optional `lean-context-usage` skill from the same catalog.
+- For token measurement, read [benchmark protocol](references/benchmark.md) and use the bundled optional `scripts/usage-report.py`.
 
 The default recall limit is 8192 UTF-8 bytes per read, including notices. Disk caps are optional.
 The index remains at most 60 lines; the checkpoint at most 30 lines and 2048 bytes.

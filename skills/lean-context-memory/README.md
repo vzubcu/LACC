@@ -62,6 +62,33 @@ a local convenience, not trusted evidence or a security boundary.
 For budgets, selected-fact revalidation and compaction see [maintenance](references/maintenance.md).
 For scans and logs see [exploration](references/exploration.md).
 
+## Context pressure advisory
+
+Context-window compaction is separate from persisted-memory compaction. When the host reports
+current/main-request input tokens and the active model's context window is known, run:
+
+```bash
+python3 /path/to/lean-context-memory/scripts/context-pressure.py \
+  --input-tokens CURRENT_INPUT_TOKENS --context-window KNOWN_CONTEXT_WINDOW
+```
+
+For Codex, an explicitly supplied session JSONL can be read instead:
+
+```bash
+python3 /path/to/lean-context-memory/scripts/context-pressure.py \
+  --codex-trace /path/to/session.jsonl --context-window KNOWN_CONTEXT_WINDOW
+```
+
+The default policy is advisory: below 70% continue normally; at 70% refresh `ACTIVE_STATE.md`;
+at 80% refresh it and recommend the host-native context compact (for example `/compact` where
+supported); at 90% avoid substantial new exploration until checkpoint + compaction. Thresholds
+can be overridden with `--checkpoint-at`, `--compact-at` and `--urgent-at`.
+
+The script is read-only. It does not discover session traces, infer model context windows, edit
+memory, or invoke a host command. If usage or the context window is unavailable, do not fabricate
+a percentage. After a host compacts the conversation, reload the hot index/checkpoint with
+`memory-read.py`. Observed request input is a pressure proxy, not exact remaining context.
+
 ## Upgrade from v2.3
 
 Reinstall/update using `skills`, then rerun initialization to refresh marked rules and helper paths.
@@ -71,8 +98,8 @@ Existing topics and checkpoint are preserved. Remove only unused example bullets
 - Default sync is now advisory; use `--strict` for shell/CI review gates.
 - Default disk caps are removed. Existing configured `topic_bytes`/`topics_total_bytes` still apply.
 - `load_bytes` controls recall output; storage is never silently deleted.
-- `usage-report.py` moved to the optional **lean-context-usage** skill. Install it separately
-  and update old measurement script paths; memory operations do not depend on it.
+- `usage-report.py` remains optional tooling in this skill under `scripts/`; normal memory
+  operations do not invoke it. See [benchmark protocol](references/benchmark.md) before measuring.
 - No hooks are installed. Agent-specific automation and measured A/B savings remain separate work.
 
 Update installed skills using their original scope (`-p` project, `-g` global):
@@ -83,3 +110,10 @@ npx skills update lean-context-memory -g -y
 
 An older manually copied skill without source metadata first needs `skills add` from this repository
 in the same scope/agent. Back up local customizations before replacing an installed copy.
+
+## Optional usage benchmarking
+
+Benchmarking is bundled with this skill but is not part of the daily memory path. It makes no
+provider API calls and does not run automatically. Read [the benchmark protocol](references/benchmark.md)
+first, then use `python3 scripts/usage-report.py --help` for supported import and comparison commands.
+Real token savings require matched end-to-end model runs; synthetic tests do not establish a savings claim.

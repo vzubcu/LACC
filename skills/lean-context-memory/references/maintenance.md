@@ -45,6 +45,18 @@ and `state: review` is removed after acknowledgement. A changed preview, HEAD, u
 dirty source refuses the write. Recompute line selections after any edits.
 Unreviewed facts keep their old commit and pending state; do not acknowledge them merely to clear warnings.
 
+## Conversation context vs persisted-memory compaction
+
+These are different operations. `context-pressure.py` observes host-reported request input and
+recommends when to prepare for a host-native conversation compact. It never invokes that command.
+Before compacting the conversation, refresh `memory/ACTIVE_STATE.md` with the current goal,
+decisions, unresolved checks and next step; after compaction, reload the hot memory selection.
+
+`memory-maintain.py compact` only removes exact duplicate persisted fact records with identical
+evidence/state. It does not reduce the host conversation directly and must not be used as a substitute
+for a context checkpoint. If exact usage or the model context window is unavailable, do not estimate a
+pressure percentage from bytes, line counts or memory file size.
+
 ## Compact without losing evidence
 
 ```bash

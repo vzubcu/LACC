@@ -27,8 +27,8 @@ Record which native auto-memory features are enabled; avoid accidental double-me
 
 ## Dataset and report contract
 
-Use the [usage companion](../skills/lean-context-usage/README.md) and its
-[protocol](../skills/lean-context-usage/references/benchmark.md).
+Use the optional usage tooling bundled with [lean-context-memory](../skills/lean-context-memory/README.md)
+and its [measurement protocol](../skills/lean-context-memory/references/benchmark.md).
 Each dataset needs a sanitized experiment manifest with application fixture revision,
 installed skill revisions, exact agent/model/configuration, variant definition, prompts or
 safe prompt identifiers, initialization/warm-state preparation, execution order, trace-coverage
