@@ -3,7 +3,7 @@
 **Portable skills for AI agents.**
 
 LACC is an extensible collection of independently installable skills. The first available
-skill is lean-context-memory, which includes optional token-usage benchmarking tools. Planned
+skill is lean-context-memory, which includes advisory context-pressure monitoring and optional token-usage benchmarking. Planned
 domains include .NET Framework, security, compliance and other workflows; their implementation
 will be listed in the catalog when available. The catalog is independent of any one agent,
 provider or programming language.
@@ -59,6 +59,28 @@ ask the agent to initialize it again: this refreshes helper paths and marked rul
 The command installs the current repository content. CI pins its installer version separately so validation remains reproducible.
 For a reviewed snapshot, use a GitHub tree URL with a specific commit instead of the shorthand.
 See the [installer reference](https://github.com/vercel-labs/skills/blob/main/docs/commands.md).
+
+## Context pressure and safe compaction
+
+When the host exposes real current-request token usage and the active model's context window is known,
+`context-pressure.py` can give a read-only advisory:
+
+```bash
+python3 /path/to/lean-context-memory/scripts/context-pressure.py \
+  --input-tokens 150000 --context-window 200000
+```
+
+For an explicitly supplied Codex session trace:
+
+```bash
+python3 /path/to/lean-context-memory/scripts/context-pressure.py \
+  --codex-trace /path/to/session.jsonl --context-window 200000
+```
+
+Default thresholds are 70% checkpoint, 80% compact recommended and 90% urgent; all are configurable.
+The tool never discovers traces, edits memory, invokes `/compact`, or guesses missing model limits.
+Before a host-native context compact, refresh `memory/ACTIVE_STATE.md`; after compaction reload the hot
+memory. Observed request input is only a pressure proxy, not exact free context.
 
 ## How savings are measured
 

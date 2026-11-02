@@ -15,6 +15,7 @@
 - Check actual normalized source content even when Git index flags hide changes; recheck before evidence writes.
 - Reject corrupted UTF-8 rather than silently changing recalled text.
 - Shorten daily instructions while keeping optional benchmarking tooling inside lean-context-memory.
+- Add read-only context-pressure monitoring with configurable checkpoint/compact thresholds; it never invokes host compaction automatically.
 
 Compatibility: rerun initialization after upgrading; shell gates should use sync --strict.
 Configured legacy disk caps still apply. Existing facts/checkpoints are preserved. Benchmark tooling
