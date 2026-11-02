@@ -19,3 +19,7 @@ jobs:
         run: python3 -m unittest discover -s tests -v
       - name: Installer integration
         run: python3 tests/install_smoke.py
+      - name: Remote catalog installation
+        env:
+          SKILLS_SOURCE_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python3 tests/install_smoke.py --source "https://github.com/${GITHUB_REPOSITORY}/tree/${SKILLS_SOURCE_REF}"

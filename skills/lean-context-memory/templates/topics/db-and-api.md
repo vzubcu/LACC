@@ -2,4 +2,4 @@
 > Record confirmed DB/API/event contracts with source paths and a checked commit.
 > Changed sources require review, including semantic changes with identical types.
 
-- [Producer] --(payload/units)--> [Consumer] | source: `path/to/producer`, `path/to/consumer` | verified: `<checked-commit>`
+> Add verified schema, API or event facts here; leave unknown contracts in ACTIVE_STATE.md.

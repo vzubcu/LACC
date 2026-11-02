@@ -1,14 +1,18 @@
-# Agent skills
+# LACC — Lean Agent Capabilities Collection
 
-Portable skills for coding agents, starting with **lean-context-memory v2.3**:
-compact, source-backed project memory, bounded dependency exploration and measured token usage.
+**Portable skills for AI agents.**
+
+LACC is an extensible collection of independently installable skills. The first available
+skills cover project memory and usage measurement. Planned domains include .NET Framework,
+security, compliance and other workflows; their implementation will be listed in the catalog
+when available. The catalog is independent of any one agent, provider or programming language.
 
 ## Install
 
 From your project directory, run:
 
 ```bash
-npx skills add vzubcu/lean-context-memory-skill --skill lean-context-memory
+npx skills add vzubcu/LACC --skill lean-context-memory
 ```
 
 Choose your agent in the installer. Node.js 22.20+ and Git are needed for installation.
@@ -18,7 +22,7 @@ No model-provider SDK is required. The examples use the installer's current stab
 For a specific agent, without interactive prompts:
 
 ```bash
-npx skills add vzubcu/lean-context-memory-skill --skill lean-context-memory --agent claude-code -y
+npx skills add vzubcu/LACC --skill lean-context-memory --agent claude-code -y
 ```
 
 Replace `claude-code` with `codex`, `gemini-cli` or `roo`; multiple agents can follow `--agent`.
@@ -36,11 +40,15 @@ It does not automatically certify memory, run a model, or establish token saving
 
 | Skill | Purpose | Guide |
 |---|---|---|
-| `lean-context-memory` | Source-backed memory, adaptive dependency exploration, usage comparison | [Setup and measurement](skills/lean-context-memory/README.md) |
+| `lean-context-memory` | Source-backed memory, bounded recall, reviewed maintenance and exploration | [Setup and migration](skills/lean-context-memory/README.md) |
+| `lean-context-usage` | Optional reported-token comparison; no API calls or SDKs | [Measurement quick start](skills/lean-context-usage/README.md) |
 
 ```bash
 # Discover available skills without installing
-npx skills add vzubcu/lean-context-memory-skill --list
+npx skills add vzubcu/LACC --list
+
+# Choose skills and agents interactively
+npx skills add vzubcu/LACC
 
 # Update this skill (project scope)
 npx skills update lean-context-memory -p -y
@@ -52,7 +60,67 @@ The command installs the current repository content. CI pins its installer versi
 For a reviewed snapshot, use a GitHub tree URL with a specific commit instead of the shorthand.
 See the [installer reference](https://github.com/vercel-labs/skills/blob/main/docs/commands.md).
 
+## How savings are measured
+
+**Status: no completed real-model A/B savings result is published.** Passing helper tests,
+installer checks, a handoff exercise or shrinking SKILL.md do not establish net token savings.
+
+1. Run fixed tasks with and without lean-context-memory v2.4 in fresh sessions. Also compare
+   against the host's native memory; compare v2.3 separately when evaluating the upgrade.
+2. Match the application fixture, prompt, exact model, agent/tool versions, reasoning settings,
+   permissions and acceptance tests. Alternate variant order and start with five pairs per task.
+3. Count the complete run: instructions, bootstrap, exploration, retries, memory maintenance,
+   compaction and final checks. Keep cold-start and warmed-memory experiments separate.
+4. Import actual provider/host-reported usage with the optional lean-context-usage skill.
+   Compare normalized records and report failures as well as increases in usage.
+
+Report total input/output tokens, cached input, paired median/range and acceptance pass rates.
+Peak observed request input is a context proxy, not exact context-window occupancy. Cost also
+depends on cache/pricing and must be reported separately. A byte limit is not a token measurement.
+Savings are `(baseline - skill) / baseline * 100`; a failed/unverified output blocks a savings claim.
+
+See the [measurement quick start](skills/lean-context-usage/README.md),
+[full protocol](skills/lean-context-usage/references/benchmark.md) and
+[benchmark plan/status](benchmarks/README.md). The importer does not launch or pay for model runs.
+
 ## Existing installations
+
+The repository was renamed to `vzubcu/LACC`; installed skill names remain unchanged.
+Existing clones can update their remote:
+
+```bash
+git remote set-url origin https://github.com/vzubcu/LACC.git
+```
+
+For installer-managed updates, use the original scope:
+
+```bash
+npx skills update lean-context-memory -p -y
+# Global installation instead:
+npx skills update lean-context-memory -g -y
+```
+
+If an older/manual installation has no source metadata, or you want to rebind its source
+to the renamed catalog, reinstall into the same scope and agent. For a global Codex copy:
+
+```bash
+npx skills add vzubcu/LACC --skill lean-context-memory --agent codex -g --copy -y
+```
+
+Preserve any custom edits to the installed package before replacement. Project `memory/`
+files are separate from installed skill resources; rerun initialization afterward to refresh
+marked rules and helper paths while preserving existing project facts.
+
+v2.4 separates daily memory from benchmarking. Update memory and rerun initialization to
+refresh marked rules and helper paths. For the optional measurement tools, install:
+
+```bash
+npx skills add vzubcu/LACC --skill lean-context-usage
+```
+
+The old memory skill's `scripts/usage-report.py` path moves to the usage companion.
+Default sync is advisory; use `--strict` for review gates. Storage caps are now opt-in,
+and `memory-read.py` enforces a separate recall-output budget.
 
 Skill sources now live in `skills/lean-context-memory/`. Existing installed copies continue to work.
 If you run helpers directly from a clone, change `scripts/...` to
