@@ -8,17 +8,17 @@ compact, source-backed project memory, bounded dependency exploration and measur
 From your project directory, run:
 
 ```bash
-npx skills@1.7.4 add vzubcu/lean-context-memory-skill --skill lean-context-memory
+npx skills add vzubcu/lean-context-memory-skill --skill lean-context-memory
 ```
 
 Choose your agent in the installer. Node.js 22.20+ and Git are needed for installation.
 The memory helpers also need Bash and Python 3.9+ (on Windows, use WSL or Git Bash).
-No model-provider SDK is required. The installer version is pinned to the version tested here.
+No model-provider SDK is required. The examples use the installer's current stable version.
 
 For a specific agent, without interactive prompts:
 
 ```bash
-npx skills@1.7.4 add vzubcu/lean-context-memory-skill --skill lean-context-memory --agent claude-code -y
+npx skills add vzubcu/lean-context-memory-skill --skill lean-context-memory --agent claude-code -y
 ```
 
 Replace `claude-code` with `codex`, `gemini-cli` or `roo`; multiple agents can follow `--agent`.
@@ -40,15 +40,15 @@ It does not automatically certify memory, run a model, or establish token saving
 
 ```bash
 # Discover available skills without installing
-npx skills@1.7.4 add vzubcu/lean-context-memory-skill --list
+npx skills add vzubcu/lean-context-memory-skill --list
 
 # Update this skill (project scope)
-npx skills@1.7.4 update lean-context-memory -p -y
+npx skills update lean-context-memory -p -y
 ```
 
 For a global installation, use `-g` instead of `-p`. After updating or moving an installation,
 ask the agent to initialize it again: this refreshes helper paths and marked rules while preserving memory.
-The installer pin fixes the CLI version, not the repository revision; the command installs the current repository content.
+The command installs the current repository content. CI pins its installer version separately so validation remains reproducible.
 For a reviewed snapshot, use a GitHub tree URL with a specific commit instead of the shorthand.
 See the [installer reference](https://github.com/vercel-labs/skills/blob/main/docs/commands.md).
 
