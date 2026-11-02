@@ -1,7 +1,7 @@
 # Agent skills
 
 Portable skills for coding agents, starting with **lean-context-memory v2.4**:
-compact, source-backed project memory, bounded dependency exploration and measured token usage.
+compact, source-backed project memory, bounded dependency exploration and tools for measuring token usage.
 
 ## Install
 
@@ -37,7 +37,7 @@ It does not automatically certify memory, run a model, or establish token saving
 | Skill | Purpose | Guide |
 |---|---|---|
 | `lean-context-memory` | Source-backed memory, bounded recall, reviewed maintenance and exploration | [Setup and migration](skills/lean-context-memory/README.md) |
-| `lean-context-usage` | Optional reported-token comparison; no API calls or SDKs | [Benchmark protocol](skills/lean-context-usage/references/benchmark.md) |
+| `lean-context-usage` | Optional reported-token comparison; no API calls or SDKs | [Measurement quick start](skills/lean-context-usage/README.md) |
 
 ```bash
 # Discover available skills without installing
@@ -52,6 +52,29 @@ ask the agent to initialize it again: this refreshes helper paths and marked rul
 The command installs the current repository content. CI pins its installer version separately so validation remains reproducible.
 For a reviewed snapshot, use a GitHub tree URL with a specific commit instead of the shorthand.
 See the [installer reference](https://github.com/vercel-labs/skills/blob/main/docs/commands.md).
+
+## How savings are measured
+
+**Status: no completed real-model A/B savings result is published.** Passing helper tests,
+installer checks, a handoff exercise or shrinking SKILL.md do not establish net token savings.
+
+1. Run fixed tasks with and without lean-context-memory v2.4 in fresh sessions. Also compare
+   against the host's native memory; compare v2.3 separately when evaluating the upgrade.
+2. Match the application fixture, prompt, exact model, agent/tool versions, reasoning settings,
+   permissions and acceptance tests. Alternate variant order and start with five pairs per task.
+3. Count the complete run: instructions, bootstrap, exploration, retries, memory maintenance,
+   compaction and final checks. Keep cold-start and warmed-memory experiments separate.
+4. Import actual provider/host-reported usage with the optional lean-context-usage skill.
+   Compare normalized records and report failures as well as increases in usage.
+
+Report total input/output tokens, cached input, paired median/range and acceptance pass rates.
+Peak observed request input is a context proxy, not exact context-window occupancy. Cost also
+depends on cache/pricing and must be reported separately. A byte limit is not a token measurement.
+Savings are `(baseline - skill) / baseline * 100`; a failed/unverified output blocks a savings claim.
+
+See the [measurement quick start](skills/lean-context-usage/README.md),
+[full protocol](skills/lean-context-usage/references/benchmark.md) and
+[benchmark plan/status](benchmarks/README.md). The importer does not launch or pay for model runs.
 
 ## Existing installations
 

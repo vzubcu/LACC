@@ -1,4 +1,13 @@
-## Measure actual savings
+# Measure actual savings
+
+## Contents
+
+- [Matched runs](#matched-runs)
+- [API usage](#capture-reported-api-usage-from-any-agent)
+- [Codex logs](#optional-capture-a-complete-codex-cli-session)
+- [Interpretation](#read-the-result)
+
+## Matched runs
 
 Run the relative `scripts/usage-report.py` examples below from this skill directory,
 or replace the script path with its installed absolute path.
@@ -7,15 +16,30 @@ Use paired end-to-end runs; do not infer token savings from lines, bytes or comp
 The tool below imports reported usage and compares measurements; it does not launch or fund model runs.
 
 1. Choose fixed tasks: a source rename, an event-consumer change and an overflowing-memory handoff.
-2. Prepare identical code, initial memory and acceptance checks for each variant.
-3. Run separate comparisons: no skill vs v2.3, and v2.2 vs v2.3.
-4. Keep exact model version, reasoning settings, agent/tool versions and permissions fixed; record them in `config_id`.
+2. Prepare identical application code, task prompts and acceptance checks. Cold-start variants
+   begin without learned facts. Warm variants start with equivalent verified facts in their
+   respective memory formats; record preparation and reset state between repetitions.
+3. Primary comparison: no skill vs v2.4. Also compare native agent memory vs v2.4 and,
+   separately, v2.3 vs v2.4. Define whether native auto-memory is enabled in each arm;
+   do not accidentally give the skill arm a second hidden memory store.
+4. Keep exact model version, reasoning settings, agent/tool versions and permissions fixed;
+   record the unchanged harness configuration in `config_id`. The intentionally varied memory
+   treatment is the experiment arm, not a reason to assign mismatched config_id values.
 5. Use a fresh session for each run; include skill loading, bootstrap/sync where applicable, exploration, retries,
    memory maintenance, compaction and final validation.
 6. Alternate/randomize variant order and collect at least five matched repetitions per task.
 7. Evaluate both outputs with the same acceptance checks; record failed/unverified runs rather than dropping them.
 8. Keep cold-start and warmed-memory/cache experiments separate.
    Providers may cache shared prefixes even in a cold project run; record actual cached counts rather than assuming zero.
+
+Five pairs per task is an initial observation, not proof of a general improvement. Report per-task
+results, including small one-off tasks where startup overhead may dominate. Record source revision
+and installed skill revision, agent version, prompts, order, acceptance results and trace completeness
+alongside each dataset. `fixture_commit` identifies the common application fixture; keep variant-specific
+instruction/install changes in the experiment manifest rather than changing that matched identity.
+
+The comparator checks supplied labels and counters; the operator must independently run the same
+acceptance tests. For failed or unverified runs it reports usage and blocks a savings percentage.
 
 For an initial benchmark, disable subagent delegation in both variants.
 Parent-only logs undercount delegated work: the importer rejects observed spawn-agent calls.
@@ -52,7 +76,7 @@ OpenAI and Gemini fields are documented in the official
 and [Google SDK usage metadata](https://github.com/googleapis/python-genai/blob/main/google/genai/types.py).
 Cache-write tokens are retained; simple three-rate cost estimation remains unavailable when writes are nonzero.
 
-Run no-skill/v2.2/v2.3 comparisons separately within each agent and exact model/configuration.
+Run no-skill/native-memory/v2.3/v2.4 comparisons separately within each agent and exact model/configuration.
 Include the agent version in config_id; different model tokenizers do not provide interchangeable token units.
 The importers cannot prove that an external harness exported every retry, server-side request or child agent;
 the benchmark operator must ensure whole-run coverage. Unsupported logs fail or require the normalized schema below.
