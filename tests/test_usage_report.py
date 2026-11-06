@@ -65,6 +65,17 @@ class UsageReportTests(unittest.TestCase):
                 self.assertEqual(data["usage"]["cached_input_tokens"], 40)
                 self.assertEqual(data["usage_updates"], 1)
 
+    def test_capture_does_not_export_absolute_private_trace_path(self):
+        response = {"id": "request-private", "object": "response",
+                    "status": "completed", "model": "fixed-model-version",
+                    "usage": {"input_tokens": 10, "output_tokens": 2,
+                              "total_tokens": 12, "input_tokens_details": {"cached_tokens": 0}}}
+        result = self.capture_api("openai-responses", [response])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertEqual(data["trace_path"], "api.jsonl")
+        self.assertNotIn(str(self.root), result.stdout)
+
     def test_anthropic_input_includes_cache_reads_and_writes(self):
         response = {"id": "msg-1", "type": "message", "stop_reason": "end_turn", "model": "fixed-model-version", "usage": {
             "input_tokens": 10, "cache_creation_input_tokens": 20,

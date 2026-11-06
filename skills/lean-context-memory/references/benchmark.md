@@ -145,6 +145,8 @@ python3 scripts/usage-report.py compare baseline.jsonl optimized.jsonl \
 ```
 
 No prices are hardcoded; nonzero cache-write usage makes this simple cost model unsupported.
+Captured `trace_path` stores only the trace filename, not its absolute directory; use a
+private experiment manifest if full local trace paths are needed. Review all metadata before publication.
 Keep raw traces and benchmark results local: they can contain source code, prompts and secrets.
 No valid A/B savings percentage has been established by the included synthetic integration fixtures.
 

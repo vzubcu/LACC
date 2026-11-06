@@ -148,7 +148,7 @@ def capture_record(args, source, counts, peak, updates, **extra):
     if args.duration_ms is not None and (not math.isfinite(args.duration_ms) or args.duration_ms < 0):
         raise ValueError("duration-ms must be a finite non-negative harness measurement")
     record = {field: getattr(args, field) for field in IDENTITY}
-    record.update(source=source, trace_path=str(args.trace),
+    record.update(source=source, trace_path=Path(args.trace).name,
                   quality_passed={"passed": True, "failed": False, "unverified": None}[args.quality],
                   duration_ms=args.duration_ms, usage=counts | {"peak_input_tokens": peak}, usage_updates=updates,
                   **extra)
