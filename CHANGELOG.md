@@ -1,5 +1,16 @@
 # Changes
 
+## Unreleased — Git verification and agent diagnostics
+
+- Verify historical source blobs and staged index modes in bounded Git batches,
+  while still hashing every distinct worktree source through `git hash-object --path`.
+- Preserve checks for staged-only changes, literal Git pathspecs, and source
+  modifications hidden by `assume-unchanged`; no automatic fact promotion.
+- Provide read-only `memory-health.py --json` with complete structured findings
+  and unchanged exit codes.
+- Add local regression coverage for multi-revision facts, large source batches,
+  permission-only staged changes and JSON diagnostics. No hosted CI changes.
+
 ## Unreleased — safety and memory correctness
 
 - Use a shared provenance/fact parser across health and maintenance, preserving fenced examples and inline shell pipes.

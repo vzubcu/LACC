@@ -149,3 +149,95 @@ def fact_lines(text):
     for number, line in topic_content_lines(text):
         if re.match(r'^\s*-\s+', line):
             yield number, line
+
+
+def batch_source_statuses(root, references):
+    """Check Git index + normalized worktree bytes for many (commit, source) pairs.
+
+    One index inventory and one ls-tree query per bounded revision/path batch
+    replace the per-fact ls-files/diff/rev-parse calls. Worktree hashes are
+    still calculated with git hash-object --path, so attributes/filters and
+    assume-unchanged cannot hide a source change.
+    """
+    references = sorted(set(references))
+    if not references:
+        return {}
+    index = git(root, 'ls-files', '--stage', '-z')
+    if index.returncode:
+        raise ValueError('Git index inventory failed')
+    indexed = {}
+    for item in index.stdout.split(b'\0'):
+        if not item:
+            continue
+        try:
+            details, name = item.split(b'\t', 1)
+            mode, oid, stage = details.decode('ascii').split()
+        except ValueError as exc:
+            raise ValueError('invalid Git index inventory') from exc
+        key = os.fsdecode(name)
+        if key in indexed:
+            indexed[key] = None  # unmerged: multiple stages
+        elif stage != '0':
+            indexed[key] = None
+        else:
+            indexed[key] = (mode, oid)
+
+    by_revision = {}
+    for revision, source in references:
+        by_revision.setdefault(revision, set()).add(source)
+    historical = {}
+    for revision, names in sorted(by_revision.items()):
+        # Bound argv on Windows too; no shell interpolation or wildcard expansion.
+        batch, size = [], 0
+        groups = []
+        for name in sorted(names):
+            cost = len(os.fsencode(name)) + 1
+            if batch and (len(batch) >= 128 or size + cost > 12000):
+                groups.append(batch)
+                batch, size = [], 0
+            batch.append(name)
+            size += cost
+        if batch:
+            groups.append(batch)
+        for group in groups:
+            result = git(root, 'ls-tree', '-r', '-z', '--full-tree',
+                         revision, '--', *group)
+            if result.returncode:
+                raise ValueError('Git historical source lookup failed')
+            for item in result.stdout.split(b'\0'):
+                if not item:
+                    continue
+                try:
+                    details, name = item.split(b'\t', 1)
+                    mode, kind, oid = details.decode('ascii').split()
+                except ValueError as exc:
+                    raise ValueError('invalid Git historical tree response') from exc
+                if kind == 'blob':
+                    historical[(revision, os.fsdecode(name))] = (mode, oid)
+
+    checked = {}
+    worktree_hashes = {}
+    for revision, source in references:
+        if source not in indexed:
+            checked[(revision, source)] = 'untracked-source'
+            continue
+        expected = historical.get((revision, source))
+        if indexed[source] is None or expected is None or indexed[source] != expected:
+            checked[(revision, source)] = 'changed-source'
+            continue
+        if source not in worktree_hashes:
+            dest = local_file(root, source)
+            if dest is None or not dest.is_file():
+                raise ValueError('unsafe or missing source during batch verification')
+            with dest.open('rb') as stream:
+                result = subprocess.run(
+                    ['git', '-C', str(root), 'hash-object',
+                     '--path=' + source, '--stdin'],
+                    stdin=stream, capture_output=True)
+            if result.returncode:
+                raise ValueError('Git worktree source hashing failed')
+            worktree_hashes[source] = result.stdout.decode('ascii').strip()
+        checked[(revision, source)] = (
+            None if worktree_hashes[source] == expected[1] else 'changed-source'
+        )
+    return checked

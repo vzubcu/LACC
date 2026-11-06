@@ -82,6 +82,26 @@ The tool never discovers traces, edits memory, invokes `/compact`, or guesses mi
 Before a host-native context compact, refresh `memory/ACTIVE_STATE.md`; after compaction reload the hot
 memory. Observed request input is only a pressure proxy, not exact free context.
 
+## Machine-readable memory health (optional)
+
+For scripts or agent tools that need structured results:
+
+```bash
+python3 /path/to/lean-context-memory/scripts/memory-health.py . --json
+```
+
+The checker reports full source-backed findings as JSON and preserves its
+0/1/2 exit-code contract. Git source verification is batched by historical
+revision with bounded path groups, while each distinct worktree source
+is still hashed through Git to detect hidden or staged edits.
+
+These are reliability and local performance improvements; they do not
+prove any model-token saving. Local regression tests require no hosted runners:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
 ## How savings are measured
 
 **Status: no completed real-model A/B savings result is published.** Passing helper tests,
