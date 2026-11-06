@@ -168,6 +168,13 @@ class UsageReportTests(unittest.TestCase):
             with self.subTest(override=override):
                 self.assertEqual(self.compare([self.row()], [self.row(**override)]).returncode, 2)
 
+    def test_comparison_rejects_mixed_measurement_sources(self):
+        before = self.row(source="provider_usage")
+        after = self.row(source="codex_exec_turn", usage_granularity="turn")
+        result = self.compare([before], [after])
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("measurement source", result.stderr)
+
     def test_invalid_measurements_and_duplicate_pairs_are_rejected(self):
         for usage in [{"input_tokens": -1}, {"input_tokens": True}, {"cached_input_tokens": 1001},
                       {"peak_input_tokens": 1001}]:
@@ -229,6 +236,59 @@ class UsageReportTests(unittest.TestCase):
                                        "--model", "m", "--fixture-commit", "c", "--config-id", "config", "--cache-mode", "cold")
                 self.assertEqual(result.returncode, 2)
                 self.assertIn("ERROR:", result.stderr)
+
+    def capture_codex_exec(self, events):
+        return self.run_tool(
+            "capture-codex-exec", self.write_rows("codex-exec.jsonl", events),
+            "--task-id", "rename", "--pair-id", "1",
+            "--model", "fixed-model-version", "--fixture-commit", "fixed-code-fixture",
+            "--config-id", "same-harness-effort-tools", "--cache-mode", "cold",
+            "--quality", "passed",
+        )
+
+    def test_codex_exec_json_imports_complete_turn_usage(self):
+        events = [
+            {"type": "thread.started", "thread_id": "thread-1"},
+            {"type": "turn.started"},
+            {"type": "item.completed", "item": {"type": "agent_message", "text": "Done"}},
+            {"type": "turn.completed", "usage": {
+                "input_tokens": 100, "cached_input_tokens": 40,
+                "cache_write_input_tokens": 5, "output_tokens": 20,
+                "reasoning_output_tokens": 8}},
+            {"type": "turn.started"},
+            {"type": "turn.completed", "usage": {
+                "input_tokens": 200, "cached_input_tokens": 100,
+                "output_tokens": 30, "reasoning_output_tokens": 4}},
+        ]
+        result = self.capture_codex_exec(events)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        row = json.loads(result.stdout)
+        self.assertEqual(row["source"], "codex_exec_turn")
+        self.assertEqual(row["usage"]["input_tokens"], 300)
+        self.assertEqual(row["usage"]["cached_input_tokens"], 140)
+        self.assertEqual(row["usage"]["output_tokens"], 50)
+        self.assertEqual(row["usage"]["cache_write_input_tokens"], 5)
+        self.assertEqual(row["usage_updates"], 2)
+        self.assertEqual(row["peak_semantics"], "max_turn_input_not_context_occupancy")
+        self.assertFalse(row["model_from_trace_verified"])
+
+    def test_codex_exec_incomplete_and_delegated_traces_fail(self):
+        valid_start = [{"type": "thread.started", "thread_id": "test"},
+                       {"type": "turn.started"}]
+        cases = [
+            valid_start,
+            valid_start + [{"type": "turn.failed", "error": {"message": "failed"}}],
+            valid_start + [{"type": "error", "message": "error"}],
+            valid_start + [{"type": "turn.completed", "usage": {
+                "input_tokens": True, "cached_input_tokens": 0, "output_tokens": 10}}],
+            valid_start + [{"type": "item.started", "item": {
+                "type": "mcp_tool_call", "tool": "functions.spawn_agent"}}],
+        ]
+        for events in cases:
+            with self.subTest(events=events):
+                result = self.capture_codex_exec(events)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("ERROR", result.stderr)
 
     def test_text_report_includes_paired_variation_and_quality_counts(self):
         result = self.run_tool("compare", self.write_rows("before.jsonl", [self.row()]),

@@ -62,25 +62,22 @@ See the [installer reference](https://github.com/vercel-labs/skills/blob/main/do
 
 ## Context pressure and safe compaction
 
-When the host exposes real current-request token usage and the active model's context window is known,
-`context-pressure.py` can give a read-only advisory:
+For host-reported active-context usage and an exact context window,
+`context-pressure.py` can produce a read-only advisory:
 
 ```bash
 python3 /path/to/lean-context-memory/scripts/context-pressure.py \
-  --input-tokens 150000 --context-window 200000
+  --used-context-tokens 150000 --context-window 200000
 ```
 
-For an explicitly supplied Codex session trace:
-
-```bash
-python3 /path/to/lean-context-memory/scripts/context-pressure.py \
-  --codex-trace /path/to/session.jsonl --context-window 200000
-```
+For a supplied Codex JSONL session, the helper prefers
+`last_token_usage.total_tokens` as active context and reads
+`model_context_window` when present. A legacy `--input-tokens`
+observation is labeled as a weaker request proxy.
 
 Default thresholds are 70% checkpoint, 80% compact recommended and 90% urgent; all are configurable.
 The tool never discovers traces, edits memory, invokes `/compact`, or guesses missing model limits.
-Before a host-native context compact, refresh `memory/ACTIVE_STATE.md`; after compaction reload the hot
-memory. Observed request input is only a pressure proxy, not exact free context.
+Before host-native compact, refresh `memory/ACTIVE_STATE.md`; afterward reload the hot memory.
 
 ## Machine-readable memory health (optional)
 
@@ -101,6 +98,22 @@ prove any model-token saving. Local regression tests require no hosted runners:
 ```bash
 python3 -m unittest discover -s tests -v
 ```
+
+## Rider Claude Agent benchmarks without made-up token counts
+
+If your JetBrains AI account exposes **Session explorer** with settled
+per-session token totals, record distinct matched baseline/skill sessions and
+compare total usage locally:
+
+```bash
+python3 skills/lean-context-memory/scripts/session-totals.py baseline.jsonl optimized.jsonl --json
+```
+
+The tool reports total-token savings and independent quality status; it
+does not infer cache, prompt, completion or dollar costs. If Session explorer
+is unavailable, Rider's context percentage does **not** provide a valid
+total-token benchmark. Codex CLI `codex exec --json` is supported separately
+via `usage-report.py capture-codex-exec`.
 
 ## How savings are measured
 

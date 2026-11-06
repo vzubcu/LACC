@@ -1,5 +1,19 @@
 # Changes
 
+## Unreleased — safe context signals and reproducible local benchmarks
+
+- Separate Codex active-context observations (`last_token_usage.total_tokens`)
+  from cumulative token spending and request-input proxies; read host-reported
+  context capacity when supplied and keep compaction advisory-only.
+- Import real, complete `codex exec --json` turn-level usage without confusing
+  it with internal Codex rollout `token_count` records.
+- Add an offline total-only comparator for JetBrains Rider Claude Agent
+  sessions measured through JetBrains Session explorer when available.
+  Report no invented prompt/output/cache breakdown or costs.
+- Document local matched-run validation and add contract tests.
+  No GitHub Actions workflows, runners or infrastructure introduced.
+
+
 ## Unreleased — Git verification and agent diagnostics
 
 - Verify historical source blobs and staged index modes in bounded Git batches,

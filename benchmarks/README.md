@@ -25,6 +25,20 @@ reasoning settings, tools, permissions and acceptance checks matched. Reset muta
 between repetitions. Equivalent warm knowledge must be documented in each arm's native format.
 Record which native auto-memory features are enabled; avoid accidental double-memory treatment.
 
+## Optional Rider pilot (total tokens only)
+
+For Claude Agent inside Rider using JetBrains AI, Session explorer can expose
+per-session total tokens when that analytics view is available. Use the
+standalone `scripts/session-totals.py` comparator; do not convert context-window
+percentages or AI Credits into token estimates. Use separate matched sessions,
+the same model/configuration/fixture, a settled total and independently
+verified quality. The schema, example and constraints are documented in the
+[benchmark protocol](../skills/lean-context-memory/references/benchmark.md#jetbrains-rider-agent-session-totals).
+If totals cannot be obtained, the experiment is unmeasured.
+
+Codex `exec --json` uses `usage-report.py capture-codex-exec`, not
+`capture-codex` (which handles internal rollout logs).
+
 ## Dataset and report contract
 
 Use the optional usage tooling bundled with [lean-context-memory](../skills/lean-context-memory/README.md)
