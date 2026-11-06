@@ -9,6 +9,24 @@ import subprocess
 import sys
 
 
+def sensitive_file(path):
+    """Avoid printing common credential/configuration contents in broad searches."""
+    name = path.name.lower()
+    private_dirs = {".ssh", ".aws", ".kube", ".gnupg", ".secrets"}
+    if any(part.lower() in private_dirs for part in path.parts):
+        return True
+    if name in {".env", ".npmrc", ".netrc", ".pypirc", "credentials", "id_rsa", "id_ed25519"}:
+        return True
+    if name.startswith(".env.") or name.endswith((".pem", ".key", ".p12", ".pfx", ".kdbx")):
+        return True
+    return False
+
+
+def source_lines(text):
+    """Preserve editor line numbers, which count LF/CRLF/CR rather than Unicode separators."""
+    return re.split(r'\r\n|\n|\r', text)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('file')
@@ -27,7 +45,7 @@ def main():
     root = Path.cwd().resolve()
     target = Path(args.file)
     target = target if target.is_absolute() else root / target
-    if not target.is_file() or any(x.is_symlink() for x in (target, *target.parents) if x != root) or not target.resolve().is_relative_to(root):
+    if not target.is_file() or any(x.is_symlink() for x in (target, *target.parents) if x != root and x.is_relative_to(root)) or not target.resolve().is_relative_to(root):
         p.error('target must be a regular file inside the project directory')
     target = target.resolve()
     names, inventory = [], 'walk'
@@ -48,6 +66,7 @@ def main():
         rel = path.relative_to(root)
         ignored = any(part in {'.git', 'node_modules', '__pycache__'} for part in rel.parts)
         ignored |= rel.parts[0] in {'memory', 'vendor', 'dist', '.superpowers'}
+        ignored |= sensitive_file(rel)
         ignored |= any(fnmatch.fnmatch(rel.as_posix(), glob) for glob in args.exclude)
         if ignored and path != target:
             excluded += 1
@@ -58,6 +77,8 @@ def main():
     imports = re.compile(r'\b(?:import|from|require|use|using|include|export)\b')
     target_name = target.with_suffix('')
     dotted = target.relative_to(root).with_suffix('').as_posix().replace('/', '.')
+    if target.name == '__init__.py':
+        dotted = dotted.removesuffix('.__init__')
     matches = []
     scanned = skipped = consumed = total_matches = 0
     budget_hit = False
@@ -95,9 +116,11 @@ def main():
             skipped += 1
             continue
         scanned += 1
-        for number, line in enumerate(text.splitlines(), 1):
+        for number, line in enumerate(source_lines(text), 1):
             kind, rank = None, 1
-            if path == target and imports.search(line):
+            if path == target and imports.search(line) and (
+                    re.search(r'\b(?:import|require|include)\b|\bfrom\s+\S+\s+import\b', line)
+                    or re.search(r'["\x27]\.{1,2}/', line)):
                 kind, rank = 'OUTBOUND', 0
             elif imports.search(line):
                 qualified = '.' in dotted and bool(re.search(r'(?<![\w.])' + re.escape(dotted) + r'(?![\w.])', line))

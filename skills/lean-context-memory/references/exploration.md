@@ -15,7 +15,10 @@ the scan caps bound content reads, not total filesystem traversal time.
 Git/ripgrep inventories honor their ignore rules. Root dist/vendor/memory directories are
 excluded; bin/build/obj and nested source directories remain searchable unless ignored or explicitly excluded.
 Excluded and oversized/binary/unsafe counts and exhausted budgets disclose incomplete coverage.
-The explicitly selected target is always considered, including when an exclusion would match it.
+Broad searches additionally exclude common credential files (.env*, .npmrc, .netrc,
+*.pem, *.key, *.p12, *.pfx and known private-key directories), even when tracked.
+The explicitly selected target is always considered, including when an exclusion would match it;
+choose an explicit sensitive target only when authorized and avoid publishing the output.
 
 ```bash
 bash <skill_dir>/scripts/ast-skeleton.sh src/checkout.py --limit 40 --max-bytes 5000
@@ -31,8 +34,9 @@ bash <skill_dir>/scripts/ctx-slice.sh build.log 100
 some_command 2>&1 | bash <skill_dir>/scripts/ctx-slice.sh - 100
 ```
 
-Stdin spools into a private random temporary file and is cleaned up automatically. `--keep`
-explicitly retains the private log and prints its path on stderr; the caller owns its cleanup.
+Stdin is streamed in memory without writing a temporary log by default. `--keep`
+explicitly saves stdin into a private file and prints its path on stderr; the caller owns its cleanup.
+`--keep` applies only to stdin.
 The helper preserves the first/last requested lines, with an omission notice. It bounds lines,
 not bytes: narrow a giant single line separately. Set `pipefail` in the calling shell when the
 upstream command's status must propagate. Truncation is not a substitute for checking failures.

@@ -12,7 +12,8 @@ Null storage caps mean unlimited topic storage on disk. Positive integer caps ar
 legacy numeric caps remain enforced. load_bytes must be at least 512 and limits each
 memory-read.py response, including path headers and notices. Override a read with a smaller
 `--max-bytes`. Store large topics in separate domains and read selected ranges if truncated.
-The 60-line index and 30-line/2048-byte checkpoint remain the hot-memory limits.
+The index is capped at 60 lines/4096 UTF-8 bytes, and the checkpoint at
+30 lines/2048 UTF-8 bytes. The default hot read prioritizes the checkpoint.
 
 Durable bullets require source paths and an existing checked commit. Plain wording is sufficient:
 
@@ -22,7 +23,8 @@ Durable bullets require source paths and an existing checked commit. Plain wordi
 ```
 
 Headings and blockquotes provide contextual explanations; put commands inline in the supported
-fact bullet. Ordinary unsupported prose is flagged by the strict health checker so unverified
+fact bullet. Pipes inside backtick-quoted inline commands do not split provenance fields.
+Fenced Markdown examples are never parsed as facts. Ordinary unsupported prose is flagged by the strict health checker so unverified
 assertions cannot masquerade as validated facts. Pending hypotheses belong in ACTIVE_STATE.md.
 
 ## Review selected stale facts

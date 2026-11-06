@@ -2,7 +2,14 @@
 # Shared memory protocol with thin native instruction bridges for coding agents.
 set -euo pipefail
 SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-python3 - "$SKILL_DIR" "$@" <<'PY'
+PYTHON_BIN="${PYTHON:-}"
+if [[ -z "$PYTHON_BIN" ]]; then
+  if command -v python3 >/dev/null 2>&1; then PYTHON_BIN=python3
+  elif command -v python >/dev/null 2>&1; then PYTHON_BIN=python
+  else echo "ERROR: Python 3.9+ is required" >&2; exit 2
+  fi
+fi
+"$PYTHON_BIN" - "$SKILL_DIR" "$PYTHON_BIN" "$@" <<'PY'
 import argparse
 import hashlib
 import json
@@ -13,10 +20,11 @@ import shlex
 import sys
 
 skill = Path(sys.argv[1]).resolve()
+python_bin = sys.argv[2]
 parser = argparse.ArgumentParser(description="Initialize shared memory and agent-native instruction bridges.")
 parser.add_argument("project_dir", nargs="?", default=".")
 parser.add_argument("--agent", choices=["auto", "codex", "claude", "gemini", "roo", "all"], default="auto")
-args = parser.parse_args(sys.argv[2:])
+args = parser.parse_args(sys.argv[3:])
 root = Path(args.project_dir).resolve()
 if not root.is_dir():
     parser.error("project directory must exist")
@@ -31,7 +39,7 @@ def markdown_code(value):
 
 skill_reference = markdown_code((skill / "SKILL.md").as_posix())
 sync_command = markdown_code("bash " + shlex.quote((skill / "scripts/sync-memory.sh").as_posix()))
-health_command = markdown_code("python3 " + shlex.quote((skill / "scripts/memory-health.py").as_posix()))
+health_command = markdown_code(shlex.quote(python_bin) + " " + shlex.quote((skill / "scripts/memory-health.py").as_posix()))
 common = f"""{start}
 ## Project memory (lean-context-memory v2.4)
 - Use `memory/` as the shared fact store; load {skill_reference} for memory maintenance.
@@ -48,7 +56,13 @@ The memory workflow does not require Codex or a usage collector.
 native = {"claude": "CLAUDE.md", "gemini": "GEMINI.md", "roo": ".roo/rules/lean-context-memory.md"}
 targets = {"AGENTS.md": common}
 for agent, name in native.items():
-    if args.agent in {agent, "all"} or (root / name).exists() or (root / name).is_symlink():
+    native_path = root / name
+    explicit = args.agent in {agent, "all"}
+    auto_existing = args.agent == "auto" and (native_path.exists() or native_path.is_symlink())
+    if auto_existing and native_path.is_symlink():
+        print("[SKIP] Native instruction symlink preserved: " + name)
+        continue
+    if explicit or auto_existing:
         targets[name] = f"{start}\n@AGENTS.md\n{end}" if agent == "claude" else bridge
 templates = ["MEMORY_INDEX.md", "ACTIVE_STATE.md", "topics/architecture.md", "topics/db-and-api.md", "topics/gotchas.md"]
 pattern = re.compile(re.escape(start) + r".*?" + re.escape(end), re.DOTALL)
@@ -73,7 +87,7 @@ try:
     # Preflight every destination and existing instruction block before any writes.
     memory = [(safe_file("memory/" + name), skill / "templates" / name) for name in templates]
     manifest = safe_file('memory/.bootstrap.json')
-    generated = json.loads(manifest.read_text()) if manifest.exists() else {}
+    generated = json.loads(manifest.read_text(encoding="utf-8")) if manifest.exists() else {}
     if not isinstance(generated, dict) or any(not isinstance(k, str) or not isinstance(v, str) for k, v in generated.items()):
         raise ValueError('invalid bootstrap metadata')
     updates = []
@@ -93,7 +107,9 @@ try:
         created = not path.exists() or generated.get(name) == original_hash
         updates.append((path, updated))
         if created:
-            generated[name] = hashlib.sha256(updated.encode()).hexdigest()
+            generated[name] = hashlib.sha256(updated.encode("utf-8")).hexdigest()
+        else:
+            generated.pop(name, None)
     for dest, source in memory:
         if not dest.exists():
             dest.parent.mkdir(parents=True, exist_ok=True)
@@ -101,9 +117,9 @@ try:
             print("[+] Created " + dest.relative_to(root).as_posix())
     for path, updated in updates:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(updated, encoding="utf-8")
+        path.write_bytes(updated.encode("utf-8"))
         print("[OK] Linked " + path.relative_to(root).as_posix())
-    manifest.write_text(json.dumps(generated, indent=2) + '\n')
+    manifest.write_bytes((json.dumps(generated, indent=2) + '\n').encode("utf-8"))
 except (OSError, UnicodeError, ValueError) as exc:
     print(f"ERROR: {exc}", file=sys.stderr)
     sys.exit(2)

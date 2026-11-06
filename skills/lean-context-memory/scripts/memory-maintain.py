@@ -4,6 +4,7 @@ import difflib
 import hashlib
 import json
 import os
+import stat
 from pathlib import Path
 import sys
 import tempfile
@@ -27,7 +28,7 @@ def main():
     args = parser.parse_args()
     root = Path(args.project_dir).resolve()
     try:
-        originals = {path: path.read_text(encoding='utf-8') for path in topic_files(root)}
+        originals = {path: path.read_bytes().decode('utf-8') for path in topic_files(root)}
         head_result = git(root, 'rev-parse', '--verify', 'HEAD')
         head = head_result.stdout.decode().strip() if head_result.returncode == 0 else ''
         fingerprint = hashlib.sha256()
@@ -76,7 +77,9 @@ def main():
                     if not source_matches(root, source, head):
                         raise ValueError('source must be committed before revalidation: ' + source)
                     reviewed_sources.add(source)
-                lines[number - 1] = fact + ' | source: ' + data['source'] + ' | verified: `' + head + '`\n'
+                old_line = lines[number - 1]
+                newline = '\r\n' if old_line.endswith('\r\n') else ('\r' if old_line.endswith('\r') else '\n')
+                lines[number - 1] = fact + ' | source: ' + data['source'] + ' | verified: `' + head + '`' + newline
             proposed[path] = ''.join(lines)
         print('Plan: ' + digest)
         changed = {path: text for path, text in proposed.items() if text != originals[path]}
@@ -90,7 +93,7 @@ def main():
         if args.apply:
             # Check every input again before writing any file.
             for path, text in originals.items():
-                if local_file(root, path.relative_to(root).as_posix()) is None or path.read_text(encoding='utf-8') != text:
+                if local_file(root, path.relative_to(root).as_posix()) is None or path.read_bytes().decode('utf-8') != text:
                     raise ValueError('memory changed during planning; no write applied')
             def verify_sources():
                 current = git(root, 'rev-parse', '--verify', 'HEAD')
@@ -103,8 +106,9 @@ def main():
             for path, text in changed.items():
                 fd, name = tempfile.mkstemp(prefix='.memory-', dir=path.parent)
                 try:
-                    with os.fdopen(fd, 'w', encoding='utf-8') as stream:
-                        stream.write(text)
+                    with os.fdopen(fd, 'wb') as stream:
+                        stream.write(text.encode('utf-8'))
+                    os.chmod(name, stat.S_IMODE(path.stat().st_mode))
                     verify_sources()
                     os.replace(name, path)
                 finally:

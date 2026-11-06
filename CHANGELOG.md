@@ -1,5 +1,16 @@
 # Changes
 
+## Unreleased — safety and memory correctness
+
+- Use a shared provenance/fact parser across health and maintenance, preserving fenced examples and inline shell pipes.
+- Protect task checkpoints from oversized indexes; validate topic pointers and add an index byte cap.
+- Exclude common secrets from broad dependency scans, constrain signature extraction to local safe files, and use accurate source line numbers.
+- Stream sliced logs without temporary disk writes by default; `--keep` explicitly retains a private stdin log.
+- Respect explicit native agent targets and symlinked auto-discovery; make UTF-8 bootstrap and checkpoint writes byte-stable on Windows.
+- Preserve topic file modes and CRLF during reviewed memory maintenance; provide Python interpreter fallback for Bash wrappers.
+- Add regression tests for security, provenance parsing, state protection and portability. No CI workflow or runner changes.
+
+
 ## v2.4 — review-driven improvements
 
 - Rename the catalog to LACC (Lean Agent Capabilities Collection), with independent skill

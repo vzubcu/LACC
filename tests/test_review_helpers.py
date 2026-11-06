@@ -58,16 +58,14 @@ class HelperReviewTests(ProjectCase):
             self.assertEqual(stat.S_IMODE(files[0].stat().st_mode), 0o600)
             self.assertEqual(files[0].read_text(), 'one\ntwo\nthree\n')
 
-    def test_interrupted_stdin_slice_cleans_private_log(self):
+    def test_interrupted_stdin_slice_does_not_spool_by_default(self):
         with tempfile.TemporaryDirectory() as directory:
             process = subprocess.Popen(['bash', str(TOOLS/'ctx-slice.sh'), '-', '2'],
                                        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                        env=dict(os.environ, TMPDIR=directory))
             try:
-                until = time.monotonic() + 3
-                while not list(Path(directory).iterdir()) and time.monotonic() < until:
-                    time.sleep(0.01)
-                self.assertTrue(list(Path(directory).iterdir()))
+                time.sleep(0.1)
+                self.assertEqual(list(Path(directory).iterdir()), [])
                 process.terminate()
                 process.communicate(timeout=3)
                 self.assertEqual(list(Path(directory).iterdir()), [])

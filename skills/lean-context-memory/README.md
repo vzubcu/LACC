@@ -2,7 +2,8 @@
 
 A skill from **LACC — Lean Agent Capabilities Collection**.
 Portable project memory for agents with Bash, Git and Python 3.9+. No daemon, embeddings
-or provider SDK. On Windows provide Git Bash or WSL and Python. Use interpreter commands;
+or provider SDK. On Windows provide Git Bash or WSL and Python. Shell wrappers use `python3` or `python`
+(or the explicit `PYTHON` environment variable). Use interpreter commands;
 executable bits are not required. Tests cover Linux helper/installer behavior, not every agent client.
 
 ## Install and initialize
@@ -27,7 +28,9 @@ bash /path/to/lean-context-memory/scripts/init-memory.sh . --agent claude
 | `auto` | AGENTS.md and existing native files |
 | `all` | All listed entry points |
 
-The common protocol is kept once in AGENTS.md. Claude's native import loads it without
+The common protocol is kept once in AGENTS.md. An explicit `--agent codex`, `claude`,
+`gemini` or `roo` only updates that agent's native file plus AGENTS.md; `auto` updates
+existing native files but skips symlinks. Claude's native import loads it without
 requiring a discretionary Read tool call. Imports include all existing AGENTS.md content;
 check it for conflicting user rules. Other hosts follow their short bridges with their own tools.
 See [Claude Code imports](https://code.claude.com/docs/en/memory#import-additional-files).
@@ -59,6 +62,9 @@ suppressed from source drift. User edits to those files and tracked instruction 
 Keep `memory/.bootstrap.json` with the memory if that behavior is desired. This metadata is
 a local convenience, not trusted evidence or a security boundary.
 
+Hot-memory health budgets: MEMORY_INDEX.md is at most 60 lines and 4096 UTF-8 bytes;
+ACTIVE_STATE.md is at most 30 lines and 2048 UTF-8 bytes. The default recall reads
+ACTIVE_STATE first so an oversized index cannot hide the task checkpoint.
 For budgets, selected-fact revalidation and compaction see [maintenance](references/maintenance.md).
 For scans and logs see [exploration](references/exploration.md).
 
