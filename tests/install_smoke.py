@@ -51,6 +51,7 @@ def main():
                             run(['python3', str(installed/'scripts/memory-read.py'), str(target)], project)
                             run(['python3', str(installed/'scripts/memory-health.py'), str(target)], project)
                         run(['python3', str(installed/'scripts/memory-search.py'), '--help'], project)
+                        run(['python3', str(installed/'scripts/memory-doctor.py'), '--help'], project)
                         run(['python3', str(installed/'scripts/context-pressure.py'), '--help'], project)
                         run(['python3', str(installed/'scripts/session-totals.py'), '--help'], project)
                         run(['python3', str(installed/'scripts/usage-report.py'), '--help'], project)

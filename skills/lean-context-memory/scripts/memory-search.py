@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 import sys
 
-from memory_common import (COMMIT, batch_source_statuses, budgets, fact_lines,
+from memory_common import (COMMIT, batch_source_statuses, budgets, conflict_keys, fact_lines,
                            fact_record, git, local_file, topic_files)
 
 
@@ -47,6 +47,7 @@ def load_candidates(root, query):
     candidates = []
     scanned_bytes = 0
     invalid_facts = 0
+    identity_records = []
     scan_incomplete = False
     for path in topic_files(root):
         size = path.stat().st_size
@@ -63,6 +64,7 @@ def load_candidates(root, query):
             except ValueError:
                 invalid_facts += 1
                 continue
+            identity_records.append((metadata.get("key"), fact.strip(), f"{relative}:{number}"))
             score, coverage = rank(query, fact, sources, relative)
             if score:
                 candidates.append({
@@ -71,9 +73,14 @@ def load_candidates(root, query):
                     "sources": sources,
                     "verified_commit": metadata["verified"].strip(chr(96)),
                     "state": metadata.get("state", "confirmed"),
+                    "key": metadata.get("key"),
                     "score": score,
                     "matched_terms": coverage,
                 })
+    conflicts = conflict_keys(identity_records)
+    for row in candidates:
+        row["potential_conflict"] = bool(row["key"] and row["key"] in conflicts)
+        row["conflict_check_incomplete"] = bool(row["key"] and scan_incomplete)
     candidates.sort(key=lambda r: (-r["score"], -r["matched_terms"], r["location"]))
     return candidates, invalid_facts, scan_incomplete
 
@@ -107,7 +114,8 @@ def validate_candidates(root, candidates):
         row["freshness"] = next((reason for reason in reasons if reason), "source-unchanged")
     for row in candidates:
         row["review_required"] = (
-            row["state"] != "confirmed" or row["freshness"] != "source-unchanged")
+            row["state"] != "confirmed" or row["freshness"] != "source-unchanged"
+            or row["potential_conflict"] or row["conflict_check_incomplete"])
 
 
 def encode_json(value):
@@ -118,7 +126,7 @@ def render_json(query, candidates, stats, limit, max_bytes):
     result = {
         "query": query, "status": "complete", "results": [],
         "stats": stats,
-        "note": "Source-unchanged means Git evidence matches; it is not semantic proof.",
+        "note": "Git evidence freshness is not semantic proof; keyed potential conflicts need human review.",
     }
     selected = 0
     for row in candidates:
@@ -150,6 +158,8 @@ def render_text(query, candidates, stats, limit, max_bytes):
         if len(selected) >= limit:
             break
         state = "confirmed" if not row["review_required"] else "REVIEW"
+        if row["potential_conflict"]:
+            state += ":potential-conflict"
         evidence = ", ".join(chr(96) + source + chr(96) for source in row["sources"])
         line = (f"- [{state}; {row['freshness']}; rank={row['score']}] "
                 f"{row['location']} {row['fact']} | source: {evidence}"

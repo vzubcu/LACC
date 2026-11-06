@@ -41,12 +41,13 @@ skill_reference = markdown_code((skill / "SKILL.md").as_posix())
 sync_command = markdown_code("bash " + shlex.quote((skill / "scripts/sync-memory.sh").as_posix()))
 health_command = markdown_code(shlex.quote(python_bin) + " " + shlex.quote((skill / "scripts/memory-health.py").as_posix()))
 common = f"""{start}
-## Project memory (lean-context-memory v3.0)
+## Project memory (lean-context-memory v3.1)
 - Use `memory/` as the shared fact store; load {skill_reference} for memory maintenance.
 - At session start run {sync_command}; read index/checkpoint once, then only relevant topics.
 - For task-specific memory recall use the read-only memory-search.py helper described in the skill; verify source-backed results against relevant code before acting.
 - Keep source paths and checked commits on durable facts; keep hypotheses in ACTIVE_STATE.md.
 - Before handoff update affected facts and run {health_command}; stamp only after reviewed evidence and relevant tests pass.
+- For unresolved source drift or keyed potential conflicts use memory-doctor.py on demand; its plan is advisory, never an automatic repair.
 {end}"""
 bridge = f"""{start}
 ## Shared context and memory

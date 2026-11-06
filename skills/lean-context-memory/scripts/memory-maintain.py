@@ -79,7 +79,9 @@ def main():
                     reviewed_sources.add(source)
                 old_line = lines[number - 1]
                 newline = '\r\n' if old_line.endswith('\r\n') else ('\r' if old_line.endswith('\r') else '\n')
-                lines[number - 1] = fact + ' | source: ' + data['source'] + ' | verified: `' + head + '`' + newline
+                identity = ' | key: ' + data['key'] if 'key' in data else ''
+                lines[number - 1] = (fact + ' | source: ' + data['source'] +
+                                     ' | verified: `' + head + '`' + identity + newline)
             proposed[path] = ''.join(lines)
         print('Plan: ' + digest)
         changed = {path: text for path, text in proposed.items() if text != originals[path]}

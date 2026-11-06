@@ -131,6 +131,26 @@ class MemorySearchTests(ProjectCase):
         self.assertEqual(snapshot, self.snapshot())
         self.assertEqual(self.health().returncode, 0, self.health().stdout)
 
+    def test_incomplete_scan_does_not_clear_keyed_conflict_risk(self):
+        tick = chr(96)
+        keyed = (f"- Tenant isolation is enforced | source: {tick}src/tenant.ts{tick} "
+                 f"| verified: {tick}{self.commit}{tick} | key: auth.tenant.isolation\n")
+        self.write("memory/topics/architecture.md", "# Architecture\n" + keyed)
+        # The oversized topic could contain a second claim with the same key.
+        self.write("memory/topics/oversized.md", "# " + "X" * (1024 * 1024 + 1))
+        result = self.run_tool("memory-search.py", self.root,
+                               "--query", "tenant isolation", "--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertEqual(data["status"], "incomplete")
+        self.assertEqual(data["results"], [])
+        reviewed = self.run_tool("memory-search.py", self.root,
+                                 "--query", "tenant isolation",
+                                 "--include-review", "--json")
+        row = json.loads(reviewed.stdout)["results"][0]
+        self.assertTrue(row["conflict_check_incomplete"])
+        self.assertTrue(row["review_required"])
+
     def test_quality_fixture_recall_at_five(self):
         tick = chr(96)
         self.write("memory/topics/decisions.md",

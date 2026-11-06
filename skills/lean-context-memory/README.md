@@ -1,4 +1,4 @@
-# lean-context-memory v3.0
+# lean-context-memory v3.1
 
 A skill from **LACC — Lean Agent Capabilities Collection**.
 Portable project memory for agents with Bash, Git and Python 3.9+. No daemon, embeddings
@@ -115,6 +115,37 @@ facts, but old index pointers should be reviewed before adding new ones.
 HOT = ACTIVE_STATE + MEMORY_INDEX; WARM = source-backed topics;
 COLD is historical knowledge not loaded automatically and is not indexed
 in this release. See [retrieval guide](references/retrieval.md).
+
+## Memory v3.1 — read-only self-healing diagnostics
+
+Some facts describe the same durable rule. Give these facts an optional stable
+identity, for example:
+
+```markdown
+- Authentication requires tenant scoping | source: `src/auth.ts` | verified: `CHECKED_COMMIT` | key: auth.tenant.scoping
+```
+
+Replace `CHECKED_COMMIT` with a commit you actually inspected. The key is
+a lower-case dotted identifier (max 96 chars); existing unkeyed facts remain valid.
+Two *different claims* sharing the same key produce a **potential-conflict**,
+not a claim that the facts are definitively contradictory. `memory-health.py`
+reports it and `memory-search.py` excludes those claims by default.
+
+When health reports conflicts, stale sources or review-state facts, run the
+new optional, entirely local, **read-only** triage tool:
+
+```bash
+python3 /path/to/lean-context-memory/scripts/memory-doctor.py . --json
+```
+
+The doctor supplies source-specific review actions, counts, and capped output.
+It does not edit facts, guess replacement content, auto-stamp or call an AI.
+Manual evidence review and tests are required before applying corrections.
+`memory-maintain.py revalidate` now retains the optional `key` metadata.
+
+The doctor and keyed conflict detection are opt-in safety aids, not background
+workers. Use on health warnings or before a risky memory migration, **not**
+on every trivial task. See [self-healing contract](references/self-healing.md).
 
 ## Context pressure advisory
 

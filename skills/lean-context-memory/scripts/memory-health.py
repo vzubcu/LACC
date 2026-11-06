@@ -11,13 +11,14 @@ import sys
 
 
 from memory_common import (INDEX_MAX_BYTES, INDEX_MAX_LINES, STATE_MAX_BYTES, STATE_MAX_LINES,
-                           batch_source_statuses, budgets, fact_record, git, local_file, topic_content_lines)
+                           batch_source_statuses, budgets, conflict_keys, fact_record, git, local_file, topic_content_lines)
 
 
 def check(root):
     limits = budgets(root)
     findings = []
     seen = {}
+    key_records = []
     commit_cache = {}
     pending_sources = {}
     in_git = git(root, "rev-parse", "--is-inside-work-tree").returncode == 0
@@ -89,7 +90,9 @@ def check(root):
                 fact, metadata, sources = fact_record(line)
             except ValueError as exc:
                 reason = str(exc)
-                if reason.startswith("invalid fact state"):
+                if reason.startswith("invalid fact key"):
+                    code = "invalid-key"
+                elif reason.startswith("invalid fact state"):
                     code = "invalid-state"
                 elif reason.startswith("fact requires"):
                     code = ("invalid-provenance" if "source:" in line and "verified:" in line
@@ -99,6 +102,8 @@ def check(root):
                 report(code, loc + ": " + reason)
                 continue
             fact = fact.strip()
+            if metadata.get("key"):
+                key_records.append((metadata["key"], fact, loc))
             if fact in seen:
                 report("duplicate-fact", f"{loc} duplicates {seen[fact]}")
             else:
@@ -125,6 +130,8 @@ def check(root):
                 if not in_git or not commit_cache.get(verified):
                     continue
                 pending_sources.setdefault((verified, source), []).append(loc)
+    for identity, locations in sorted(conflict_keys(key_records).items()):
+        report("potential-conflict", "key=" + identity + "; " + ", ".join(locations))
     if pending_sources:
         statuses = batch_source_statuses(root, pending_sources)
         for key, locations in pending_sources.items():

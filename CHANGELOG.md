@@ -1,5 +1,20 @@
 # Changes
 
+## Unreleased — Memory v3.1: safe self-healing diagnostics
+
+- Add optional stable `key:` identity to source-backed facts, preserving
+  backwards compatibility and retaining keys during selected revalidation.
+- Report groups of different keyed assertions as `potential-conflict`
+  (human review required, never inferred logical contradiction).
+- Exclude potentially conflicting keyed facts from normal retrieval; when
+  topic scanning is incomplete, fail closed for keyed conflict confidence.
+- Add bounded, offline, read-only `memory-doctor.py` triage reports with
+  review actions for changed/untracked/missing sources, invalid provenance,
+  unavailable commits, review-state facts and key conflicts.
+- Add local regression coverage and documentation. No database, external
+  agent requests, automatic memory rewriting or GitHub Actions changes.
+
+
 ## Unreleased — Memory v3.0 Intelligent Retrieval
 
 - Add read-only `memory-search.py` with deterministic task-aware lexical
