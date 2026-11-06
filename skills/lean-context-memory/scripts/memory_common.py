@@ -6,6 +6,10 @@ import re
 import subprocess
 
 DEFAULTS = {'topic_bytes': None, 'topics_total_bytes': None, 'load_bytes': 8192}
+INDEX_MAX_LINES = 60
+INDEX_MAX_BYTES = 4096
+STATE_MAX_LINES = 30
+STATE_MAX_BYTES = 2048
 COMMIT = re.compile(r'[0-9a-fA-F]{7,40}\Z')
 
 
@@ -79,10 +83,53 @@ def topic_files(root):
     return sorted(result)
 
 
+
+def split_fact_fields(line):
+    """Split metadata separators outside inline backtick code spans."""
+    fields = []
+    position = start = 0
+    fence = 0
+    while position < len(line):
+        if line[position] == '\x60':
+            end = position
+            while end < len(line) and line[end] == '\x60':
+                end += 1
+            width = end - position
+            if fence == 0:
+                fence = width
+            elif fence == width:
+                fence = 0
+            position = end
+            continue
+        if not fence and line.startswith(' | ', position):
+            fields.append(line[start:position])
+            position += 3
+            start = position
+            continue
+        position += 1
+    fields.append(line[start:])
+    return fields
+
+
+def topic_content_lines(text):
+    """Yield only content outside fenced Markdown examples, with original line numbers."""
+    fence = None
+    for number, line in enumerate(text.splitlines(keepends=True), 1):
+        marker = re.match(r'^\s*(\x60{3,}|~{3,})', line)
+        if marker:
+            value = marker[1]
+            if fence is None:
+                fence = value
+            elif value[0] == fence[0] and len(value) >= len(fence):
+                fence = None
+            continue
+        if fence is None:
+            yield number, line
+
 def fact_record(line):
     if not re.match(r'^\s*-\s+\S', line):
         raise ValueError('selected line is not a fact bullet')
-    pieces = line.rstrip('\r\n').split(' | ')
+    pieces = split_fact_fields(line.rstrip('\r\n'))
     data = {}
     for piece in pieces[1:]:
         key, sep, value = piece.partition(':')
@@ -97,15 +144,8 @@ def fact_record(line):
     return pieces[0], data, re.findall(r'`([^`]+)`', data['source'])
 
 
+
 def fact_lines(text):
-    fence = None
-    for number, line in enumerate(text.splitlines(keepends=True), 1):
-        marker = re.match(r'^\s*(`{3,}|~{3,})', line)
-        if marker:
-            value = marker[1]
-            if fence is None:
-                fence = value
-            elif value[0] == fence[0] and len(value) >= len(fence):
-                fence = None
-        elif fence is None and re.match(r'^\s*-\s+', line):
+    for number, line in topic_content_lines(text):
+        if re.match(r'^\s*-\s+', line):
             yield number, line

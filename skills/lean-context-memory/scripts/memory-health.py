@@ -10,7 +10,8 @@ import subprocess
 import sys
 
 
-from memory_common import COMMIT, budgets, git, local_file, source_matches
+from memory_common import (INDEX_MAX_BYTES, INDEX_MAX_LINES, STATE_MAX_BYTES, STATE_MAX_LINES,
+                           budgets, fact_record, git, local_file, source_matches, topic_content_lines)
 
 
 def check(root):
@@ -36,7 +37,8 @@ def check(root):
             report("unreadable-memory", name)
             return None
 
-    for name, max_lines, max_bytes in [("MEMORY_INDEX.md", 60, None), ("ACTIVE_STATE.md", 30, 2048)]:
+    for name, max_lines, max_bytes in [("MEMORY_INDEX.md", INDEX_MAX_LINES, INDEX_MAX_BYTES),
+                                       ("ACTIVE_STATE.md", STATE_MAX_LINES, STATE_MAX_BYTES)]:
         result = read("memory/" + name)
         if result is not None:
             raw, text = result
@@ -45,6 +47,11 @@ def check(root):
                 report(prefix + "-lines", f"{name}: {len(text.splitlines())}/{max_lines}")
             if max_bytes and len(raw) > max_bytes:
                 report(prefix + "-bytes", f"{name}: {len(raw)}/{max_bytes}")
+            if name == "MEMORY_INDEX.md":
+                for pointer in re.findall(r"`(topics/[^`]+\.md)`", text):
+                    target = local_file(root, "memory/" + pointer)
+                    if target is None or not target.is_file():
+                        report("missing-topic-pointer", pointer)
 
     topic_dir = local_file(root, "memory/topics")
     if topic_dir is None or not topic_dir.is_dir():
@@ -72,38 +79,31 @@ def check(root):
         total += len(raw)
         if limits['topic_bytes'] is not None and len(raw) > limits["topic_bytes"]:
             report("topic-budget", f"{name}: {len(raw)}/{limits['topic_bytes']} bytes")
-        for number, line in enumerate(text.splitlines(), 1):
-            match = re.match(r"^\s*-\s+(.+)", line)
-            if not match:
+        for number, line in topic_content_lines(text):
+            if not re.match(r'^\s*-\s+\S', line):
                 if line.strip() and not line.lstrip().startswith(("#", ">")):
                     report("invalid-fact-format", f"{name}:{number}")
                 continue
-            parts = match[1].split(" | ")
-            fact = parts[0].strip()
             loc = f"{name}:{number}"
+            try:
+                fact, metadata, sources = fact_record(line)
+            except ValueError as exc:
+                reason = str(exc)
+                if reason.startswith("invalid fact state"):
+                    code = "invalid-state"
+                elif reason.startswith("fact requires"):
+                    code = ("invalid-provenance" if "source:" in line and "verified:" in line
+                            else "missing-provenance")
+                else:
+                    code = "invalid-provenance"
+                report(code, loc + ": " + reason)
+                continue
+            fact = fact.strip()
             if fact in seen:
                 report("duplicate-fact", f"{loc} duplicates {seen[fact]}")
             else:
                 seen[fact] = loc
-            metadata = {}
-            invalid = False
-            for part in parts[1:]:
-                key, sep, value = part.partition(":")
-                if not sep or key.strip() in metadata or key.strip() not in {"source", "verified", "state"}:
-                    invalid = True
-                else:
-                    metadata[key.strip()] = value.strip()
-            if invalid:
-                report("invalid-provenance", loc)
-                continue
-            sources = re.findall(r"`([^`]+)`", metadata.get("source", ""))
-            verified = metadata.get("verified", "").strip("`")
-            if not sources or not COMMIT.fullmatch(verified):
-                report("missing-provenance", loc)
-                continue
-            if not re.fullmatch(r"`[^`]+`(?:\s*,\s*`[^`]+`)*", metadata["source"]):
-                report("invalid-provenance", loc)
-                continue
+            verified = metadata["verified"].strip("\x60")
             state = metadata.get("state", "confirmed")
             if state != "confirmed":
                 report("pending-review" if state == "review" else "invalid-state", loc)

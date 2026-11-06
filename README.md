@@ -144,6 +144,23 @@ If you run helpers directly from a clone, change `scripts/...` to
 `skills/lean-context-memory/scripts/...` and rerun initialization to refresh stored paths.
 Remove an older manually installed copy after verifying the replacement, so the agent does not load two copies.
 
+## Memory safety and local regression checks
+
+Memory health now uses the same fact grammar as maintenance, including fenced examples and
+inline shell pipes. Hot reads prioritize `ACTIVE_STATE.md`; indexes are capped at 60 lines /
+4096 UTF-8 bytes and checkpoints at 30 lines / 2048 bytes. Broad reference searches exclude
+common private credential files. The log slicer only writes stdin to disk with `--keep`.
+Explicit `--agent` initialization updates only that agent's native instruction file plus
+`AGENTS.md`.
+
+Run local checks without GitHub-hosted runners:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+These are helper correctness tests, **not** evidence of measured token savings.
+
 ## Maintain and extend
 
 Each skill is self-contained under `skills/<name>/`, with one `SKILL.md` and its own resources.

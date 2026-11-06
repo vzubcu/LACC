@@ -1,4 +1,4 @@
-"""Read the hot index/checkpoint or explicitly selected topics under a UTF-8 byte budget."""
+"""Read the hot checkpoint/index or explicitly selected topics under a UTF-8 byte budget."""
 import argparse
 import codecs
 from pathlib import Path
@@ -19,7 +19,7 @@ def main():
             if args.max_bytes < 512:
                 raise ValueError('max-bytes must be >=512')
             budget = min(budget, args.max_bytes)
-        names = ['memory/topics/' + name for name in args.topic] if args.topic else ['memory/MEMORY_INDEX.md', 'memory/ACTIVE_STATE.md']
+        names = ['memory/topics/' + name for name in args.topic] if args.topic else ['memory/ACTIVE_STATE.md', 'memory/MEMORY_INDEX.md']
         output = bytearray()
         truncated = False
         # Validate all paths before returning a partial successful answer.

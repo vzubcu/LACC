@@ -4,6 +4,7 @@ import ast
 from pathlib import Path
 import re
 import sys
+from memory_common import local_file
 
 
 def main():
@@ -15,10 +16,13 @@ def main():
     if args.limit < 1 or args.max_bytes < 512:
         p.error('positive limit and max-bytes >=512 required')
     try:
-        if args.file.stat().st_size > 1024 * 1024:
+        safe = local_file(Path.cwd().resolve(), str(args.file))
+        if safe is None or not safe.is_file():
+            raise ValueError('file must be a regular local path without symlinks')
+        if safe.stat().st_size > 1024 * 1024:
             raise ValueError('file exceeds 1 MiB; inspect targeted ranges')
-        text = args.file.read_text(encoding='utf-8')
-        lines = text.splitlines()
+        text = safe.read_text(encoding='utf-8-sig')
+        lines = re.split(r'\r\n|\r|\n', text)
         if args.file.suffix == '.py':
             tree = ast.parse(text)
             numbers = sorted(node.lineno for node in ast.walk(tree)

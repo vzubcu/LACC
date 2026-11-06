@@ -48,6 +48,7 @@ ripgrep is optional. Use the host agent's normal tools.
 - For token measurement, read [benchmark protocol](references/benchmark.md) and use the bundled optional `scripts/usage-report.py`.
 
 The default recall limit is 8192 UTF-8 bytes per read, including notices. Disk caps are optional.
-The index remains at most 60 lines; the checkpoint at most 30 lines and 2048 bytes.
+The index remains at most 60 lines/4096 UTF-8 bytes; the checkpoint at most 30 lines/2048 bytes.
+The default hot read prioritizes ACTIVE_STATE so oversized index content cannot hide it.
 Keep useful evidence and security/data-integrity invariants when condensing; budget pressure alone does not justify deletion.
 No automatically loaded archive. Bytes are guardrails; measured token savings require matched complete model runs.

@@ -2,7 +2,14 @@
 # --stamp requires clean sources and a passing structural memory check.
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-python3 - "$SCRIPT_DIR" "$@" <<'PY'
+PYTHON_BIN="${PYTHON:-}"
+if [[ -z "$PYTHON_BIN" ]]; then
+  if command -v python3 >/dev/null 2>&1; then PYTHON_BIN=python3
+  elif command -v python >/dev/null 2>&1; then PYTHON_BIN=python
+  else echo "ERROR: Python 3.9+ is required" >&2; exit 2
+  fi
+fi
+"$PYTHON_BIN" - "$SCRIPT_DIR" "$@" <<'PY'
 from pathlib import Path
 import hashlib
 import json
@@ -50,12 +57,17 @@ if head.returncode:
     print("REVIEW: no Git commit history; source freshness remains unverified.")
     if not stamp:
         hints = []
-        for path in root.rglob("*"):
-            rel = path.relative_to(root)
-            if any(p.startswith(".") or p in {"memory", "node_modules", "vendor", "dist", "build"} for p in rel.parts):
-                continue
-            if path.is_file() and not path.is_symlink() and path.stat().st_mtime > state.stat().st_mtime:
-                hints.append(rel.as_posix())
+        import os
+        for parent, folders, files in os.walk(root, followlinks=False):
+            folders[:] = [name for name in folders
+                          if not name.startswith(".") and name not in
+                          {"memory", "node_modules", "vendor", "dist", "build"}]
+            for name in files:
+                if name.startswith("."):
+                    continue
+                path = Path(parent) / name
+                if not path.is_symlink() and path.stat().st_mtime > state.stat().st_mtime:
+                    hints.append(path.relative_to(root).as_posix())
         display("Modification-time hints only", sorted(hints))
     sys.exit(1 if strict else 0)
 head = head.stdout.decode().strip()
@@ -107,7 +119,7 @@ if stamp:
     if len(updated.splitlines()) > 30 or len(updated.encode("utf-8")) > 2048:
         print("REVIEW: stamped checkpoint would exceed its budget.")
         sys.exit(1)
-    state.write_text(updated, encoding="utf-8")
+    state.write_bytes(updated.encode("utf-8"))
     print("STAMPED: commit recorded after structural checks; semantic review remains the agent's responsibility.")
     sys.exit(0)
 if not valid or changes or dirty_lines:
