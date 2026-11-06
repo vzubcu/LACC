@@ -3,7 +3,7 @@ name: lean-context-memory
 description: Use for task-aware recall of source-backed project decisions and lessons, stale-memory review, repeated code discovery, or safe conversation handoff and persistent project memory maintenance.
 ---
 
-# Lean Context Memory v3.0
+# Lean Context Memory v3.1
 
 Maintain a small working context with source-backed facts. Use Bash, Git and Python 3.9+;
 ripgrep is optional. Use the host agent's normal tools.
@@ -42,16 +42,22 @@ ripgrep is optional. Use the host agent's normal tools.
 
    Use actual source paths and the commit checked. A source change requests review; it does not prove the fact false.
    Keep unresolved facts marked `| state: review`; preserve their previous checked commit.
+   For facts describing the same canonical constraint, optionally use `| key: auth.session.policy`
+   (lower-case dotted identifier). Different claims under one key require human review.
 6. At handoff, update affected facts and run `python3 <skill_dir>/scripts/memory-health.py .`.
    Preserve the checkpoint field exactly: ``- **Last Synced Commit**: `<commit-or-UNSYNCED>` ``.
    After semantic checks, use `bash <skill_dir>/scripts/sync-memory.sh . --stamp` only with clean sources.
    Pending checks leave the checkpoint unchanged.
+   If health reports `potential-conflict`, source drift, or a pending review, use
+   `python3 <skill_dir>/scripts/memory-doctor.py . --json` to get a read-only triage plan.
+   Verify current code and tests before any selected revalidation or factual rewrite.
 
 ## Maintenance on demand
 
 - For stale facts, overflow, exact deduplication or batch revalidation, read [maintenance](references/maintenance.md).
 - For initialization, upgrades, native instruction imports and Git/Windows limitations, read [setup](README.md).
 - For ranked source-backed fact recall and decision/lesson conventions, read [retrieval](references/retrieval.md).
+- For key-based conflict triage and advisory self-healing, read [memory doctor](references/self-healing.md).
 - For bounded search, signature extraction and private log handling, read [exploration](references/exploration.md).
 - For provider/Codex token measurement use `scripts/usage-report.py`; for JetBrains per-session reported totals, use `scripts/session-totals.py`. Read [benchmark protocol](references/benchmark.md) and never infer tokens from context percentages.
 

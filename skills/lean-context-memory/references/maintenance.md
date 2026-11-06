@@ -22,6 +22,19 @@ Durable bullets require source paths and an existing checked commit. Plain wordi
 - Worker consumes integer cents | source: `src/publish.ts`, `src/worker.ts` | verified: `a1b2c3d` | state: review
 ```
 
+A durable fact can carry an optional stable key for explicit conflict review:
+
+```markdown
+- Tenant isolation is mandatory | source: `src/tenant.ts` | verified: `CHECKED_COMMIT` | key: security.tenant.isolation
+```
+
+Replace the placeholder commit with a real reviewed Git revision. The key must
+be a lower-case dotted identifier with no whitespace, maximum 96 characters.
+Existing unkeyed facts remain valid. Different assertions under the same key
+are **potential conflicts requiring human review**; a source-unchanged hash
+does not resolve them. Revalidation retains `key` while removing
+`state: review` only after explicit `--reviewed` confirmation.
+
 Headings and blockquotes provide contextual explanations; put commands inline in the supported
 fact bullet. Pipes inside backtick-quoted inline commands do not split provenance fields.
 Fenced Markdown examples are never parsed as facts. Ordinary unsupported prose is flagged by the strict health checker so unverified

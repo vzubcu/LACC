@@ -35,6 +35,19 @@ Normal results require every referenced source to match its checked Git
 blob, index stage/mode and worktree contents. This is evidence **freshness**,
 not an assertion that the remembered explanation is still semantically right.
 
+## v3.1 keyed claim conflicts
+
+An optional `| key: auth.session.policy` associates facts about one stable
+design question. If two facts use the same key but contain different claims,
+the group is a **potential conflict**, not a logical contradiction proof.
+`memory-health.py` reports the key and locations; `memory-search.py`
+excludes **every** such keyed candidate by default, even when both sources
+are unchanged. Use `--include-review` to investigate. JSON results expose
+`key`, `potential_conflict`, `conflict_check_incomplete` and
+`review_required`. If a topic was skipped by scan budget, a keyed fact
+cannot be cleared of possible conflicts and is flagged for review.
+No claim is auto-promoted or auto-deleted; refer to [self-healing](self-healing.md).
+
 ## Review and incomplete recall
 
 By default, facts marked state: review, facts with changed/missing sources,

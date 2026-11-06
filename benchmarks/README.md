@@ -5,6 +5,26 @@
 Unit tests use synthetic counters to verify arithmetic and adapters. Installer checks verify
 packaging. The handoff exercise validates one workflow. None is a token-economy benchmark.
 
+## Memory v3.1 triage correctness (offline)
+
+Run the regression tests locally, with no model calls or GitHub Actions:
+
+```bash
+python3 -m unittest discover -s tests -p 'test_memory_doctor.py' -v
+python3 -m unittest discover -s tests -p 'test_memory_search.py' -v
+```
+
+The tests cover stale source detection, invalid keys, review-state facts,
+key-based potential-conflict reporting, exclusion of conflict groups from
+default search, retained keys after selected revalidation, read-only
+behavior and bounded output. An explicitly keyed conflict is only a
+**candidate for semantic review**, not proof that either fact is false.
+
+The regression fixture is synthetic: it does not measure production conflict
+precision/recall, false-positive rates, agent quality or model-token savings.
+These require independently reviewed project evidence and matched real agent
+sessions. Neither the doctor nor the retrieval tool records token usage.
+
 ## Memory v3.0 retrieval quality (offline)
 
 The local test `tests/test_memory_search.py` contains a deliberately

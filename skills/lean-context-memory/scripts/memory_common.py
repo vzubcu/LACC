@@ -11,6 +11,8 @@ INDEX_MAX_BYTES = 4096
 STATE_MAX_LINES = 30
 STATE_MAX_BYTES = 2048
 COMMIT = re.compile(r'[0-9a-fA-F]{7,40}\Z')
+KEY = re.compile(r'[a-z][a-z0-9_-]*(?:\.[a-z][a-z0-9_-]*)*\Z')
+
 
 
 def git(root, *args):
@@ -134,13 +136,15 @@ def fact_record(line):
     for piece in pieces[1:]:
         key, sep, value = piece.partition(':')
         key = key.strip()
-        if not sep or key in data or key not in {'source', 'verified', 'state'}:
+        if not sep or key in data or key not in {'source', 'verified', 'state', 'key'}:
             raise ValueError('invalid or duplicate fact metadata')
         data[key] = value.strip()
     if not re.fullmatch(r'`[^`]+`(?:\s*,\s*`[^`]+`)*', data.get('source', '')) or not COMMIT.fullmatch(data.get('verified', '').strip('`')):
         raise ValueError('fact requires real source paths and a checked commit')
     if data.get('state', 'confirmed') not in {'confirmed', 'review'}:
         raise ValueError('invalid fact state')
+    if 'key' in data and (len(data['key']) > 96 or not KEY.fullmatch(data['key'])):
+        raise ValueError('invalid fact key; use a lower-case dotted identifier, max 96 chars')
     return pieces[0], data, re.findall(r'`([^`]+)`', data['source'])
 
 
@@ -149,6 +153,23 @@ def fact_lines(text):
     for number, line in topic_content_lines(text):
         if re.match(r'^\s*-\s+', line):
             yield number, line
+
+
+def conflict_keys(records):
+    """Return ambiguous identity keys with differing assertions; never claim contradiction.
+
+    records: (key, fact_text, location). Same assertion repeated at a new
+    source is a duplicate, not evidence of a semantic conflict.
+    """
+    groups = {}
+    for key, fact, location in records:
+        if key:
+            groups.setdefault(key, []).append((' '.join(fact.casefold().split()), location))
+    return {
+        key: sorted(location for _, location in entries)
+        for key, entries in groups.items()
+        if len({fact for fact, _ in entries}) > 1
+    }
 
 
 def batch_source_statuses(root, references):

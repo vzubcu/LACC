@@ -81,6 +81,23 @@ See [retrieval contract](skills/lean-context-memory/references/retrieval.md).
 This capability improves *selective recall*; actual model-token savings
 remain unmeasured until a controlled A/B benchmark is completed.
 
+## Memory v3.1 — self-healing without automatic rewrites
+
+A read-only `memory-doctor.py` now helps investigate stale evidence and
+possible conflicts between facts sharing an explicit, stable `key`:
+
+```bash
+python3 /path/to/lean-context-memory/scripts/memory-doctor.py . --json
+```
+
+Results include a diagnosis, affected memory locations and safe next steps,
+while preserving every fact until a human/agent verifies real sources and tests.
+The checker recognizes `potential-conflict` but does **not** claim semantic
+contradiction, pick a winning fact, or rewrite code. Keyed conflicting facts
+are withheld from default retrieval.
+
+[Self-healing design and limits](skills/lean-context-memory/references/self-healing.md).
+
 ## Context pressure and safe compaction
 
 For host-reported active-context usage and an exact context window,
