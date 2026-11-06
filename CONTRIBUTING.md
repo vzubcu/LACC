@@ -16,6 +16,16 @@ Add each new skill to the root README catalog and provide installation/behavior 
 appropriate to its requirements. Do not copy existing skill resources into another directory
 just to create a second installation format.
 
+Run the Node runtime tests from the repository root, without Bash or Python:
+
+```bash
+node --test tests/test_node_runtime.mjs
+```
+
+These tests create disposable local Git repositories. They test the
+Node-only core and do not require a service, WSL or cloud runners.
+Windows-native tests still need independent execution on a Windows host.
+
 Run from the repository root:
 
 ```bash
@@ -35,7 +45,11 @@ To upgrade the CI installer, change its pin in tests/install_smoke.py and this c
 run the checks, and review any CLI behavior changes. Keep provider versions, measurements
 and token-saving claims separate from installer compatibility.
 
-The skill's runtime remains Bash and Python; npm is only an installation convenience.
+The skill now bundles `scripts/lacc.mjs` plus `lacc-core.mjs`, using Node.js
+22+ built-ins for cross-platform core memory operations. Python/Bash remain
+optional for advanced, nonported helpers. The installed skill must not
+depend on repository-root test files. The `npx skills` installer is distinct
+from the bundled `node` CLI; no `npx lacc` package is published.
 A manual fallback is to copy the entire `skills/<name>/` directory into the agent's skills directory.
 
 Before releasing a path migration, document old and new paths and rerun initialization

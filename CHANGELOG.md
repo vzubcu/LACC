@@ -1,5 +1,21 @@
 # Changes
 
+## Unreleased — Memory v3.2: universal Node.js core
+
+- Bundle dependency-free Node.js 22+ CLI (`lacc.mjs` and `lacc-core.mjs`)
+  for init, capabilities, read, search, health, doctor and sync,
+  including guarded, explicit checkpoint stamping; no Python/Bash/WSL needed.
+- Preserve Git-backed evidence checks, including index and actual worktree
+  content, while excluding stale and keyed conflict facts from normal recall.
+- Preserve existing Python/Bash tools for advanced revalidation, compaction,
+  graph/signature/log tools and benchmark import; do not overstate parity.
+- Document limited native-agent fallback without a runtime or Git, including
+  unverified status and no automatic stamping.
+- Add local Node test coverage for initialization, read budgets, source drift,
+  assume-unchanged, key conflicts, stamping and symlink defenses.
+- No GitHub Actions changes, background services or npm publication.
+
+
 ## Unreleased — Memory v3.1: safe self-healing diagnostics
 
 - Add optional stable `key:` identity to source-backed facts, preserving

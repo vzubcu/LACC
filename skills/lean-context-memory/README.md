@@ -1,10 +1,12 @@
-# lean-context-memory v3.1
+# lean-context-memory v3.2
 
 A skill from **LACC — Lean Agent Capabilities Collection**.
-Portable project memory for agents with Bash, Git and Python 3.9+. No daemon, embeddings
-or provider SDK. On Windows provide Git Bash or WSL and Python. Shell wrappers use `python3` or `python`
-(or the explicit `PYTHON` environment variable). Use interpreter commands;
-executable bits are not required. Tests cover Linux helper/installer behavior, not every agent client.
+Runtime-adaptive project memory. **Node.js 22+ with Git is sufficient for core
+init/read/search/health/doctor/sync on Windows, Linux and macOS**; no Python,
+Bash or WSL required for that path. Node uses only built-in modules. The older
+Python 3.9+/Bash helpers remain available for advanced maintenance and tools.
+If no Node exists, follow the limited native-agent fallback described below.
+Windows-specific Node validation is pending; Linux local smoke passed.
 
 ## Install and initialize
 
@@ -12,12 +14,17 @@ executable bits are not required. Tests cover Linux helper/installer behavior, n
 npx skills add vzubcu/LACC --skill lean-context-memory
 ```
 
-Ask the agent to initialize the installed skill and populate memory from verified project sources.
-Or run from the project root:
+Ask the agent to use the detected compatible runtime and populate memory
+from verified sources. On Windows PowerShell or any Node-supported shell:
 
-```bash
-bash /path/to/lean-context-memory/scripts/init-memory.sh . --agent claude
+```powershell
+node <skill_dir>/scripts/lacc.mjs capabilities
+node <skill_dir>/scripts/lacc.mjs init . --agent claude
 ```
+
+Replace `<skill_dir>` with the actual installed skill path. This is a
+bundled script, **not** a published `npx lacc` package. The Bash/Python
+initializer remains an optional legacy alternative.
 
 | Target | Entry point |
 |---|---|
@@ -41,14 +48,22 @@ Initialization preserves existing facts and unrelated instruction blocks. New to
 apart from guidance; health may pass structurally while ACTIVE_STATE remains UNSYNCED.
 Populate and semantically verify real facts before stamping. No script certifies their truth.
 
-## Daily operations
+## Daily operations — Node.js runtime
 
-```bash
-bash /path/to/lean-context-memory/scripts/sync-memory.sh .
-python3 /path/to/lean-context-memory/scripts/memory-read.py .
-python3 /path/to/lean-context-memory/scripts/memory-read.py . --topic architecture.md
-python3 /path/to/lean-context-memory/scripts/memory-health.py .
+```powershell
+node <skill_dir>/scripts/lacc.mjs sync .
+node <skill_dir>/scripts/lacc.mjs read .
+node <skill_dir>/scripts/lacc.mjs read . --topic architecture.md
+node <skill_dir>/scripts/lacc.mjs search . --query "OIDC session" --json
+node <skill_dir>/scripts/lacc.mjs health . --json
+node <skill_dir>/scripts/lacc.mjs doctor . --json
 ```
+
+These commands do not require Bash/WSL/Python. Git is required for confirmed
+source evidence; without Git the CLI cannot confirm a fact. The Node CLI
+supports explicit `sync --strict` and guarded `sync --stamp`.
+The Python/Bash helpers are retained for existing workflows and features
+not yet implemented in the Node CLI.
 
 Default sync checks Git drift without a whole-memory audit. It returns 0 for an advisory
 report, including review-needed or UNSYNCED states. `--strict` also runs health and returns
@@ -85,6 +100,25 @@ selected sources before any write. The tool never stamps facts by itself.
 
 For budgets, selected-fact revalidation and compaction see [maintenance](references/maintenance.md).
 For scans and logs see [exploration](references/exploration.md).
+
+## Runtime coverage and fallback
+
+See [runtime compatibility matrix](references/runtime.md): Node is the
+preferred cross-platform core, Python/Bash remain optional for advanced
+maintenance, and native agent file/Git tools give a limited manual mode
+when no executable runtime exists. A Markdown skill cannot execute checks
+without a capable runtime; do not fabricate verified provenance. Bundled
+CLI source does not need npm install or a model-provider SDK.
+
+For local validation without GitHub Actions:
+
+```bash
+node --test tests/test_node_runtime.mjs
+```
+
+Run that command from the **repository root**. The six local Node runtime
+tests passed on Linux. Native Windows and complete Python parity tests are
+still pending; this is not evidence of model-token savings.
 
 ## Memory v3.0 — task-aware retrieval
 
