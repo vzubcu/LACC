@@ -65,6 +65,24 @@ a local convenience, not trusted evidence or a security boundary.
 Hot-memory health budgets: MEMORY_INDEX.md is at most 60 lines and 4096 UTF-8 bytes;
 ACTIVE_STATE.md is at most 30 lines and 2048 UTF-8 bytes. The default recall reads
 ACTIVE_STATE first so an oversized index cannot hide the task checkpoint.
+For a machine-readable, read-only provenance check:
+
+```bash
+python3 /path/to/lean-context-memory/scripts/memory-health.py . --json
+```
+
+The JSON response contains `status` (`healthy` or `review`), `findings_total`,
+`topics`, `topic_bytes`, and a complete list of findings with stable
+`code`/`location` fields. Exit codes remain 0 (healthy), 1 (review needed),
+and 2 (invalid configuration/invocation).
+
+Health verification now inventories the Git index once, checks historical
+source entries in bounded groups, and hashes each distinct working-tree
+source using Git's filters. Staged changes, dirty working trees and
+`assume-unchanged` edits remain review signals. Only health scans are
+batched; explicit maintenance revalidation still independently checks
+selected sources before any write. The tool never stamps facts by itself.
+
 For budgets, selected-fact revalidation and compaction see [maintenance](references/maintenance.md).
 For scans and logs see [exploration](references/exploration.md).
 

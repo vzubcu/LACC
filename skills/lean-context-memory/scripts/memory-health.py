@@ -11,7 +11,7 @@ import sys
 
 
 from memory_common import (INDEX_MAX_BYTES, INDEX_MAX_LINES, STATE_MAX_BYTES, STATE_MAX_LINES,
-                           budgets, fact_record, git, local_file, source_matches, topic_content_lines)
+                           batch_source_statuses, budgets, fact_record, git, local_file, topic_content_lines)
 
 
 def check(root):
@@ -19,7 +19,7 @@ def check(root):
     findings = []
     seen = {}
     commit_cache = {}
-    source_cache = {}
+    pending_sources = {}
     in_git = git(root, "rev-parse", "--is-inside-work-tree").returncode == 0
 
     def report(code, location):
@@ -124,15 +124,14 @@ def check(root):
                     continue
                 if not in_git or not commit_cache.get(verified):
                     continue
-                key = (verified, source)
-                if key not in source_cache:
-                    if git(root, "ls-files", "--error-unmatch", "--", source).returncode:
-                        code = "untracked-source"
-                    else:
-                        code = None if source_matches(root, source, verified) else 'changed-source'
-                    source_cache[key] = code
-                if source_cache[key]:
-                    report(source_cache[key], loc + " " + source)
+                pending_sources.setdefault((verified, source), []).append(loc)
+    if pending_sources:
+        statuses = batch_source_statuses(root, pending_sources)
+        for key, locations in pending_sources.items():
+            code = statuses[key]
+            if code:
+                for location in locations:
+                    report(code, location + " " + key[1])
     if limits['topics_total_bytes'] is not None and total > limits["topics_total_bytes"]:
         report("topics-total-budget", f"{total}/{limits['topics_total_bytes']} bytes")
     return findings, len(topic_paths), total
@@ -141,6 +140,7 @@ def check(root):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("project_dir", nargs="?", default=".")
+    parser.add_argument("--json", action="store_true", help="Machine-readable results; preserves exit codes")
     args = parser.parse_args()
     root = Path(args.project_dir).resolve()
     if not root.is_dir():
@@ -148,13 +148,26 @@ def main():
     try:
         findings, count, size = check(root)
     except (OSError, ValueError) as exc:
-        print(f"ERROR: config/check failed: {exc}", file=sys.stderr)
+        if args.json:
+            print(json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False))
+        else:
+            print(f"ERROR: config/check failed: {exc}", file=sys.stderr)
         return 2
-    print(f"{'REVIEW' if findings else 'HEALTHY'}: {len(findings)} findings; {count} topics, {size} UTF-8 bytes (not tokens)")
-    for code, location in findings[:18]:
-        print(f"- {code}: {location}")
-    if len(findings) > 18:
-        print(f"... {len(findings) - 18} findings omitted; narrow the topic or fix these and rerun")
+    if args.json:
+        print(json.dumps({
+            "status": "review" if findings else "healthy",
+            "findings_total": len(findings),
+            "topics": count,
+            "topic_bytes": size,
+            "findings": [{"code": code, "location": location}
+                         for code, location in findings],
+        }, ensure_ascii=False, indent=2))
+    else:
+        print(f"{'REVIEW' if findings else 'HEALTHY'}: {len(findings)} findings; {count} topics, {size} UTF-8 bytes (not tokens)")
+        for code, location in findings[:18]:
+            print(f"- {code}: {location}")
+        if len(findings) > 18:
+            print(f"... {len(findings) - 18} findings omitted; narrow the topic or fix these and rerun")
     return int(bool(findings))
 
 
