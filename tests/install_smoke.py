@@ -50,6 +50,7 @@ def main():
                             assert 'User handoff: preserve me.' in state.read_text()
                             run(['python3', str(installed/'scripts/memory-read.py'), str(target)], project)
                             run(['python3', str(installed/'scripts/memory-health.py'), str(target)], project)
+                        run(['python3', str(installed/'scripts/memory-search.py'), '--help'], project)
                         run(['python3', str(installed/'scripts/context-pressure.py'), '--help'], project)
                         run(['python3', str(installed/'scripts/session-totals.py'), '--help'], project)
                         run(['python3', str(installed/'scripts/usage-report.py'), '--help'], project)

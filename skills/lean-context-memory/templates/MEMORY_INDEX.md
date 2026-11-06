@@ -11,4 +11,6 @@
 - `topics/architecture.md` — module boundaries and cross-module constraints
 - `topics/db-and-api.md` — schemas and API/event contracts
 - `topics/gotchas.md` — confirmed reusable root causes
+- `topics/decisions.md` — accepted architectural choices and tradeoffs
+- `topics/lessons.md` — verified recurring failures, fixes and regression checks
 - `ACTIVE_STATE.md` — objective, pending checks and sync checkpoint

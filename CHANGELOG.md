@@ -1,5 +1,20 @@
 # Changes
 
+## Unreleased — Memory v3.0 Intelligent Retrieval
+
+- Add read-only `memory-search.py` with deterministic task-aware lexical
+  ranking, bounded UTF-8 output and JSON results.
+- Verify candidate facts against their existing checked Git sources; exclude
+  changed/missing/unavailable or `state: review` records by default. Optional
+  `--include-review` clearly marks unsafe candidates for investigation.
+- Protect memory retrieval with scan/verification budgets and explicit
+  incomplete-result signals. No embeddings, servers or provider calls.
+- Add source-backed decisions and lessons topic templates and index pointers;
+  existing memory remains preserved on reinitialization.
+- Add local retrieval regression tests and documented recall-quality fixtures.
+- No GitHub Actions workflow or runner changes; no synthetic token-savings claims.
+
+
 ## Unreleased — safe context signals and reproducible local benchmarks
 
 - Separate Codex active-context observations (`last_token_usage.total_tokens`)
