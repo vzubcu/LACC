@@ -5,6 +5,26 @@
 Unit tests use synthetic counters to verify arithmetic and adapters. Installer checks verify
 packaging. The handoff exercise validates one workflow. None is a token-economy benchmark.
 
+## Memory v3.0 retrieval quality (offline)
+
+The local test `tests/test_memory_search.py` contains a deliberately
+synthetic **3-query Recall@5 acceptance fixture**, covering source-backed
+architecture, decisions and lessons. It also checks deterministic rank,
+UTF-8 output budgets, stale-source fail-closed behavior and review labels.
+
+Run without model/API usage or GitHub Actions:
+
+```bash
+python3 -m unittest discover -s tests -p 'test_memory_search.py' -v
+```
+
+This fixture is a regression test, **not empirical project-wide recall or
+token savings**. A meaningful later recall study requires independently
+labeled questions from real projects, fixed memory snapshots and ranking
+metrics such as Recall@5, stale-fact exposure and output bytes. Measure total
+agent tokens separately using complete paired model sessions. No percentage
+for either quality or token savings is published from these synthetic cases.
+
 ## Initial pilot
 
 Run three fixed tasks with five matched repetitions per task, in separate fresh sessions:

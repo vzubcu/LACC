@@ -60,6 +60,27 @@ The command installs the current repository content. CI pins its installer versi
 For a reviewed snapshot, use a GitHub tree URL with a specific commit instead of the shorthand.
 See the [installer reference](https://github.com/vercel-labs/skills/blob/main/docs/commands.md).
 
+## Memory v3.0 — find relevant project knowledge
+
+LACC can now search source-backed project memory without loading entire
+topic files into the agent context:
+
+```bash
+python3 /path/to/lean-context-memory/scripts/memory-search.py . \
+  --query "authentication token session rotation" --limit 5 --max-bytes 5000
+```
+
+The local ranker scores lexical relevance, checks unchanged Git evidence
+and excludes stale/review records by default. It is read-only and has
+bounded scan/output limits. Additional decision and lesson templates allow
+agents to retain **why a design was chosen** and **which validated fix
+prevented a recurring issue**. No vector database, provider keys, daemon,
+background jobs or automatic memory edits are needed.
+
+See [retrieval contract](skills/lean-context-memory/references/retrieval.md).
+This capability improves *selective recall*; actual model-token savings
+remain unmeasured until a controlled A/B benchmark is completed.
+
 ## Context pressure and safe compaction
 
 For host-reported active-context usage and an exact context window,

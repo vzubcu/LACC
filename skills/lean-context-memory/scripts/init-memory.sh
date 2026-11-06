@@ -41,9 +41,10 @@ skill_reference = markdown_code((skill / "SKILL.md").as_posix())
 sync_command = markdown_code("bash " + shlex.quote((skill / "scripts/sync-memory.sh").as_posix()))
 health_command = markdown_code(shlex.quote(python_bin) + " " + shlex.quote((skill / "scripts/memory-health.py").as_posix()))
 common = f"""{start}
-## Project memory (lean-context-memory v2.4)
+## Project memory (lean-context-memory v3.0)
 - Use `memory/` as the shared fact store; load {skill_reference} for memory maintenance.
 - At session start run {sync_command}; read index/checkpoint once, then only relevant topics.
+- For task-specific memory recall use the read-only memory-search.py helper described in the skill; verify source-backed results against relevant code before acting.
 - Keep source paths and checked commits on durable facts; keep hypotheses in ACTIVE_STATE.md.
 - Before handoff update affected facts and run {health_command}; stamp only after reviewed evidence and relevant tests pass.
 {end}"""
@@ -64,7 +65,7 @@ for agent, name in native.items():
         continue
     if explicit or auto_existing:
         targets[name] = f"{start}\n@AGENTS.md\n{end}" if agent == "claude" else bridge
-templates = ["MEMORY_INDEX.md", "ACTIVE_STATE.md", "topics/architecture.md", "topics/db-and-api.md", "topics/gotchas.md"]
+templates = ["MEMORY_INDEX.md", "ACTIVE_STATE.md", "topics/architecture.md", "topics/db-and-api.md", "topics/gotchas.md", "topics/decisions.md", "topics/lessons.md"]
 pattern = re.compile(re.escape(start) + r".*?" + re.escape(end), re.DOTALL)
 
 def safe_file(name):

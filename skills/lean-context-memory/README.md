@@ -1,4 +1,4 @@
-# lean-context-memory v2.4
+# lean-context-memory v3.0
 
 A skill from **LACC — Lean Agent Capabilities Collection**.
 Portable project memory for agents with Bash, Git and Python 3.9+. No daemon, embeddings
@@ -85,6 +85,36 @@ selected sources before any write. The tool never stamps facts by itself.
 
 For budgets, selected-fact revalidation and compaction see [maintenance](references/maintenance.md).
 For scans and logs see [exploration](references/exploration.md).
+
+## Memory v3.0 — task-aware retrieval
+
+The original HOT index/checkpoint remains bounded and loads once at task start.
+WARM facts under `memory/topics/` can now be searched by task phrase using a
+local, read-only lexical ranker. No embeddings, daemon, external LLM or network:
+
+```bash
+python3 /path/to/lean-context-memory/scripts/memory-search.py . \
+  --query "OIDC Keycloak session persistence" --limit 5 --max-bytes 5000
+
+# Optional structured output
+python3 /path/to/lean-context-memory/scripts/memory-search.py . \
+  --query "event consumer contract" --json
+```
+
+Each default result must have confirmed provenance and **unchanged Git-backed
+source evidence**. Changed, missing, unverified and review-state facts are not
+returned by default. `--include-review` shows visibly flagged candidates
+for investigation, never automatically promoted. Incomplete scans, verification
+caps and byte truncation are reported. Results are lexical recommendations
+for *where to inspect*, not proof that a claim is semantically correct.
+
+New installs also create `memory/topics/decisions.md` and
+`memory/topics/lessons.md` with empty, example-only instructions. Existing
+projects can rerun init-memory.sh safely; it does not overwrite existing
+facts, but old index pointers should be reviewed before adding new ones.
+HOT = ACTIVE_STATE + MEMORY_INDEX; WARM = source-backed topics;
+COLD is historical knowledge not loaded automatically and is not indexed
+in this release. See [retrieval guide](references/retrieval.md).
 
 ## Context pressure advisory
 
