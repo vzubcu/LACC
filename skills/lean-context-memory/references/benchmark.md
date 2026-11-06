@@ -5,6 +5,8 @@
 - [Matched runs](#matched-runs)
 - [API usage](#capture-reported-api-usage-from-any-agent)
 - [Codex logs](#optional-capture-a-complete-codex-cli-session)
+- [Codex exec JSON](#codex-exec---json)
+- [JetBrains Rider session totals](#jetbrains-rider-agent-session-totals)
 - [Interpretation](#read-the-result)
 
 ## Matched runs
@@ -119,6 +121,71 @@ This is an invented schema example, **not a benchmark result**:
 Do not add cached input or reasoning a second time.
 For delegated runs, cumulative counts must include every agent; peak input is the main session's observed request maximum.
 The comparator trusts supplied provenance/acceptance labels; it cannot independently audit external billing or quality.
+
+### Codex exec --json
+
+Codex CLI supports a *different* output stream from the internal rollout JSONL:
+`codex exec --json` emits `thread.started`, `turn.started` and
+`turn.completed` events, with reported per-turn usage. Do not pass this
+stream to `capture-codex` (which expects internal `event_msg/token_count`).
+
+From a complete, fresh Codex exec JSONL stream:
+
+```bash
+python3 scripts/usage-report.py capture-codex-exec /private/baseline-exec.jsonl \
+  --task-id auth-check --pair-id 1 --model EXACT_CONFIGURED_MODEL \
+  --fixture-commit EXACT_APP_COMMIT --config-id PINNED_AGENT_CONFIG \
+  --cache-mode cold --quality unverified > baseline.jsonl
+```
+
+Repeat with the matching optimized trace and the same task/pair/fixture/model
+settings. Set `--quality passed` *only after independent acceptance tests*.
+
+The importer requires matched started/completed turns and rejects incomplete,
+failed or observed delegated sessions. It sums reported turn input/output and
+does not double-count cached or reasoning tokens. `peak_input_tokens` is the
+largest *turn-aggregate* input for this source; it is **not** measured active
+context occupancy. The exec stream does not independently verify the model
+passed via `--model`; record the exact command and runtime configuration
+in the private experiment manifest. Keep full traces private.
+
+### JetBrains Rider agent session totals
+
+JetBrains AI Assistant's Claude Agent in Rider may expose session totals
+through JetBrains Console's Session explorer (depending on account access
+and agent/session reporting). The IDE context indicator is *not* cumulative
+token consumption. Session explorer is batch updated and its numbers can
+change during long sessions; capture settled values after both runs.
+
+For a strictly *total-only* comparison, create two local JSONL files,
+one record per real, distinct, completed agent session, using data reported
+by the same source. Example schema (numbers are illustrative, NOT measured):
+
+```json
+{"task_id":"auth-check","pair_id":"1","model":"EXACT_CLAUDE_MODEL","fixture_commit":"COMMON_APP_COMMIT","config_id":"MATCHED_RIDER_SETTINGS","cache_mode":"warm","session_id":"BASELINE_SESSION_ID","source":"jetbrains_session_explorer","quality_passed":null,"total_tokens":10000}
+```
+
+The optimized file must use a different `session_id` for the same
+`task_id`/`pair_id`, with matching model, fixture, configuration, cache
+regime and reporting source. Replace placeholders and numbers with actual
+reported data. After independent acceptance checks, set
+`quality_passed` to true or false, without dropping failures.
+
+```bash
+python3 scripts/session-totals.py baseline.jsonl optimized.jsonl --json
+```
+
+The total-only comparator reports aggregate savings, matched median/range,
+quality counts and pilot status. It **does not infer input/output/cache
+breakdown or dollar cost** from a reported total. Missing, invalid,
+reused sessions or inconsistent metadata are rejected; failed/unverified
+quality prevents a savings claim. For a more detailed breakdown, obtain
+complete usage from an independently supported host/API trace instead.
+
+If Session explorer is unavailable for the Rider/JetBrains AI account,
+**do not invent totals from the context-window percentage or AI credits**.
+Either use a host that exports usage or report that the total-token
+benchmark cannot be measured under this configuration.
 
 ### Read the result
 

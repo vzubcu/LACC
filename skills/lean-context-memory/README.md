@@ -113,6 +113,46 @@ memory, or invoke a host command. If usage or the context window is unavailable,
 a percentage. After a host compacts the conversation, reload the hot index/checkpoint with
 `memory-read.py`. Observed request input is a pressure proxy, not exact remaining context.
 
+## Correct context signals vs request tokens
+
+The read-only `context-pressure.py` now accepts host-reported active-context
+tokens directly, or (when supplied) reads `last_token_usage.total_tokens`
+and `model_context_window` from an explicit Codex session trace. This is
+different from cumulative session usage. The legacy `--input-tokens` remains
+available but is clearly labeled as a rough request-input proxy.
+
+```bash
+# When a host reports active context and window
+python3 scripts/context-pressure.py --used-context-tokens 120000 --context-window 200000
+
+# When a Codex token_count event provides both values
+python3 scripts/context-pressure.py --codex-trace /private/session.jsonl --json
+```
+
+A missing context window is never inferred from the model name. Reported
+context pressure is advisory only and never invokes `/compact`.
+
+## Benchmarking in Rider and Codex CLI
+
+For JetBrains AI Assistant → Claude Agent, use the optional
+`session-totals.py` comparator with independently verified total tokens
+per distinct completed session, obtained from JetBrains Session explorer
+**only if it is available for your account and session**:
+
+```bash
+python3 scripts/session-totals.py baseline.jsonl optimized.jsonl --json
+```
+
+This comparator reports only *total-token* savings; it never fabricates
+input/output/cache counts. The in-IDE context indicator and AI credits
+are not substitute token totals.
+
+Codex CLI `codex exec --json` streams can instead be normalized by
+`usage-report.py capture-codex-exec`; internal Codex session rollouts use
+the separate `capture-codex` mode. Both require complete traces and
+independent quality validation. See the [benchmark protocol](references/benchmark.md)
+for the matched-run data contract and restrictions.
+
 ## Upgrade from v2.3
 
 Reinstall/update using `skills`, then rerun initialization to refresh marked rules and helper paths.

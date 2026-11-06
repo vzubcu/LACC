@@ -57,7 +57,7 @@ def load_runs(path):
             raise ValueError("each run requires task_id, pair_id, model, fixture_commit, config_id, cache_mode and trace_path")
         if row["cache_mode"] not in {"cold", "warm"}:
             raise ValueError("cache_mode must be cold or warm")
-        if row.get("source") not in {"provider_usage", "codex_token_count"}:
+        if row.get("source") not in {"provider_usage", "codex_token_count", "codex_exec_turn"}:
             raise ValueError("source must identify reported usage, not a byte/token estimate")
         if row.get("quality_passed") is not None and type(row["quality_passed"]) is not bool:
             raise ValueError("quality_passed must be true, false or null")
@@ -97,8 +97,12 @@ def compare(args):
     if before.keys() != after.keys():
         raise ValueError("task/pair sets must match; do not omit failed or expensive runs")
     for key in before:
-        if any(before[key][field] != after[key][field] for field in IDENTITY):
-            raise ValueError("matched runs must use the same model version, fixture revision and cache regime")
+        if any(before[key][field] != after[key][field] for field in IDENTITY + ("source",)):
+            raise ValueError("matched runs must use the same model, fixture, cache regime and measurement source")
+        if before[key].get("usage_granularity") != after[key].get("usage_granularity"):
+            raise ValueError("matched runs must use the same usage granularity")
+        if before[key].get("provider_format") != after[key].get("provider_format"):
+            raise ValueError("matched provider responses must use the same format")
     rate_values = (args.input_rate, args.cached_input_rate, args.output_rate)
     rates = None
     if any(value is not None for value in rate_values):
@@ -210,6 +214,53 @@ def capture(args):
     return capture_record(args, "codex_token_count", previous, peak, updates)
 
 
+
+def capture_codex_exec(args):
+    """Import official 'codex exec --json' turn usage, not internal rollout token_count."""
+    thread = None
+    started = completed = 0
+    seen_output = False
+    totals = dict.fromkeys((*COUNTS, "cache_write_input_tokens"), 0)
+    peak_turn = 0
+    for row in rows(args.trace):
+        kind = row.get("type")
+        if kind == "thread.started":
+            thread_id = row.get("thread_id")
+            if thread is not None or not isinstance(thread_id, str) or not thread_id:
+                raise ValueError("invalid or duplicate thread.started")
+            thread = thread_id
+        elif kind == "turn.started":
+            if thread is None or started != completed:
+                raise ValueError("nested turn or missing thread.started")
+            started += 1
+        elif kind == "turn.completed":
+            if thread is None or started != completed + 1:
+                raise ValueError("turn.completed without corresponding turn.started")
+            values = usage(row.get("usage"), peak=False)
+            for key in totals:
+                totals[key] += values[key]
+            peak_turn = max(peak_turn, values["input_tokens"])
+            completed += 1
+            seen_output = True
+        elif kind in {"turn.failed", "error"}:
+            raise ValueError("failed/interrupted Codex exec trace; cannot certify complete usage")
+        elif kind in {"item.started", "item.updated", "item.completed"}:
+            item = row.get("item")
+            if not isinstance(item, dict):
+                raise ValueError("invalid Codex exec item")
+            if item.get("type") == "mcp_tool_call":
+                tool = str(item.get("tool", ""))
+                if "spawn_agent" in tool or "delegate" in tool:
+                    raise ValueError("delegated work needs aggregated child usage")
+            if item.get("type") in {"collab_agent_tool_call", "agent_spawn"}:
+                raise ValueError("delegated work needs aggregated child usage")
+    if thread is None or not seen_output or started != completed:
+        raise ValueError("incomplete Codex exec session; missing turn completion")
+    return capture_record(args, "codex_exec_turn", totals, peak_turn, completed,
+                          usage_granularity="turn",
+                          peak_semantics="max_turn_input_not_context_occupancy",
+                          model_from_trace_verified=False)
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -220,6 +271,7 @@ def main():
     for flag in ("input-rate", "cached-input-rate", "output-rate"):
         comp.add_argument("--" + flag, type=float)
     for name, help_text in [("capture-codex", "Import a complete fresh Codex CLI session JSONL"),
+                            ("capture-codex-exec", "Import official codex exec --json turn.completed usage"),
                             ("capture-api", "Import final provider responses from any agent's API harness")]:
         cap = commands.add_parser(name, help=help_text)
         cap.add_argument("trace")
@@ -233,7 +285,11 @@ def main():
     try:
         if args.command == "compare":
             return compare(args)
-        return capture_api(args) if args.command == "capture-api" else capture(args)
+        if args.command == "capture-api":
+            return capture_api(args)
+        if args.command == "capture-codex-exec":
+            return capture_codex_exec(args)
+        return capture(args)
     except (OSError, ValueError, KeyError, TypeError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
