@@ -17,7 +17,7 @@ npx skills add vzubcu/LACC --skill lean-context-memory
 ```
 
 Choose your agent in the installer. Node.js 22.20+ and Git are needed for installation.
-The memory helpers also need Bash and Python 3.9+ (on Windows, use WSL or Git Bash).
+The core runtime is now a **bundled Node.js CLI** and needs no Bash, WSL or Python; Git is required for verified source evidence. The older Python/Bash helpers are optional for advanced maintenance.
 No model-provider SDK is required. The examples use the installer's current stable version.
 
 For a specific agent, without interactive prompts:
@@ -36,6 +36,41 @@ Then ask your agent:
 
 Installation makes the skill available; initialization creates the project's memory and instruction bridges.
 It does not automatically certify memory, run a model, or establish token savings.
+
+## Universal runtime (Memory v3.2)
+
+A skill installation alone does not guarantee a compatible runtime. After
+installing, let the agent detect the available tools. When Node.js 22+ exists
+(including Windows without WSL/Python/Git Bash), execute the CLI included
+inside the skill:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs capabilities
+node <skill_dir>/scripts/lacc.mjs init . --agent claude
+node <skill_dir>/scripts/lacc.mjs sync .
+node <skill_dir>/scripts/lacc.mjs search . --query "tenant isolation" --json
+node <skill_dir>/scripts/lacc.mjs health . --json
+node <skill_dir>/scripts/lacc.mjs doctor . --json
+```
+
+Replace `<skill_dir>` with the installed skill directory. Do **not** use
+`npx lacc`: this repository does not publish a standalone npm CLI.
+Node commands use no third-party packages or cloud APIs. Git is required to
+confirm sources; without Git, recalled facts must remain unverified.
+
+Advanced Python/Bash helpers (reviewed revalidation, persisted compaction,
+dependency graph, AST and log slicing, provider usage import) are retained
+and **not** claimed as ported. When Node and Python are both absent, agents
+can follow a limited manual memory workflow through native file/Git tools
+and must state which guarantees are unavailable.
+
+Run the portable Node tests locally without hosted CI:
+
+```bash
+node --test tests/test_node_runtime.mjs
+```
+
+[Runtime capability matrix and fallback](skills/lean-context-memory/references/runtime.md).
 
 ## Catalog
 
