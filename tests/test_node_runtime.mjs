@@ -8,7 +8,26 @@ import { fileURLToPath } from 'node:url';
 
 const rootPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'skills', 'lean-context-memory');
 const cli = path.join(rootPath, 'scripts/lacc.mjs');
-const exec = (bin, args, cwd, env) => spawnSync(bin, args, { cwd, env, encoding: 'utf8', windowsHide: true });
+const exec = (bin, args, cwd, env) => {
+  const timeout = bin === process.execPath ? 30000 : 15000;
+  if (process.env.LACC_TEST_DEBUG === '1') {
+    console.error('[LACC TEST] start', bin, args.join(' '));
+  }
+  const result = spawnSync(bin, args, {
+    cwd, encoding: 'utf8', windowsHide: true, timeout, maxBuffer: 8 * 1024 * 1024,
+    env: { ...process.env, ...env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never' },
+  });
+  if (process.env.LACC_TEST_DEBUG === '1') {
+    console.error('[LACC TEST] end', bin,
+      'status=' + result.status, 'signal=' + result.signal, 'error=' + (result.error?.message ?? 'none'));
+  }
+  if (result.error) {
+    throw new Error('Subprocess failed: ' + bin + ' ' + args.join(' ') +
+      '; ' + result.error.message + '; timeout=' + timeout + 'ms' +
+      '; stderr=' + (result.stderr ?? ''));
+  }
+  return result;
+};
 const git = (cwd, ...args) => { const r = exec('git', args, cwd); assert.equal(r.status, 0, r.stderr); return r.stdout.trim(); };
 const run = (cwd, ...args) => exec(process.execPath, [cli, args[0], cwd, ...args.slice(1)], cwd);
 const record = (cwd, text, source = 'src/tenant.ts', commit = git(cwd, 'rev-parse', 'HEAD')) =>
@@ -16,7 +35,13 @@ const record = (cwd, text, source = 'src/tenant.ts', commit = git(cwd, 'rev-pars
 function fixture(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc node '));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  git(dir, 'init', '-q'); git(dir, 'config', 'user.email', 'fixture@example.test'); git(dir, 'config', 'user.name', 'Fixture');
+  git(dir, 'init', '-q');
+  git(dir, 'config', 'user.email', 'fixture@example.test');
+  git(dir, 'config', 'user.name', 'Fixture');
+  // Ignore host-level signing, hooks and filesystem monitor settings in fixtures.
+  git(dir, 'config', 'commit.gpgsign', 'false');
+  git(dir, 'config', 'core.hooksPath', path.join(dir, '.lacc-no-hooks'));
+  git(dir, 'config', 'core.fsmonitor', 'false');
   fs.mkdirSync(path.join(dir, 'src'));
   fs.writeFileSync(path.join(dir, 'src/tenant.ts'), 'export const isolated = true;\n');
   git(dir, 'add', '.'); git(dir, 'commit', '-qm', 'initial');
@@ -25,10 +50,10 @@ function fixture(t) {
   return dir;
 }
 test('Node works without python and bash on the PATH, with Git available', t => {
+  if (process.platform === 'win32') { t.skip('Windows executable shims use .exe extension'); return; }
   const dir = fixture(t);
   const toolsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc bins '));
   t.after(() => fs.rmSync(toolsDir, { recursive: true, force: true }));
-  if (process.platform === 'win32') { t.skip('Windows executable shims use .exe extension'); return; }
   const bin = exec('which', ['git'], dir).stdout.trim();
   fs.symlinkSync(bin, path.join(toolsDir, 'git'));
   const env = { ...process.env, PATH: toolsDir };

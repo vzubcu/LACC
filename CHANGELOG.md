@@ -1,5 +1,17 @@
 # Changes
 
+## Unreleased — bounded Git operations on Windows
+
+- Bound Git child processes in the Node core to 30 seconds and disable
+  interactive credential prompts, failing explicitly on timeouts instead of
+  allowing an agent to hang indefinitely.
+- Add 15-second Git / 30-second Node subprocess limits and optional
+  `LACC_TEST_DEBUG=1` tracing to the local Node test harness.
+- Move Windows-only test skip before creating a Git fixture and prevent
+  host-level signing, hooks and fsmonitor configuration affecting test commits.
+- Keep test execution entirely local; no hosted CI workflows or runners.
+
+
 ## Unreleased — Memory v3.2: universal Node.js core
 
 - Bundle dependency-free Node.js 22+ CLI (`lacc.mjs` and `lacc-core.mjs`)

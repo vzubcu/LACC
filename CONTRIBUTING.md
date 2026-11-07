@@ -22,6 +22,23 @@ Run the Node runtime tests from the repository root, without Bash or Python:
 node --test tests/test_node_runtime.mjs
 ```
 
+If native Windows tests appear hung, run a single test or enable subprocess
+diagnostics. The test harness uses a 15-second Git subprocess timeout and a
+30-second Node CLI subprocess timeout; production Git checks are also bounded
+to 30 seconds and disable interactive credential prompts.
+
+```powershell
+node --test --test-reporter=spec --test-name-pattern="init, idempotence" tests/test_node_runtime.mjs
+$env:LACC_TEST_DEBUG="1"
+node tests/test_node_runtime.mjs
+Remove-Item Env:LACC_TEST_DEBUG
+```
+
+A `Git command timed out` or `Subprocess failed` result indicates an
+environment problem or a tool defect requiring inspection, **not** a passing
+test. Capture the last printed command, exit status and stderr; do not run
+GitHub Actions to resolve the issue.
+
 These tests create disposable local Git repositories. They test the
 Node-only core and do not require a service, WSL or cloud runners.
 Windows-native tests still need independent execution on a Windows host.

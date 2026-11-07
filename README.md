@@ -70,6 +70,19 @@ Run the portable Node tests locally without hosted CI:
 node --test tests/test_node_runtime.mjs
 ```
 
+If a Windows test seems stuck, stop it with Ctrl+C and use the local
+subprocess diagnostic mode. The harness reports each Git/Node command when
+`LACC_TEST_DEBUG=1` and enforces subprocess timeouts.
+
+```powershell
+$env:LACC_TEST_DEBUG = "1"
+node tests/test_node_runtime.mjs
+Remove-Item Env:LACC_TEST_DEBUG
+```
+
+Windows native pass status is still unverified: do not infer it from Linux
+results. The first executable-shim test is intentionally skipped on Windows.
+
 [Runtime capability matrix and fallback](skills/lean-context-memory/references/runtime.md).
 
 ## Catalog
