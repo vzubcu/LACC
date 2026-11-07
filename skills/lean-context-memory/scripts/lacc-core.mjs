@@ -27,7 +27,19 @@ export function localPath(root, relative) {
 }
 
 export function git(root, args, options = {}) {
-  const result = spawnSync('git', ['--literal-pathspecs', '-C', root, ...args], { encoding: null, maxBuffer: 32 * 1048576, windowsHide: true, ...options });
+  // Git may wait for an interactive helper, hook, or filesystem service on Windows.
+  // Never let a memory read/verification command block the agent indefinitely.
+  const timeout = options.timeout ?? 30000;
+  const result = spawnSync('git', ['--literal-pathspecs', '-C', root, ...args], {
+    encoding: null, maxBuffer: 32 * 1048576, windowsHide: true,
+    timeout, ...options,
+    env: { ...process.env, ...options.env,
+           GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never' },
+  });
+  if (result.error?.code === 'ETIMEDOUT') {
+    throw new Error('Git command timed out after ' + timeout + 'ms: ' + args[0] +
+                    '. Check Git for Windows and the working tree; evidence was not verified.');
+  }
   return { ok: result.status === 0, status: result.status, stdout: result.stdout ?? Buffer.alloc(0), stderr: result.stderr ?? Buffer.alloc(0), error: result.error };
 }
 export const gitText = result => result.stdout.toString('utf8').trim();
