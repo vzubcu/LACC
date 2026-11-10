@@ -1,5 +1,18 @@
 # Changes
 
+## Develop (unvalidated) — legacy memory backup preparation
+
+- Add a bounded Node migration audit, deterministic snapshot preview,
+  digest-gated backup and read-only archive integrity inspection.
+- Never overwrite canonical HOT/WARM memory, invent provenance or silently
+  treat historical notes as verified. Backups are private and excluded from
+  WARM topic discovery.
+- Author local regression tests for read-only audit, digest mismatch,
+  idempotency, tamper detection and symlink handling; execution deferred.
+- Restoration and semantic migration remain manual until separately validated.
+- No GitHub Actions or hosted CI introduced.
+
+
 ## Develop (unvalidated) — session-start freshness check
 
 - Add a bounded, read-only `session-check` Node command using existing Git

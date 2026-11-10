@@ -99,7 +99,11 @@ than returning trustworthy recall.
 - **Build on existing `health`, `doctor` and Python preview/apply compaction and
   revalidation**. Their current diagnostics and transaction helpers are not a
   complete migration engine and are not yet available in Node.
-- Add **read-only `migration audit`**: inventory/locate invalid, outdated, duplicate and
+- **Authored on develop, validation pending:** a Node `migration-audit` flags
+  legacy notes and reviewed Git evidence; `migration-backup` creates a
+  digest-bound, explicit, byte-for-byte snapshot outside validated topics;
+  `migration-inspect` verifies archive contents. No automatic rewriting.
+- Continue with **read-only `migration audit`** coverage: inventory/locate invalid, outdated, duplicate and
   unverified records; identify valuable material without treating it as confirmed.
 - Design a **lossless archive** outside validated `memory/topics/`, with a manifest and
   immutable backup/digest, so historical notes are not silently discarded or indexed as facts.

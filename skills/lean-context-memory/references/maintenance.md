@@ -90,3 +90,34 @@ obsolete notes, move task-only details to the checkpoint, and condense wording w
 meaning, provenance and invariants. The script intentionally cannot infer truth or semantic duplicates.
 No budget or age rule authorizes losing a valid security/data-integrity invariant. Do not automatically
 load an archive back into context. Run health and relevant tests before stamping the checkpoint.
+
+## Develop preview — lossless migration diagnostics and backup
+
+Existing `memory-maintain.py` transactions still perform selected semantic
+revalidation/compaction with explicit approval. The Node CLI now also offers
+a **separate, backup-only migration preparation**:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs migration-audit . 
+node <skill_dir>/scripts/lacc.mjs migration-backup .
+node <skill_dir>/scripts/lacc.mjs migration-backup . --apply --expect <preview_digest>
+node <skill_dir>/scripts/lacc.mjs migration-inspect . --snapshot <preview_digest>
+```
+
+`migration-audit` is read-only, classifies unsupported legacy lines and facts,
+checks up to 64 sources with existing Git provenance logic and reports incomplete
+coverage. The backup preview reports a deterministic SHA-256 digest of the exact
+source file inventory. Only an explicit `--apply --expect` that matches the
+current preview copies original bytes to an immutable-once-written
+`memory/archive/lacc-snapshots/<digest>/` directory, with a manifest written
+last and verified file hashes. A subsequent audit never treats archives as
+validated WARM facts. The original HOT and topic files remain untouched.
+
+The snapshot is NOT a full automatic migration: no arbitrary legacy fact is
+promoted or deleted and no new evidence is invented. Restoration currently
+requires deliberate manual copying after review. Archives may contain private
+notes; **do not push backup archives to Git**. An interrupted/incomplete
+snapshot directory must be inspected before retrying. Snapshot size is limited
+to 1 MiB per file and 16 MiB in total. Full rollback automation and
+source-backed rewriting remain future tasks. Test cases are authored but
+await the develop acceptance phase.
