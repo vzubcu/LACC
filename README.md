@@ -14,6 +14,15 @@ community-requested *session-start freshness* and *dependency-aware staleness*
 milestones. The [changelog](CHANGELOG.md) describes changes already shipped;
 historical implementation plans are not a current feature backlog.
 
+## Branch policy
+
+**main** is the last validated release line; **develop** collects
+implementations that still need acceptance/regression testing.
+Feature PRs target develop and are not advertised as released.
+See [development and promotion process](docs/DEVELOPMENT_WORKFLOW.md).
+The normal `npx skills add vzubcu/LACC` installation resolves the default
+main branch, not develop.
+
 ## Install
 
 From your project directory, run:

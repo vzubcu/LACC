@@ -23,6 +23,13 @@ Add each new skill to the root README catalog and provide installation/behavior 
 appropriate to its requirements. Do not copy existing skill resources into another directory
 just to create a second installation format.
 
+**Branching:** submit new feature/fix PRs against `develop`, not `main`.
+Changes may be integrated into develop before the consolidated local
+validation phase, but must remain marked **validation pending**. Promote
+`develop` to `main` only after the [validation gate](docs/DEVELOPMENT_WORKFLOW.md)
+passes and the owner approves. No hosted GitHub Actions, and no edits to
+`.github/` are part of this workflow.
+
 Run the Node runtime tests from the repository root, without Bash or Python:
 
 ```bash
