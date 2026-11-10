@@ -76,6 +76,7 @@ AST extraction, or benchmark imports; use existing helpers when available.
 - For runtime detection and native-tool fallback across OSes, read [runtime](references/runtime.md).
 - For initialization, upgrades and native instruction imports, read [setup](README.md).
 - For ranked source-backed fact recall and decision/lesson conventions, read [retrieval](references/retrieval.md).
+- For experimental indirect JS/TS source drift, use `search . --query "task" --deps --include-review --json` only when requested; incomplete import resolution requires review.
 - For key-based conflict triage and advisory self-healing, read [memory doctor](references/self-healing.md).
 - For bounded search, signature extraction and private log handling, read [exploration](references/exploration.md).
 - For provider/Codex token measurement use `scripts/usage-report.py`; for JetBrains per-session reported totals, use `scripts/session-totals.py`. Read [benchmark protocol](references/benchmark.md) and never infer tokens from context percentages.
