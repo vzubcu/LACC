@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
-import { emitLimited, git, gitText, localPath } from './lacc-core.mjs';
+import { emitLimited, git, gitText, localPath, privateStore } from './lacc-core.mjs';
 
 const NAME = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const SHA = /^[a-f0-9]{64}$/;
@@ -50,6 +50,7 @@ export function handoffPublish(root, { task, actor, message, expectedHead, maxBy
   if (expectedHead !== revision) throw Error('supply --expect-head matching current Git HEAD');
   const record = payload(task, actor, revision, message);
   const directory = safeDir(root, task);
+  privateStore(root, 'memory/handoffs');
   fs.mkdirSync(directory, { recursive: true });
   const dest = localPath(root, folder(task) + '/' + record.id + '.json');
   if (fs.existsSync(dest)) {

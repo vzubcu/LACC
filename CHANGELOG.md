@@ -1,5 +1,16 @@
 # Changes
 
+## Develop (unvalidated) — private agent data and acceptance gate
+
+- Add automatic local Git-ignore rules for generated snapshot and handoff
+  directories so ordinary `git add -A` does not stage private contents.
+- Refuse non-ignoring custom directory rules rather than silently claiming
+  secrets are excluded. Explicit `git add -f` can still override ignores.
+- Add a consolidated local-only acceptance checklist for the eventual
+  develop-to-main promotion. All tests remain pending execution.
+- No hosted GitHub Actions or runtime package dependencies introduced.
+
+
 ## Develop (unvalidated) — multi-agent task handoffs
 
 - Add immutable, bounded Node handoff publish/list/read commands stored
