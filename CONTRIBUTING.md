@@ -10,6 +10,13 @@ must contain the matching `name` and a clear `description`. Keep runtime scripts
 templates and documentation used by the skill inside that directory, using relative
 paths. Do not depend on files elsewhere in this repository at runtime.
 
+Treat [ROADMAP.md](ROADMAP.md) as the current prioritized product plan,
+not a release declaration. Distinguish code existence, local tests, real-agent
+pilot checks and independently measured usage results. Link new feature PRs
+to a roadmap milestone and revise the status only after evidence-backed
+acceptance criteria are satisfied. Do not confuse historical
+`docs/superpowers/plans/` implementation plans with current roadmap.
+
 Keep tests and contributor/design documentation outside distributable directories.
 Do not add a root SKILL.md: installers may stop discovery at that file and hide the catalog.
 Add each new skill to the root README catalog and provide installation/behavior tests
