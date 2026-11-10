@@ -17,8 +17,13 @@ native file/Git tools; **never claim unchecked facts are verified**.
    `node <skill_dir>/scripts/lacc.mjs capabilities` to inspect the environment;
    initialize only if needed: `node <skill_dir>/scripts/lacc.mjs init . --agent auto`.
    Targets: `codex`, `claude`, `gemini`, `roo`, `all`.
-2. With Node + Git run `node <skill_dir>/scripts/lacc.mjs sync .`.
-   Read hot context once: `node <skill_dir>/scripts/lacc.mjs read .`.
+2. With Node + Git, **before trusting existing WARM facts**, run the
+   read-only `node <skill_dir>/scripts/lacc.mjs session-check . --json`.
+   A review/incomplete result means investigate current source and tests, not
+   that every memory note is false. This is an instruction, not an automatic
+   host hook. Use `node <skill_dir>/scripts/lacc.mjs sync .` for advisory
+   checkpoint drift, then read hot context once:
+   `node <skill_dir>/scripts/lacc.mjs read .`.
    For nontrivial tasks, selectively search verified WARM facts:
    `node <skill_dir>/scripts/lacc.mjs search . --query "task terms" --json`.
    Then open the relevant source code and tests. Search results reflect Git evidence freshness,

@@ -1,5 +1,17 @@
 # Changes
 
+## Develop (unvalidated) — session-start freshness check
+
+- Add a bounded, read-only `session-check` Node command using existing Git
+  source verification, HOT checkpoints, conflict findings and explicit
+  incomplete coverage.
+- Add session-check to capability discovery and to agent task-start guidance;
+  no assumed automatic host hook or implicit semantic revalidation.
+- Author regression tests for clean/stale, UNSYNCED, scan overflow and missing Git.
+  **Tests not executed yet**: pending consolidated develop validation.
+- No GitHub Actions changes, no automatic writes or background service.
+
+
 ## Unreleased — Memory v3.2.x portable runtime verification
 
 - Replace skipped Windows no-Python/Bash test with a native `git.exe`
