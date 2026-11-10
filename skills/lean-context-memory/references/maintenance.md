@@ -113,6 +113,12 @@ current preview copies original bytes to an immutable-once-written
 last and verified file hashes. A subsequent audit never treats archives as
 validated WARM facts. The original HOT and topic files remain untouched.
 
+New snapshot backups create a local `memory/archive/.gitignore` with
+`*` protection and refuse to overwrite a custom ignore file without
+a blanket ignore rule. This prevents ordinary `git add -A` from
+committing private backups, but cannot prevent deliberate `git add -f`
+or changes to already tracked files.
+
 The snapshot is NOT a full automatic migration: no arbitrary legacy fact is
 promoted or deleted and no new evidence is invented. Restoration currently
 requires deliberate manual copying after review. Archives may contain private

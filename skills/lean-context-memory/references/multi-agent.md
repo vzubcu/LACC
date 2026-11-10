@@ -26,6 +26,10 @@ node <skill_dir>/scripts/lacc.mjs handoff-list . --task auth-fix
 node <skill_dir>/scripts/lacc.mjs handoff-read . --task auth-fix --id <64_char_handoff_id>
 ```
 
+The first handoff publication also ensures
+`memory/handoffs/.gitignore` ignores private message content by default
+(`git add -f` and pre-existing tracked files still bypass this protection).
+
 The messages reside under `memory/handoffs/<task>/<id>.json`,
 outside `memory/topics/`. They are NEVER loaded automatically into
 trusted WARM facts. Git SHA records **when** a proposal was made, not that

@@ -24,6 +24,8 @@ appropriate to its requirements. Do not copy existing skill resources into anoth
 just to create a second installation format.
 
 **Branching:** submit new feature/fix PRs against `develop`, not `main`.
+Use [the consolidated acceptance checklist](docs/VALIDATION_GATE.md) for the
+later local test phase. Do not mark authored regression tests as executed.
 Changes may be integrated into develop before the consolidated local
 validation phase, but must remain marked **validation pending**. Promote
 `develop` to `main` only after the [validation gate](docs/DEVELOPMENT_WORKFLOW.md)

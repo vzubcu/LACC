@@ -44,6 +44,7 @@ test('handoff create/read/list is unverified, immutable and idempotent', t => {
   const first = command(p.dir, 'handoff-publish', ...args);
   assert.equal(first.code, 0, first.stderr);
   assert.equal(first.result.status, 'created');
+  assert.equal(fs.readFileSync(path.join(p.dir, 'memory/handoffs/.gitignore'), 'utf8'), '*\n!.gitignore\n');
   const second = command(p.dir, 'handoff-publish', ...args);
   assert.equal(second.result.status, 'existing');
   assert.equal(first.result.id, second.result.id);

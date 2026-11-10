@@ -20,6 +20,8 @@ historical implementation plans are not a current feature backlog.
 implementations that still need acceptance/regression testing.
 Feature PRs target develop and are not advertised as released.
 See [development and promotion process](docs/DEVELOPMENT_WORKFLOW.md).
+[Consolidated local validation gate](docs/VALIDATION_GATE.md) lists what must
+pass before any develop-to-main promotion; it has **not been executed**.
 The normal `npx skills add vzubcu/LACC` installation resolves the default
 main branch, not develop.
 

@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { emitLimited, inventory, LIMITS, localPath, topicPaths, verifySources, conflicts } from './lacc-core.mjs';
+import { emitLimited, inventory, LIMITS, localPath, topicPaths, verifySources, conflicts, privateStore } from './lacc-core.mjs';
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const MAX_SNAPSHOT = 16 * 1048576;
@@ -78,7 +78,7 @@ export function migrationBackup(root, { expect, apply, maxBytes } = {}) {
   if (!/^[a-f0-9]{64}$/.test(expect ?? '') || expect !== preview.digest)
     throw Error('backup requires --apply and exact --expect digest from current preview');
   const parent = localPath(root, BACKUPS);
-  fs.mkdirSync(parent, { recursive: true });
+  privateStore(root, 'memory/archive');
   const snapRel = BACKUPS + '/' + preview.digest;
   const snapDir = localPath(root, snapRel);
   const manifestPath = localPath(root, snapRel + '/manifest.json');

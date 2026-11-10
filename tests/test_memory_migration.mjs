@@ -58,6 +58,7 @@ test('snapshot requires reviewed digest and preserves exact bytes', t => {
   const actual = cmd(p.dir, 'migration-backup', '--apply', '--expect', digest);
   assert.equal(actual.status, 0, actual.stderr);
   assert.equal(actual.data.status, 'backed-up');
+  assert.equal(fs.readFileSync(path.join(p.dir, 'memory/archive/.gitignore'), 'utf8'), '*\n!.gitignore\n');
   assert.deepEqual(fs.readFileSync(p.file), before);
   const file = path.join(p.dir, 'memory/archive/lacc-snapshots', digest,
     'files/memory/topics/architecture.md');

@@ -26,6 +26,23 @@ export function localPath(root, relative) {
   return dest;
 }
 
+export function privateStore(root, relative) {
+  // Prevent accidental git add -A of untrusted handoffs or private backups.
+  // This does not protect against git add -f or explicitly tracked old files.
+  const directory = localPath(root, relative);
+  fs.mkdirSync(directory, { recursive: true });
+  const ignored = localPath(root, relative + '/.gitignore');
+  const expected = '*\n!.gitignore\n';
+  if (!fs.existsSync(ignored))
+    fs.writeFileSync(ignored, expected, { flag: 'wx', mode: 0o600 });
+  else {
+    const contents = fs.readFileSync(ignored, 'utf8');
+    if (!contents.split(/\r?\n/).includes('*'))
+      throw Error('private directory must ignore contents: ' + relative);
+  }
+  return directory;
+}
+
 export function git(root, args, options = {}) {
   // Git may wait for an interactive helper, hook, or filesystem service on Windows.
   // Never let a memory read/verification command block the agent indefinitely.
