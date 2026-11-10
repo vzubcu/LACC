@@ -30,7 +30,7 @@ Version labels below are *tentative*; priorities and acceptance criteria matter 
 | Legacy exploration | Python `dep_graph.py` can discover *candidate* inbound references | Heuristic exploration, **not** dependency-aware invalidation of a fact |
 | Agent setup | `AGENTS.md` and native-agent instruction bridges; a documented session-start recipe | A recipe does not prove the host automatically runs it on every new session |
 | Context and usage tools | Context-pressure advice and provider/host usage importers | No published, measured real-model savings |
-| Test harness | Node tests with Windows subprocess timeouts and native Python tests | Windows executable-shim test remains skipped; no full cross-runtime parity result |
+| Test harness | Node tests with Windows subprocess timeouts, an isolated-PATH `git.exe` case, a missing-Git fail-closed case, and an optional shared Node/Python parity harness | Updated Windows case and optional parity harness require execution; no full cross-runtime parity result |
 
 **Current gaps explicitly not shipped:** automatically enforced session-start health gate;
 indirect/transitive dependency staleness; lossless migration of old unverified memory;
@@ -49,7 +49,7 @@ The roadmap tracks **slices of behavior**, not whole feature names. Labels:
 
 | Roadmap capability | Existing implementation (do not duplicate) | Missing work | Precise status |
 |---|---|---|---|
-| Cross-platform Node core | Bundled `lacc.mjs` with Git-backed verification, installed/copied in a real Windows agent environment; Node test run: 5 passed, 1 intentionally skipped, 0 failed | Prove Windows *without Python/Bash* through an unskipped test; shared Node/Python parity suite; a second agent host | **Implemented / locally validated subset; pilot reported; P0 partial** |
+| Cross-platform Node core | Bundled `lacc.mjs` with Git-backed verification and prior Rider pilot: 5 passed, 1 skipped. A new Windows `git.exe` isolated-PATH test and optional Node/Python parity fixture harness are now authored | Execute updated tests on Windows and Linux, resolve any parity failures, test a second host | **Implemented / pilot reported; new P0 tests authored, execution pending** |
 | Existing-memory cleanup | Read-only `health` and `doctor`; Python `memory-maintain.py compact/revalidate` uses preview, digest-bound apply and manual review | Automated *lossless legacy migration audit*, archival manifest/backup and rollback; migrate arbitrary old notes safely in Node-first environments | **Partial foundation; migration planned** |
 | Session freshness | `SKILL.md` already tells agents to run `sync` at task start; `sync` checks checkpoint/worktree drift; `search` verifies *cited* source evidence at retrieval; `health` checks facts | A single bounded, explicit startup health gate and proof it is invoked for each supported host/session; startup `sync` alone is not complete per-fact health | **Existing manual workflow; enforced/combined gate planned** |
 | Indirect dependencies | `dep_graph.py` provides bounded *candidate references* for manual investigation; fact metadata already permits **multiple explicit `source:` files**, each checked by source verification | Automatically resolve imported dependencies, compare them at checked commit and worktree, report indirect change and incomplete graph coverage | **Manual exploration implemented; automatic indirect staleness planned** |
@@ -73,17 +73,22 @@ skipped, and the agent executed the installed CLI. This is **not** full parity.
 
 **Remaining goal:** stabilize the shipped Node runtime before expanding provenance semantics.
 
-- Replace the Windows-only skipped Node executable-shim test with a genuine test that
-  puts the real `git.exe` on an isolated `PATH`, proving core operations without Python/Bash.
-- Use shared Git fixtures to compare Node and Python outcomes on valid, dirty, staged,
-  unavailable, untracked and symlinked sources, malformed metadata, UTF-8 and output caps.
+- **Test authored, execution pending:** run the unskipped Windows `git.exe`
+  isolated-PATH test (`tests/test_node_runtime.mjs`) and fail-closed no-Git test;
+  confirm no Python/Bash dependency on an actual Windows machine.
+- **Initial shared fixture harness authored:** run `tests/test_node_python_parity.mjs`
+  with CPython 3.9+ to compare healthy, dirty, staged, `assume-unchanged`, missing
+  and unavailable sources, review-state facts, conflicts, invalid provenance
+  and UTF-8 budgets; expand to untracked, symlink and large-budget cases.
+  Python absence skips this optional parity test, **not** the Node-only suite.
 - Preserve the previously reported global-copy Rider/Claude pilot, including exact
   executed path, CLI exit codes and its unresolved health findings; repeat
   independently in at least one other supported host.
 - Keep node subprocess timeouts, explicit failure diagnostics and no implicit network calls.
 
-**Acceptance:** zero unjustified trust discrepancies between runtimes on the shared
-fixture corpus; local Windows/Linux results documented, including skips/failures.
+**Acceptance:** zero unjustified trust discrepancies between runtimes on the
+full shared fixture corpus; local Windows/Linux results documented, including
+skips/failures. Authored test code alone does **not** satisfy this acceptance gate.
 
 ### P1 — Legacy memory migration (candidate v3.3)
 

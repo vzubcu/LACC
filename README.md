@@ -86,8 +86,21 @@ node tests/test_node_runtime.mjs
 Remove-Item Env:LACC_TEST_DEBUG
 ```
 
-Windows native pass status is still unverified: do not infer it from Linux
-results. The first executable-shim test is intentionally skipped on Windows.
+The Node runtime suite now includes a Windows `git.exe` / isolated-PATH
+regression instead of an automatic Windows skip, plus a fail-closed check without Git.
+**The updated Windows tests still require execution on a Windows machine**; earlier
+pilot evidence was 5 passed / 1 skipped, and is not a pass for the new test.
+
+When CPython 3.9+ is available, compare Node/Python trust decisions against the
+same disposable Git fixtures (optional; skipped if Python is unavailable):
+
+```bash
+node --test tests/test_node_python_parity.mjs
+```
+
+Use `LACC_PYTHON` to select a specific interpreter when it is not on PATH.
+The test runs no network requests and does not create commits outside temporary
+fixtures. A skipped optional parity test is not proof of equivalent behavior.
 
 [Runtime capability matrix and fallback](skills/lean-context-memory/references/runtime.md).
 
