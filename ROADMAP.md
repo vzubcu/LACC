@@ -182,7 +182,13 @@ language/depth coverage and no false claim of complete transitive safety.
 `AGENTS.md`/native instruction bridges. Multiple agent clients can consume the
 same facts serially; parallel edits are not coordinated.
 
-- Allow independent agents to produce **immutable, task-scoped handoffs** with owner,
+- **Authored on develop, validation pending:** Node handoff publish/list/read
+  uses immutable, task-scoped JSON with exclusive create, deterministic
+  idempotency IDs and Git-HEAD preconditions. Proposals remain outside
+  validated WARM facts and cannot auto-promote. Canonical memory still
+  requires a single reviewed writer; transactional multi-writer merges
+  are **not implemented**.
+- Extend independent agents' **immutable, task-scoped handoffs** with owner,
   source revision, task status, review notes and bounded payloads.
 - Use a single reviewed writer/merge path for canonical facts, with optimistic concurrency,
   idempotency and explicit conflict resolution; no silent last-writer-wins overwrites.

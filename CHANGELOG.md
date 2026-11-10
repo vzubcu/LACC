@@ -1,5 +1,17 @@
 # Changes
 
+## Develop (unvalidated) — multi-agent task handoffs
+
+- Add immutable, bounded Node handoff publish/list/read commands stored
+  under `memory/handoffs/` outside validated source-backed topics.
+- Require checked Git HEAD before publishing; use exclusive create and
+  deterministic idempotency keys to prevent silent handoff overwrites.
+- Keep all handoffs unverified, with no automatic memory fact promotion;
+  canonical concurrent writes remain a future reviewed transaction feature.
+- Author local tests for idempotency, stale HEAD refusal and tamper detection;
+  tests not executed yet. No hosted Actions.
+
+
 ## Develop (unvalidated) — opt-in indirect source staleness
 
 - Prototype opt-in `search --deps` and `session-check --deps` for

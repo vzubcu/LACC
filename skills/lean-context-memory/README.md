@@ -148,6 +148,21 @@ dynamic imports, external packages or incomplete resolution. It is
 **not** a verified universal dependency graph and remains off by default
 until the develop test gate is complete. See [retrieval](references/retrieval.md).
 
+## Develop preview: multi-agent task handoffs
+
+Share immutable, bounded handoff proposals across local agent clients:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs handoff-publish . --task auth-fix --actor codex --message "Review source changes" --expect-head <actual_git_head>
+node <skill_dir>/scripts/lacc.mjs handoff-list . --task auth-fix
+node <skill_dir>/scripts/lacc.mjs handoff-read . --task auth-fix --id <handoff_id>
+```
+
+Every handoff stays unverified and outside validated topics. Files are
+created exclusively; duplicate submissions are idempotent, but direct
+multi-writer edits to canonical memory are **not yet coordinated**. See
+[multi-agent handoff protocol](references/multi-agent.md).
+
 ## Runtime coverage and fallback
 
 See [runtime compatibility matrix](references/runtime.md): Node is the
