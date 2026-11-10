@@ -36,18 +36,50 @@ Version labels below are *tentative*; priorities and acceptance criteria matter 
 indirect/transitive dependency staleness; lossless migration of old unverified memory;
 multi-agent concurrency coordination; a published `npx lacc` package.
 
+
+## Implementation audit — partial capabilities are not zero
+
+The roadmap tracks **slices of behavior**, not whole feature names. Labels:
+- **implemented**: code and instructions exist; this does not imply cross-platform tests passed.
+- **locally validated**: matching tests passed in a declared local environment.
+- **pilot reported**: an actual agent used the capability in a real project, according
+  to a user-supplied execution report; not a reproducible public test artifact.
+- **partial**: useful foundations exist but at least one acceptance requirement is missing.
+- **planned**: the exact required behavior has no implementation yet.
+
+| Roadmap capability | Existing implementation (do not duplicate) | Missing work | Precise status |
+|---|---|---|---|
+| Cross-platform Node core | Bundled `lacc.mjs` with Git-backed verification, installed/copied in a real Windows agent environment; Node test run: 5 passed, 1 intentionally skipped, 0 failed | Prove Windows *without Python/Bash* through an unskipped test; shared Node/Python parity suite; a second agent host | **Implemented / locally validated subset; pilot reported; P0 partial** |
+| Existing-memory cleanup | Read-only `health` and `doctor`; Python `memory-maintain.py compact/revalidate` uses preview, digest-bound apply and manual review | Automated *lossless legacy migration audit*, archival manifest/backup and rollback; migrate arbitrary old notes safely in Node-first environments | **Partial foundation; migration planned** |
+| Session freshness | `SKILL.md` already tells agents to run `sync` at task start; `sync` checks checkpoint/worktree drift; `search` verifies *cited* source evidence at retrieval; `health` checks facts | A single bounded, explicit startup health gate and proof it is invoked for each supported host/session; startup `sync` alone is not complete per-fact health | **Existing manual workflow; enforced/combined gate planned** |
+| Indirect dependencies | `dep_graph.py` provides bounded *candidate references* for manual investigation; fact metadata already permits **multiple explicit `source:` files**, each checked by source verification | Automatically resolve imported dependencies, compare them at checked commit and worktree, report indirect change and incomplete graph coverage | **Manual exploration implemented; automatic indirect staleness planned** |
+| Multi-agent memory | Shared on-disk `memory/`, `AGENTS.md` and native instruction bridges for Claude/Gemini/Roo; Codex uses `AGENTS.md` | Concurrent-writer coordination, immutable handoff envelopes, compare-and-swap, conflict merge protocol | **Shared store implemented; safe coordination planned** |
+| Measurement | `context-pressure.py`, `usage-report.py`, `usage_providers.py`, `session-totals.py`, A/B guidance and tests | Matched *real-agent* end-to-end measurements showing outcome quality and full token costs | **Instrumentation implemented; savings unmeasured** |
+| Multi-skill platform | Installer-discoverable `skills/<name>/SKILL.md` layout, documented catalog rules, one shipped skill | Separate CS-Cart/.NET/security/GDPR skills; reviewed self-improvement and multi-skill acceptance tests | **Catalog foundation implemented; new skills planned** |
+
+**Evidence reviewed:** `skills/lean-context-memory/SKILL.md`, `scripts/lacc.mjs`,
+`scripts/lacc-core.mjs`, `scripts/memory-maintain.py`, `scripts/dep_graph.py`,
+`tests/test_node_runtime.mjs`, `references/runtime.md`, `references/benchmark.md`.
+This is a **static repository audit plus user-reported Windows pilot**, not a new
+end-to-end test run. Avoid upgrading any status without executing its acceptance checks.
+
 ## Prioritized delivery plan
 
 ### P0 — v3.2.x: runtime parity and reliability
 
-**Goal:** stabilize the shipped Node runtime before expanding provenance semantics.
+**Already available:** the Node core, timeout-protected Git checks and a user-reported
+Windows/Rider pilot where five Node tests passed, one executable-shim test was
+skipped, and the agent executed the installed CLI. This is **not** full parity.
+
+**Remaining goal:** stabilize the shipped Node runtime before expanding provenance semantics.
 
 - Replace the Windows-only skipped Node executable-shim test with a genuine test that
   puts the real `git.exe` on an isolated `PATH`, proving core operations without Python/Bash.
 - Use shared Git fixtures to compare Node and Python outcomes on valid, dirty, staged,
   unavailable, untracked and symlinked sources, malformed metadata, UTF-8 and output caps.
-- Check installer-managed, globally copied skill usage in an agent host (Rider/Claude and
-  at least one other supported host); verify the *executed* CLI path and exit codes.
+- Preserve the previously reported global-copy Rider/Claude pilot, including exact
+  executed path, CLI exit codes and its unresolved health findings; repeat
+  independently in at least one other supported host.
 - Keep node subprocess timeouts, explicit failure diagnostics and no implicit network calls.
 
 **Acceptance:** zero unjustified trust discrepancies between runtimes on the shared
@@ -59,6 +91,9 @@ fixture corpus; local Windows/Linux results documented, including skips/failures
 fact lines and an oversized ACTIVE_STATE, so new strict health reports review rather
 than returning trustworthy recall.
 
+- **Build on existing `health`, `doctor` and Python preview/apply compaction and
+  revalidation**. Their current diagnostics and transaction helpers are not a
+  complete migration engine and are not yet available in Node.
 - Add **read-only `migration audit`**: inventory/locate invalid, outdated, duplicate and
   unverified records; identify valuable material without treating it as confirmed.
 - Design a **lossless archive** outside validated `memory/topics/`, with a manifest and
@@ -75,6 +110,10 @@ promotes migrated unverified notes; healthy status is earned, never forced by de
 **Community feedback:** a Git-backed claim is useful only if source drift is rechecked
 *after* code changes and *before* the agent trusts it.
 
+- **Already implemented:** a task-start recipe in `SKILL.md`, `sync` drift checks,
+  `health` provenance diagnostics and Git verification during `search`.
+  Neither an instruction nor advisory `sync` proves a complete health check ran
+  automatically when a fresh session began.
 - Reuse existing `health` and `search` verification; **do not duplicate the Git hash checker**.
 - Define a single bounded, read-only **startup check** (possibly `lacc.mjs session-check`)
   that reports direct source drift, missing/unavailable evidence, conflicts and scan coverage.
@@ -93,6 +132,9 @@ read-only commands preserve all project files.
 **Community feedback:** a cited `auth.ts` may be unchanged while imported
 `permissions.ts` changes the behavior described by the memory fact.
 
+- **Already implemented:** heuristic `dep_graph.py` for exploring candidate references.
+  A memory fact can also cite multiple explicit sources today, and each gets verified
+  individually. Neither mechanism automatically resolves its import closure.
 - First prototype a deterministic, **bounded graph of resolvable local imports**,
   starting with JS/TS and configurable depth; reuse insights from the existing heuristic
   `dep_graph.py` but do not claim it already supplies a sound dependency graph.
@@ -119,6 +161,10 @@ language/depth coverage and no false claim of complete transitive safety.
 
 ### P2 — Coordinated multi-agent memory
 
+**Already implemented:** a cross-agent, project-local `memory/` fact store plus
+`AGENTS.md`/native instruction bridges. Multiple agent clients can consume the
+same facts serially; parallel edits are not coordinated.
+
 - Allow independent agents to produce **immutable, task-scoped handoffs** with owner,
   source revision, task status, review notes and bounded payloads.
 - Use a single reviewed writer/merge path for canonical facts, with optimistic concurrency,
@@ -131,6 +177,10 @@ an unverified handoff to confirmed memory.
 
 ### P2 — Practical quality and savings evaluation
 
+**Already implemented:** host/provider usage importers, context-pressure advice
+and a reproducible A/B protocol with synthetic/contract tests. No controlled
+real-model savings result has been confirmed or published.
+
 - Compare real projects with/without the skill and against host-native memory, using
   matched tasks, model versions, permissions, fixtures and acceptance tests.
 - Measure total model usage, retrieval precision, wrong/stale fact rate, task quality,
@@ -141,6 +191,10 @@ an unverified handoff to confirmed memory.
 measurement source and equal-quality acceptance gate.
 
 ### P3 — Multi-skill ecosystem
+
+**Already implemented:** the generic skill catalog layout, installer integration
+and one shipped, independently installable skill (`lean-context-memory`).
+A generic catalog does not mean the future domain-specific skills are shipped.
 
 - Add independent skills for CS-Cart development, .NET engineering, application security
   and privacy/GDPR compliance under `skills/<name>/`, with domain-specific tests.
@@ -160,9 +214,11 @@ create circular dependencies or unverifiable “self-improvement.”
 session-start health; dependency-aware review should be prototyped alongside
 the freshness contract, **not** rushed into the existing “source-unchanged” status.
 
-Use statuses: **implemented** (code exists), **locally validated** (specified local tests
-passed), **pilot validated** (real agent host/project checked), **planned**, and
-**research**. Do not call a feature completed because it appears in this roadmap.
+Use the per-slice status definitions in the implementation audit above:
+**implemented**, **locally validated**, **pilot reported**, **partial**, **planned**,
+or **research**. Report the environment and source of evidence before saying
+**pilot validated**; do not call a complete milestone shipped merely because
+some of its components already exist.
 
 All roadmap items are proposals until merged and tested. Implementation PRs must
 link the affected section and report tested environments, skipped tests, read/write
