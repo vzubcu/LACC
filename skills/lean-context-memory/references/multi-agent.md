@@ -54,3 +54,46 @@ its content was reviewed or is semantically correct.
 **Pending:** compare-and-swap for canonical memory updates, acknowledgments,
 conflict resolution and adversarial concurrent-writer tests. Those must
 pass locally before claiming safe multi-agent canonical writes.
+
+
+## Develop — canonical file compare-and-swap (validation pending)
+
+The CLI also exposes a reviewed, optimistic single-file write protocol:
+
+1. Put the proposed complete Markdown contents into a private, project-relative
+   file under `.lacc-proposals/`. Protect this directory via project .gitignore.
+   **Do not include secrets or submit the proposal file to Git.**
+2. Preview without writing any canonical files:
+
+   ```powershell
+   node <skill_dir>/scripts/lacc.mjs canonical-preview . --file memory/topics/architecture.md --content-file .lacc-proposals/architecture.md
+   ```
+
+3. Review the complete diff, source/provenance and behavior independently.
+   Apply only with the exact `expect` digest from preview:
+
+   ```powershell
+   node <skill_dir>/scripts/lacc.mjs canonical-apply . --file memory/topics/architecture.md --content-file .lacc-proposals/architecture.md --expect <64-char-digest> --reviewed
+   ```
+
+A preview binds **target path, proposed-file path, target SHA-256, proposal
+SHA-256, and Git HEAD**. Apply acquires an exclusive per-target lock, re-reads
+the source/proposal and Git HEAD, refuses changed inputs, snapshots exact old
+bytes privately in `memory/archive/lacc-cas/`, then replaces one file using
+same-filesystem temp-file rename. A second agent with an older preview gets
+a stale-preview failure instead of silently clobbering the new content.
+The lock is **never stolen automatically**; a stale lock requires explicit
+manual investigation. Target files may only be HOT memory or Markdown topics.
+
+This protocol protects **only writers using it**. Direct IDE saves, Git
+checkout/reset or other processes ignore the lock; an external editor can
+still race with the final rename. It is **not** a distributed lock, journal,
+cross-process filesystem transaction or multi-file atomic merge. No auto
+merge of conflicting facts, no auto-promotion of handoff text and no
+automatic rollback. The `--reviewed` flag records operator acknowledgement,
+not semantic or cryptographic proof. After apply run `health` and source/tests
+checks; publish only after acceptance criteria pass.
+
+Tests for CAS success, replay, stale proposals, competing writers, lock
+contention, unsafe paths and oversized HOT notes are authored, but local
+execution is pending.

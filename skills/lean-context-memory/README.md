@@ -163,6 +163,23 @@ created exclusively; duplicate submissions are idempotent, but direct
 multi-writer edits to canonical memory are **not yet coordinated**. See
 [multi-agent handoff protocol](references/multi-agent.md).
 
+## Develop preview: canonical memory compare-and-swap
+
+Experimental single-file conflict refusal is available through:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs canonical-preview . --file memory/topics/architecture.md --content-file .lacc-proposals/architecture.md
+node <skill_dir>/scripts/lacc.mjs canonical-apply . --file memory/topics/architecture.md --content-file .lacc-proposals/architecture.md --expect <preview_digest> --reviewed
+```
+
+A digest binds the current canonical file, candidate content, Git HEAD and
+paths. Apply acquires an exclusive per-target lock and saves exact previous
+bytes before atomic replacement. Only collaborating LACC writers honor
+the lock; external editors can race. This does **not** perform semantic
+fact validation, multi-file merge or automated restore. Keep candidate
+files private and run `health` after reviewed application. See
+[multi-agent protocol](references/multi-agent.md).
+
 ## Runtime coverage and fallback
 
 See [runtime compatibility matrix](references/runtime.md): Node is the
