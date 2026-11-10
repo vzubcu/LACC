@@ -8,6 +8,12 @@ domains include .NET Framework, security, compliance and other workflows; their 
 will be listed in the catalog when available. The catalog is independent of any one agent,
 provider or programming language.
 
+**Development roadmap:** [ROADMAP.md](ROADMAP.md) is the canonical forward-looking
+plan, with implemented capabilities, priority order, acceptance gates and the
+community-requested *session-start freshness* and *dependency-aware staleness*
+milestones. The [changelog](CHANGELOG.md) describes changes already shipped;
+historical implementation plans are not a current feature backlog.
+
 ## Install
 
 From your project directory, run:
