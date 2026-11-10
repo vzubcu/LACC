@@ -72,6 +72,7 @@ AST extraction, or benchmark imports; use existing helpers when available.
 ## Maintenance on demand
 
 - For stale facts, overflow, exact deduplication or batch revalidation, read [maintenance](references/maintenance.md).
+- For legacy topics, use `migration-audit` and preview `migration-backup` before any manual change; backup application requires an explicit reviewed digest. Never auto-promote legacy notes.
 - For runtime detection and native-tool fallback across OSes, read [runtime](references/runtime.md).
 - For initialization, upgrades and native instruction imports, read [setup](README.md).
 - For ranked source-backed fact recall and decision/lesson conventions, read [retrieval](references/retrieval.md).

@@ -116,6 +116,22 @@ selected sources before any write. The tool never stamps facts by itself.
 For budgets, selected-fact revalidation and compaction see [maintenance](references/maintenance.md).
 For scans and logs see [exploration](references/exploration.md).
 
+## Develop preview: legacy memory migration preparation
+
+A local, dependency-free Node tool now supports read-only legacy-memory
+inventory and deliberate byte-for-byte snapshot creation:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs migration-audit .
+node <skill_dir>/scripts/lacc.mjs migration-backup .
+node <skill_dir>/scripts/lacc.mjs migration-backup . --apply --expect <digest_from_preview>
+node <skill_dir>/scripts/lacc.mjs migration-inspect . --snapshot <digest_from_preview>
+```
+
+Backups live outside WARM topics, remain private and never certify a legacy
+claim. Existing files are not rewritten. See [maintenance](references/maintenance.md).
+This is not an automatic migration or one-click restore.
+
 ## Runtime coverage and fallback
 
 See [runtime compatibility matrix](references/runtime.md): Node is the
