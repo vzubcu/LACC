@@ -184,6 +184,60 @@ import alias, dirty index and incomplete graph.
 **Acceptance:** correctly flagged changes with reproducible Git evidence, declared
 language/depth coverage and no false claim of complete transitive safety.
 
+### P1 — Reverse dependency graph & language-neutral change-driven invalidation (new, design only)
+
+**Community input:** an unchanged cited file can import a changed dependency.
+Build and maintain the *inverse* mapping `changed dependency -> impacted
+dependents -> source-backed facts`. This improves early detection beyond
+pulling the forward import closure only when an individual fact is retrieved.
+
+**Important portability constraint:** LACC is not a JS/TS-only memory skill.
+It must work on **mixed-language, multi-root repositories** (C#/.NET,
+PHP/CS-Cart, Python, Java/Kotlin, Go, Rust, JS/TS and unknown languages).
+Avoid a mandatory compiler, OS-specific native parser, daemon, paid API,
+network service, or Python/Bash dependency. Keep the Node+Git core portable.
+
+- **Current foundation (not a completed implementation):** the optional
+  experimental `search --deps` / `session-check --deps` scans a bounded
+  JS/TS *forward* import graph only. `dep_graph.py` is heuristic candidate
+  exploration. Neither provides a language-neutral inverse graph, a
+  source-to-fact impact index, or comprehensive semantic project resolution.
+- **RD-1 — common graph/adapter contract:** unify forward edges, inverse
+  edges, `source -> fact` references, per-fact Git verified revision,
+  resolver provenance, confidence and explicit missing coverage. Ensure
+  historical edges removed in new code are not lost.
+- **RD-2 — reverse-walk JS/TS prototype:** reuse the existing `--deps`
+  source verifier, index local static imports, walk changed dependencies
+  backwards, return affected facts with evidence paths. Detect committed,
+  staged, unstaged, deleted and renamed paths and bound graph traversal.
+- **RD-3 — non-JS adapters:** separate adapters for C#/.NET
+  (`ProjectReference`, project manifests, optional symbol resolution),
+  PHP/Composer/CS-Cart, Python and JVM/Go/Rust project/module graphs.
+  Unknown runtime wiring (DI, reflection, events, hooks, dynamic imports,
+  schemas, lockfiles) must trigger explicit incomplete coverage, not pass.
+- **RD-4 — optional richer parsing:** evaluate Tree-sitter, language
+  servers and SCIP indexes for syntax/symbol accuracy, but never require
+  them or start unapproved external processes/downloads. Add a safe,
+  versioned, content-addressed derived cache outside trusted memory.
+- **RD-5 — measured acceptance:** Windows/Linux tests, mixed-language
+  fixtures, historical edges, path attacks, false positive/negative rates,
+  scan limits, latency and total context-token overhead. Retain opt-in
+  mode until validated and avoid claiming all languages fully supported.
+
+**Expected semantics:** `dependency-changed` or
+`dependency-coverage-incomplete` means **review required**, not semantic
+falsity; `unaffected-within-covered-scope` never means full safety.
+Do not auto-rewrite, revalidate or promote memory facts.
+
+**Design:** [Language-neutral reverse dependency memory engine](docs/architecture/reverse-dependency-memory.md).
+**Status:** specified in roadmap, implementation **not started**;
+the earlier JS/TS forward prototype remains experimental and unvalidated.
+
+**Acceptance:** a changed imported dependency reaches an unchanged
+cited source and its fact; mixed C#/.NET, PHP, Python and JS fixtures
+report impacted facts or truthful incomplete coverage, with demonstrable
+per-fact Git revision evidence and no mandatory external tools.
+
 ### P2 — Coordinated multi-agent memory
 
 **Already implemented:** a cross-agent, project-local `memory/` fact store plus
