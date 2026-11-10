@@ -50,6 +50,26 @@ These tests create disposable local Git repositories. They test the
 Node-only core and do not require a service, WSL or cloud runners.
 Windows-native tests still need independent execution on a Windows host.
 
+The previously skipped Windows case now locates the real `git.exe` and tests
+Node recall with only its directory on PATH (no Python/Bash directories).
+The Node suite also verifies that an unavailable Git executable **cannot**
+produce a trusted memory fact.
+
+Optional parity test (Python 3.9+; no Bash/WSL required):
+
+```bash
+node --test tests/test_node_python_parity.mjs
+```
+
+This executes the **same disposable Git fixtures** with Node and Python checkers
+and compares trust/review outcomes for clean, modified, staged, hidden,
+missing/unavailable sources, pending reviews, keyed conflicts, invalid
+provenance and UTF-8 read budgets. The Python-dependent test is skipped if
+no supported Python interpreter exists; install and execute locally (or use
+a Linux development container) before claiming full parity. Set
+`LACC_PYTHON` to an interpreter path when discovery fails. Diagnostic reason
+labels differ for some invalid metadata; trust decisions must not.
+
 Run from the repository root:
 
 ```bash

@@ -1,5 +1,18 @@
 # Changes
 
+## Unreleased — Memory v3.2.x portable runtime verification
+
+- Replace skipped Windows no-Python/Bash test with a native `git.exe`
+  isolated-PATH regression; ensure tests do not rely on symlink privileges.
+- Add a fail-closed regression proving missing Git cannot confirm facts.
+- Add optional shared Node/Python Git fixtures that compare source trust
+  outcomes and UTF-8 read limits; skip parity explicitly when Python is absent.
+- Document exact validation commands and update P0 roadmap status without
+  claiming unexecuted Windows/dual-runtime tests passed.
+- No GitHub Actions, workflows, hosted runners, runtime dependency or new
+  automatic memory writes.
+
+
 ## Unreleased — bounded Git operations on Windows
 
 - Bound Git child processes in the Node core to 30 seconds and disable

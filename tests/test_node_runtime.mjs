@@ -15,7 +15,7 @@ const exec = (bin, args, cwd, env) => {
   }
   const result = spawnSync(bin, args, {
     cwd, encoding: 'utf8', windowsHide: true, timeout, maxBuffer: 8 * 1024 * 1024,
-    env: { ...process.env, ...env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never' },
+    env: { ...(env ?? process.env), GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never' },
   });
   if (process.env.LACC_TEST_DEBUG === '1') {
     console.error('[LACC TEST] end', bin,
@@ -49,18 +49,78 @@ function fixture(t) {
   fs.writeFileSync(path.join(dir, 'memory/topics/architecture.md'), '# Architecture\n' + record(dir, 'Tenant isolation is mandatory'));
   return dir;
 }
-test('Node works without python and bash on the PATH, with Git available', t => {
-  if (process.platform === 'win32') { t.skip('Windows executable shims use .exe extension'); return; }
+test('Node works with Git but no Python or Bash on PATH (including Windows)', t => {
   const dir = fixture(t);
-  const toolsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc bins '));
-  t.after(() => fs.rmSync(toolsDir, { recursive: true, force: true }));
-  const bin = exec('which', ['git'], dir).stdout.trim();
-  fs.symlinkSync(bin, path.join(toolsDir, 'git'));
-  const env = { ...process.env, PATH: toolsDir };
+  let isolatedBin;
+  if (process.platform === 'win32') {
+    // Use the installed Windows git.exe itself. Do not create a symlink requiring
+    // Windows Developer Mode or administrator rights.
+    const located = exec('where.exe', ['git.exe'], dir);
+    assert.equal(located.status, 0, 'Git for Windows must be discoverable: ' + located.stderr);
+    const candidates = located.stdout.split(/\r?\n/).map(s => s.trim())
+      .filter(s => s.toLowerCase().endsWith('git.exe') && fs.existsSync(s));
+    assert.ok(candidates.length, 'No real git.exe returned by where.exe');
+    // Prefer Git\cmd: it is the supported Windows command-line entry point.
+    candidates.sort((a, b) =>
+      Number(/[/\\]cmd[/\\]git\.exe$/i.test(b)) - Number(/[/\\]cmd[/\\]git\.exe$/i.test(a)));
+    let found = false;
+    for (const candidate of candidates) {
+      const bin = path.dirname(candidate);
+      const clean = Object.fromEntries(
+        Object.entries(process.env).filter(([key]) => key.toLowerCase() !== 'path'));
+      clean.Path = bin;
+      // Probe candidates directly: a broken shim must not prevent trying
+      // another installed git.exe from the Windows PATH.
+      const probe = spawnSync('git', ['--version'], {
+        cwd: dir, env: clean, encoding: 'utf8', windowsHide: true, timeout: 15000,
+      });
+      if (!probe.error && probe.status === 0 && /^git version /i.test(probe.stdout.trim())) {
+        isolatedBin = bin;
+        found = true;
+        break;
+      }
+    }
+    assert.ok(found, 'git.exe could not run with only its own directory on PATH');
+  } else {
+    // Preserve the Linux/macOS test: only a real Git binary is exposed on PATH.
+    const toolsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc bins '));
+    t.after(() => fs.rmSync(toolsDir, { recursive: true, force: true }));
+    const found = exec('which', ['git'], dir);
+    assert.equal(found.status, 0, found.stderr);
+    fs.symlinkSync(found.stdout.trim(), path.join(toolsDir, 'git'));
+    isolatedBin = toolsDir;
+  }
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => key.toLowerCase() !== 'path'));
+  env[process.platform === 'win32' ? 'Path' : 'PATH'] = isolatedBin;
+  const probe = exec(process.execPath, [cli, 'capabilities'], dir, env);
+  assert.equal(probe.status, 0, probe.stderr);
+  assert.equal(JSON.parse(probe.stdout).strict_git_evidence, true);
   const res = exec(process.execPath, [cli, 'search', dir, '--query', 'tenant isolation', '--json'], dir, env);
   assert.equal(res.status, 0, res.stderr);
   assert.equal(JSON.parse(res.stdout).results.length, 1);
 });
+test('Node fails closed when Git cannot be launched from PATH', t => {
+  const dir = fixture(t);
+  const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-no-git '));
+  t.after(() => fs.rmSync(empty, { recursive: true, force: true }));
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => key.toLowerCase() !== 'path'));
+  env[process.platform === 'win32' ? 'Path' : 'PATH'] = empty;
+  const search = exec(process.execPath,
+    [cli, 'search', dir, '--query', 'tenant isolation', '--json'], dir, env);
+  assert.equal(search.status, 0, search.stderr);
+  const payload = JSON.parse(search.stdout);
+  assert.equal(payload.results.length, 0);
+  assert.ok(payload.stats.skipped_untrusted >= 1);
+
+  const health = exec(process.execPath, [cli, 'health', dir, '--json'], dir, env);
+  assert.equal(health.status, 1, health.stderr);
+  const audit = JSON.parse(health.stdout);
+  assert.ok(audit.findings.some(row => row.code === 'unavailable-commit'),
+    'Missing Git cannot produce a healthy provenance check');
+});
+
 test('init, idempotence, read and discovered modules', t => {
   const dir = fixture(t), before = fs.readFileSync(path.join(dir,'memory/topics/architecture.md'));
   assert.match(fs.readFileSync(path.join(dir,'CLAUDE.md'),'utf8'), /@AGENTS.md/);
