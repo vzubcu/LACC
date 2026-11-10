@@ -24,6 +24,7 @@ Use Node.js directly, not `npx lacc` (there is **no published package** called L
 
 ```
 node <skill_dir>/scripts/lacc.mjs init . --agent claude
+node <skill_dir>/scripts/lacc.mjs session-check . --json
 node <skill_dir>/scripts/lacc.mjs sync .
 node <skill_dir>/scripts/lacc.mjs read .
 node <skill_dir>/scripts/lacc.mjs search . --query "tenant isolation" --json
@@ -48,3 +49,18 @@ node --test tests/test_node_runtime.mjs
 ```
 
 Node tests create isolated temporary Git repositories and do not require Bash or Python. Windows and Linux parity should be validated on a real Windows workstation and at least one Linux runtime. No GitHub Actions workflows or runners are added. See also the existing Python suite for regression parity. Results from helper tests cannot establish token savings.
+
+## Develop preview: session-start pre-recall gate
+
+The Node CLI supports `session-check` when installed from the `develop`
+branch containing this change. It scans WARM topics with bounded content
+and verification limits (16 MiB total, 1 MiB per topic, 1000 parsed facts,
+64 individually Git-verified facts). A truncated scan returns
+`status: incomplete` and exit 1, never a healthy certification.
+HOT budgets, pointers and the Git checkpoint are also checked.
+
+This operation is read-only and has **no automatic host hook**; each agent
+must invoke it before trusting memory. Exit codes: 0 healthy Git evidence,
+1 review/incomplete, 2 invalid invocation/fatal errors. Unchanged Git
+content is not semantic correctness. Tests are authored for later local
+Windows/Linux execution; no pass claim is made here.

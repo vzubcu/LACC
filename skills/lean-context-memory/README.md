@@ -48,6 +48,21 @@ Initialization preserves existing facts and unrelated instruction blocks. New to
 apart from guidance; health may pass structurally while ACTIVE_STATE remains UNSYNCED.
 Populate and semantically verify real facts before stamping. No script certifies their truth.
 
+## Develop preview: session-start gate
+
+The experimental `develop` version adds `session-check`, a bounded
+read-only inspection of source-backed facts and HOT checkpoint validity
+before trusting a new session's memory. It reports incomplete coverage
+instead of declaring all facts verified. There is no guaranteed
+automatic hook across every agent. Run after installing that version:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs session-check . --json
+```
+
+Do not treat `status: review` or `incomplete` as a semantic failure
+of every claim; inspect evidence manually. No memory is auto-corrected.
+
 ## Daily operations — Node.js runtime
 
 ```powershell

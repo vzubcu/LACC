@@ -120,8 +120,10 @@ promotes migrated unverified notes; healthy status is earned, never forced by de
   Neither an instruction nor advisory `sync` proves a complete health check ran
   automatically when a fresh session began.
 - Reuse existing `health` and `search` verification; **do not duplicate the Git hash checker**.
-- Define a single bounded, read-only **startup check** (possibly `lacc.mjs session-check`)
-  that reports direct source drift, missing/unavailable evidence, conflicts and scan coverage.
+- **Authored on develop, validation pending:** `lacc.mjs session-check`
+  is a bounded read-only startup check for direct source drift, missing/unavailable
+  evidence, conflicts, HOT budgets, checkpoint and incomplete scan coverage.
+  Execute its regression cases in Windows/Linux before treating as shipped.
 - Have `SKILL.md` and native instruction bridges instruct agents to run it before loading
   trusted WARM facts in each new session and after relevant code changes.
 - Distinguish an *agent instruction* from an *enforced host hook*; no universal host hook
