@@ -127,3 +127,60 @@ snapshot directory must be inspected before retrying. Snapshot size is limited
 to 1 MiB per file and 16 MiB in total. Full rollback automation and
 source-backed rewriting remain future tasks. Test cases are authored but
 await the develop acceptance phase.
+
+## Develop preview — journaled multi-file migration and restore (validation pending)
+
+The `migration-audit`, `migration-backup` and `migration-inspect` commands
+remain available and unchanged. Use them **before** preparing edits.
+The proposed full Markdown replacements must be reviewed by a human/agent.
+Place the complete replacement files under a private `.lacc-proposals/`
+directory, and create a plan file (schema 1):
+
+```json
+{
+  "schema": 1,
+  "files": [
+    {"target": "memory/ACTIVE_STATE.md", "proposal": ".lacc-proposals/ACTIVE_STATE.md"},
+    {"target": "memory/topics/architecture.md", "proposal": ".lacc-proposals/architecture.md"}
+  ]
+}
+```
+
+Commands, run from the project directory:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs migration-plan . --plan .lacc-proposals/migration.json
+node <skill_dir>/scripts/lacc.mjs migration-apply . --plan .lacc-proposals/migration.json --expect <preview_expect> --reviewed
+node <skill_dir>/scripts/lacc.mjs migration-transaction-inspect . --id <transaction_id>
+```
+
+Restore an existing, already verified snapshot (only when its files still
+exist in canonical memory), with the same digest-bound review procedure:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs migration-restore-preview . --snapshot <backup_digest>
+node <skill_dir>/scripts/lacc.mjs migration-restore-apply . --snapshot <backup_digest> --expect <restore_preview_expect> --reviewed
+```
+
+If a process is interrupted while applying, inspect its transaction journal
+and request an explicit rollback:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs migration-transaction-inspect . --id <transaction_id>
+node <skill_dir>/scripts/lacc.mjs migration-recover . --id <transaction_id> --reviewed
+```
+
+Each transaction locks the **cooperating LACC migration writers**, verifies
+all source hashes and Git HEAD, copies exact preimages to a private
+`memory/archive/lacc-transactions/` directory, records a write-ahead
+journal and replaces files one at a time using same-directory temporary
+files. Recovery refuses to overwrite unknown external edits. An interrupted
+transaction without a complete journal requires manual investigation.
+
+**This is journaled/recoverable multi-file editing, NOT atomic visibility
+of all files, and not a distributed transaction.** External editors ignore
+LACC locks. Never interpret `--reviewed` as proof of correct provenance or
+semantics; run `health` afterward. This does not invent Git sources, delete
+legacy facts or automatically promote unverified information. Keep
+`.lacc-proposals/` private and out of Git. All behavioral tests remain
+pending execution in the develop validation gate.
