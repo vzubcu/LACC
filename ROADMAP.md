@@ -107,7 +107,15 @@ than returning trustworthy recall.
   unverified records; identify valuable material without treating it as confirmed.
 - Design a **lossless archive** outside validated `memory/topics/`, with a manifest and
   immutable backup/digest, so historical notes are not silently discarded or indexed as facts.
-- Provide deterministic preview/diff, explicit approval, digest-bound apply and rollback.
+- **Authored on develop, validation pending (PR #22):** digest/HEAD-bound
+  `migration-plan` and `migration-apply` perform reviewed multi-file
+  replacements with cooperative exclusive lock, verified preimages and a
+  recovery journal. `migration-restore-preview` / `migration-restore-apply`
+  restore an existing snapshot with the same controls; `migration-recover`
+  refuses unknown external edits. These are *recoverable per-file replacements*,
+  not atomic multi-file visibility and not a semantic migration engine.
+- Continue improving deterministic preview/diff, explicit approval, digest-bound
+  apply and rollback, including crash fault-injection and noncooperating editors.
 - Verify real code and tests before adding source/commit; do not manufacture provenance.
 - Move current task state under HOT limits while preserving outstanding work and decisions.
 

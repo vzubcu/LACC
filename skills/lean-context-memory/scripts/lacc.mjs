@@ -12,6 +12,7 @@ import { migrationAudit, migrationBackup, migrationInspect } from './lacc-migrat
 import { verifyDependencies } from './lacc-dependencies.mjs';
 import { handoffPublish, handoffList, handoffRead } from './lacc-handoff.mjs';
 import { canonicalPreview, canonicalApply } from './lacc-cas.mjs';
+import { transactionPreview, transactionApply, transactionInspect, transactionRecover } from './lacc-transaction.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const skill = path.resolve(here, '..');
@@ -35,7 +36,7 @@ function options(argv) {
     if (arg.startsWith('--')) {
       const key = arg.slice(2);
       if (['json', 'include-review', 'strict', 'stamp', 'apply', 'deps', 'reviewed'].includes(key)) opts[key] = true;
-      else if (['query', 'agent', 'limit', 'max-bytes', 'topic', 'expect', 'snapshot', 'task', 'actor', 'message', 'expect-head', 'id', 'file', 'content-file'].includes(key)) {
+      else if (['query', 'agent', 'limit', 'max-bytes', 'topic', 'expect', 'snapshot', 'task', 'actor', 'message', 'expect-head', 'id', 'file', 'content-file', 'plan'].includes(key)) {
         if (!argv[i + 1] || argv[i + 1].startsWith('--')) throw Error('missing value for ' + arg);
         if (key === 'topic') (opts.topic ??= []).push(argv[++i]);
         else opts[key] = argv[++i];
@@ -56,7 +57,7 @@ function runtimeStatus() {
     platform: process.platform, node: process.version,
     git: probe('git', ['--version']), python: probe('python', ['--version']) ?? probe('python3', ['--version']),
     bash: probe('bash', ['--version']),
-    commands: { init: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true },
+    commands: { init: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true },
     strict_git_evidence: Boolean(probe('git', ['--version'])),
     python_maintenance: 'optional separate Python tool; not implemented in Node',
     mode: 'node',
@@ -259,7 +260,7 @@ function sync(root, opts) {
   const review = !valid || committed.length || clean.length;
   return { text: output + (review ? 'REVIEW: inspect source changes\n' : 'NO SOURCE DRIFT; not semantic proof\n'), code: strict && review ? 1 : 0 };
 }
-function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --deps (experimental); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --reviewed\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
+function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --deps (experimental); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --reviewed\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
 export function main(argv = process.argv.slice(2)) {
   const [command = 'help', ...args] = argv;
   if (['help', '--help', '-h'].includes(command)) { process.stdout.write(help()); return 0; }
@@ -273,6 +274,21 @@ export function main(argv = process.argv.slice(2)) {
   if (command === 'search') { process.stdout.write(searchMemory(root, opts)); return 0; }
   if (command === 'health') { const r = health(root, opts); process.stdout.write(r.text); return r.code; }
   if (command === 'doctor') { const r = doctor(root, opts); process.stdout.write(r.text); return r.code; }
+  if (['migration-plan', 'migration-apply', 'migration-restore-preview', 'migration-restore-apply'].includes(command)) {
+    const options = { plan: opts.plan, snapshot: opts.snapshot, expect: opts.expect,
+      reviewed: Boolean(opts.reviewed) };
+    const result = command === 'migration-plan' || command === 'migration-restore-preview'
+      ? transactionPreview(root, options) : transactionApply(root, options);
+    process.stdout.write(emitLimited(result, cap(root, opts)));
+    return 0;
+  }
+  if (command === 'migration-transaction-inspect' || command === 'migration-recover') {
+    const result = command === 'migration-transaction-inspect'
+      ? transactionInspect(root, opts.id)
+      : transactionRecover(root, { id: opts.id, reviewed: Boolean(opts.reviewed) });
+    process.stdout.write(emitLimited(result, cap(root, opts)));
+    return 0;
+  }
   if (command === 'canonical-preview' || command === 'canonical-apply') {
     const details = { file: opts.file, contentFile: opts['content-file'],
       expect: opts.expect, reviewed: Boolean(opts.reviewed) };

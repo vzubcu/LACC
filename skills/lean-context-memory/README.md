@@ -180,6 +180,26 @@ fact validation, multi-file merge or automated restore. Keep candidate
 files private and run `health` after reviewed application. See
 [multi-agent protocol](references/multi-agent.md).
 
+## Develop preview: journaled migration and snapshot restore
+
+The experimental Node CLI supports reviewed **multi-file** canonical
+replacement and restoring previously verified snapshots, with exact
+SHA-256/Git-HEAD preconditions, exclusive cooperative lock, private
+preimages and an explicit recovery journal:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs migration-plan . --plan .lacc-proposals/migration.json
+node <skill_dir>/scripts/lacc.mjs migration-apply . --plan .lacc-proposals/migration.json --expect <preview_digest> --reviewed
+node <skill_dir>/scripts/lacc.mjs migration-restore-preview . --snapshot <backup_digest>
+node <skill_dir>/scripts/lacc.mjs migration-restore-apply . --snapshot <backup_digest> --expect <preview_digest> --reviewed
+```
+
+**Not an ACID transaction:** files are replaced individually and external
+editors can ignore the cooperative lock. The journal permits a reviewed
+recovery only if canonical files still match expected before/after hashes.
+No automatic fact promotion or provenance fabrication. See
+[maintenance](references/maintenance.md). Validation pending on develop.
+
 ## Runtime coverage and fallback
 
 See [runtime compatibility matrix](references/runtime.md): Node is the

@@ -33,6 +33,7 @@ node --test tests/test_memory_migration.mjs
 node --test tests/test_dependency_staleness.mjs
 node --test tests/test_multiagent_handoff.mjs
 node --test tests/test_canonical_cas.mjs
+node --test tests/test_memory_transaction.mjs
 ```
 
 Tests expected after implementation and review: Windows isolated Git PATH,

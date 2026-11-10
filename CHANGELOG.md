@@ -1,5 +1,19 @@
 # Changes
 
+## Develop (unvalidated) — recoverable multi-file memory migration
+
+- Add read-only `migration-plan` and `migration-restore-preview` commands.
+- Add explicit `--reviewed --expect` apply and restore operations, with
+  Git HEAD/source/proposal digest binding, bounded file inventory, exclusive
+  cooperative migration lock, verified preimages and durable private journal.
+- Add `migration-transaction-inspect` and explicit `migration-recover`,
+  refusing to overwrite unrecognized external edits.
+- Author regression tests for apply, stale preview, snapshot restore, rejected
+  paths and journal verification; tests deferred until develop validation.
+- Not full ACID/cross-file atomicity; no automatic semantic correction or
+  promotion of legacy facts. No GitHub Actions or new runtime dependencies.
+
+
 ## Develop (unvalidated) — canonical single-file CAS
 
 - Add `canonical-preview` and `canonical-apply` Node CLI commands.
