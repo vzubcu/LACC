@@ -30,7 +30,7 @@ Version labels below are *tentative*; priorities and acceptance criteria matter 
 | Legacy exploration | Python `dep_graph.py` can discover *candidate* inbound references | Heuristic exploration, **not** dependency-aware invalidation of a fact |
 | Agent setup | `AGENTS.md` and native-agent instruction bridges; a documented session-start recipe | A recipe does not prove the host automatically runs it on every new session |
 | Context and usage tools | Context-pressure advice and provider/host usage importers | No published, measured real-model savings |
-| Test harness | Node tests with Windows subprocess timeouts, an isolated-PATH `git.exe` case, a missing-Git fail-closed case, and an optional shared Node/Python parity harness | Updated Windows case and optional parity harness require execution; no full cross-runtime parity result |
+| Test harness | Node tests with Windows subprocess timeouts, an isolated-PATH `git.exe` case, a missing-Git fail-closed case, and an optional shared Node/Python parity harness | Full cross-runtime parity and legacy Bash-helper coverage remain incomplete |
 
 **Current gaps explicitly not shipped:** automatically enforced session-start health gate;
 indirect/transitive dependency staleness; lossless migration of old unverified memory;
@@ -49,7 +49,7 @@ The roadmap tracks **slices of behavior**, not whole feature names. Labels:
 
 | Roadmap capability | Existing implementation (do not duplicate) | Missing work | Precise status |
 |---|---|---|---|
-| Cross-platform Node core | Bundled `lacc.mjs` with Git-backed verification and prior Rider pilot: 5 passed, 1 skipped. A new Windows `git.exe` isolated-PATH test and optional Node/Python parity fixture harness are now authored | Execute updated tests on Windows and Linux, resolve any parity failures, test a second host | **Implemented / pilot reported; new P0 tests authored, execution pending** |
+| Cross-platform Node core | Bundled `lacc.mjs` with Git-backed verification; local Windows validation passed 34 tests with 1 optional parity skip | Full cross-runtime parity and a second host remain | **Implemented / locally validated for Node on Windows; parity skipped** |
 | Existing-memory cleanup | Read-only `health` and `doctor`; Python `memory-maintain.py compact/revalidate` uses preview, digest-bound apply and manual review | Automated *lossless legacy migration audit*, archival manifest/backup and rollback; migrate arbitrary old notes safely in Node-first environments | **Partial foundation; migration planned** |
 | Session freshness | `SKILL.md` already tells agents to run `sync` at task start; `sync` checks checkpoint/worktree drift; `search` verifies *cited* source evidence at retrieval; `health` checks facts | A single bounded, explicit startup health gate and proof it is invoked for each supported host/session; startup `sync` alone is not complete per-fact health | **Existing manual workflow; enforced/combined gate planned** |
 | Indirect dependencies | `dep_graph.py` provides bounded *candidate references* for manual investigation; fact metadata already permits **multiple explicit `source:` files**, each checked by source verification | Automatically resolve imported dependencies, compare them at checked commit and worktree, report indirect change and incomplete graph coverage | **Manual exploration implemented; automatic indirect staleness planned** |
@@ -73,9 +73,10 @@ skipped, and the agent executed the installed CLI. This is **not** full parity.
 
 **Remaining goal:** stabilize the shipped Node runtime before expanding provenance semantics.
 
-- **Test authored, execution pending:** run the unskipped Windows `git.exe`
+- **Validated locally on Windows:** the unskipped Windows `git.exe`
   isolated-PATH test (`tests/test_node_runtime.mjs`) and fail-closed no-Git test;
-  confirm no Python/Bash dependency on an actual Windows machine.
+  confirm no Python/Bash dependency in the Node runtime. The complete Node
+  regression run passed; Python parity remains optional and skipped.
 - **Initial shared fixture harness authored:** run `tests/test_node_python_parity.mjs`
   with CPython 3.9+ to compare healthy, dirty, staged, `assume-unchanged`, missing
   and unavailable sources, review-state facts, conflicts, invalid provenance
@@ -99,7 +100,7 @@ than returning trustworthy recall.
 - **Build on existing `health`, `doctor` and Python preview/apply compaction and
   revalidation**. Their current diagnostics and transaction helpers are not a
   complete migration engine and are not yet available in Node.
-- **Authored on develop, validation pending:** a Node `migration-audit` flags
+- **Validated locally on the validation branch:** a Node `migration-audit` flags
   legacy notes and reviewed Git evidence; `migration-backup` creates a
   digest-bound, explicit, byte-for-byte snapshot outside validated topics;
   `migration-inspect` verifies archive contents. No automatic rewriting.
@@ -107,7 +108,7 @@ than returning trustworthy recall.
   unverified records; identify valuable material without treating it as confirmed.
 - Design a **lossless archive** outside validated `memory/topics/`, with a manifest and
   immutable backup/digest, so historical notes are not silently discarded or indexed as facts.
-- **Authored on develop, validation pending (PR #22):** digest/HEAD-bound
+- **Validated locally on the validation branch (PR #22):** digest/HEAD-bound
   `migration-plan` and `migration-apply` perform reviewed multi-file
   replacements with cooperative exclusive lock, verified preimages and a
   recovery journal. `migration-restore-preview` / `migration-restore-apply`
@@ -132,7 +133,7 @@ promotes migrated unverified notes; healthy status is earned, never forced by de
   Neither an instruction nor advisory `sync` proves a complete health check ran
   automatically when a fresh session began.
 - Reuse existing `health` and `search` verification; **do not duplicate the Git hash checker**.
-- **Authored on develop, validation pending:** `lacc.mjs session-check`
+- **Validated locally on the validation branch:** `lacc.mjs session-check`
   is a bounded read-only startup check for direct source drift, missing/unavailable
   evidence, conflicts, HOT budgets, checkpoint and incomplete scan coverage.
   Execute its regression cases in Windows/Linux before treating as shipped.
@@ -154,7 +155,7 @@ read-only commands preserve all project files.
 - **Already implemented:** heuristic `dep_graph.py` for exploring candidate references.
   A memory fact can also cite multiple explicit sources today, and each gets verified
   individually. Neither mechanism automatically resolves its import closure.
-- **Prototype authored on develop, validation pending:** optional Node
+- **Prototype validated locally on the validation branch:** optional Node
   `search --deps` and `session-check --deps` traverse bounded local
   JS/TS imports and flag indirect `dependency-changed`; unresolved
   dynamic/alias/external imports are marked incomplete. This uses a
@@ -190,7 +191,7 @@ language/depth coverage and no false claim of complete transitive safety.
 `AGENTS.md`/native instruction bridges. Multiple agent clients can consume the
 same facts serially; parallel edits are not coordinated.
 
-- **Authored on develop, validation pending:** Node handoff publish/list/read
+- **Validated locally on the validation branch:** Node handoff publish/list/read
   uses immutable, task-scoped JSON with exclusive create, deterministic
   idempotency IDs and Git-HEAD preconditions. Proposals remain outside
   validated WARM facts and cannot auto-promote. Canonical memory still
@@ -198,7 +199,7 @@ same facts serially; parallel edits are not coordinated.
   are **not implemented**.
 - Extend independent agents' **immutable, task-scoped handoffs** with owner,
   source revision, task status, review notes and bounded payloads.
-- **Authored on develop, validation pending:** add reviewed single-file
+- **Validated locally on the validation branch:** add reviewed single-file
   `canonical-preview`/`canonical-apply` with Git HEAD/digest-bound CAS,
   exclusive per-file LACC lock, temp-file atomic replacement and private
   rollback bytes. It prevents cooperating LACC writers from silently

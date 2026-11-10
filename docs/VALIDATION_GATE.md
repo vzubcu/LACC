@@ -1,8 +1,10 @@
 # Consolidated acceptance gate: develop -> main
 
-**Status: prepared, NOT RUN.** This checklist covers untested implementations
-currently integrated into develop. It is intentionally separate from the
-published main branch. Do not advertise develop as the stable release.
+**Status: partially executed locally on Windows.** The Node.js acceptance suites
+for the implementations integrated into develop pass on the validation branch.
+Python parity was skipped by the Node harness, and the legacy Bash/Python helper
+suite remains incomplete because Git Bash cannot start in the current Windows
+environment. This checklist remains separate from the published main branch.
 
 **Hard constraints:** local execution, no hosted GitHub Actions, no
 auto-merges into main, preserve user memory and private handoffs.
@@ -36,7 +38,7 @@ node --test tests/test_canonical_cas.mjs
 node --test tests/test_memory_transaction.mjs
 ```
 
-Tests expected after implementation and review: Windows isolated Git PATH,
+Executed on the validation branch: Windows isolated Git PATH,
 no Git fail-closed, start-of-session drift/overflow, reviewed backup and
 tamper detection, indirect permission-module drift and incomplete import
 resolution, idempotent task handoffs and tampered handoff rejection.
@@ -51,9 +53,11 @@ skip explicitly; they must never masquerade as a pass.
 node --test tests/test_node_python_parity.mjs
 ```
 
-CPython 3.9+ is required for meaningful parity results. A skipped parity
-test does **not** prove Node and Python agree. Run the full Python tests in
-a local Python-capable environment:
+CPython 3.9+ is required for meaningful parity results. The current Node
+parity test skipped because it did not discover CPython through its optional
+`python3` lookup; this does **not** prove Node and Python agree. The full
+Python suite was attempted with CPython 3.12, but Bash-dependent helpers
+remain unvalidated because Git Bash returned `Bash/E_ACCESSDENIED`.
 
 ```bash
 python3 -m unittest discover -s tests -v

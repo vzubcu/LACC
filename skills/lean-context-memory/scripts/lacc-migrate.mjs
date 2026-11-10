@@ -90,6 +90,7 @@ export function migrationBackup(root, { expect, apply, maxBytes } = {}) {
       throw Error('existing backup has a different manifest');
     return { text: emitLimited({ ...summary, status: 'existing' }, maxBytes), code: 0 };
   }
+  fs.mkdirSync(localPath(root, BACKUPS), { recursive: true });
   fs.mkdirSync(snapDir);
   // Exclusive writes, manifest LAST: an interrupted backup cannot look complete.
   for (const entry of preview.files) {

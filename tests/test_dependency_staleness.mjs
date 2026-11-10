@@ -38,7 +38,7 @@ function setup(t, auth = "import { allowed } from './permissions';\nexport const
   const rev = git(dir, 'rev-parse', 'HEAD');
   assert.equal(run(process.execPath, [cli, 'init', dir, '--agent', 'codex'], dir).status, 0);
   fs.writeFileSync(path.join(dir, 'memory/topics/architecture.md'),
-    '# Architecture\n- Login requires permission | source: §src/auth.ts§ | verified: §' + rev + '§\n'
+    ('# Architecture\n- Login requires permission | source: §src/auth.ts§ | verified: §' + rev + '§\n')
       .replaceAll('§', String.fromCharCode(96)));
   return dir;
 }

@@ -1,5 +1,16 @@
 # Changes
 
+## Develop validation — local Windows Node gate
+
+- Validated `test/develop-full-validation` with Node.js 24.13.0: 34 passing
+  tests and 1 explicit optional Python-parity skip.
+- Fixed snapshot backup creation when `memory/archive/lacc-snapshots` did not
+  yet exist.
+- Corrected two Node regression fixtures that accidentally wrote literal `§`
+  markers instead of Markdown backticks.
+- Legacy Bash/Python helper coverage remains environment-blocked when Git Bash
+  cannot start.
+
 ## Develop (unvalidated) — recoverable multi-file memory migration
 
 - Add read-only `migration-plan` and `migration-restore-preview` commands.
