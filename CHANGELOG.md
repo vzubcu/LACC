@@ -1,5 +1,18 @@
 # Changes
 
+## Develop (unvalidated) — canonical single-file CAS
+
+- Add `canonical-preview` and `canonical-apply` Node CLI commands.
+- Bind a reviewed preview to target/proposal content SHA-256, file paths
+  and HEAD; require `--reviewed --expect` and per-file exclusive lock.
+- Create a private exact rollback copy before atomic file replacement;
+  refuse stale previews, locks, symlinks and oversized HOT proposals.
+- Does not coordinate non-LACC editors or support multi-file transactions;
+  source-backed semantic review and post-apply health remain mandatory.
+- Add local regression tests; execution intentionally deferred on develop.
+- No GitHub Actions, automatic merge or new runtime dependencies.
+
+
 ## Develop (unvalidated) — private agent data and acceptance gate
 
 - Add automatic local Git-ignore rules for generated snapshot and handoff

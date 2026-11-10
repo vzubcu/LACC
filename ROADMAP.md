@@ -190,8 +190,15 @@ same facts serially; parallel edits are not coordinated.
   are **not implemented**.
 - Extend independent agents' **immutable, task-scoped handoffs** with owner,
   source revision, task status, review notes and bounded payloads.
-- Use a single reviewed writer/merge path for canonical facts, with optimistic concurrency,
-  idempotency and explicit conflict resolution; no silent last-writer-wins overwrites.
+- **Authored on develop, validation pending:** add reviewed single-file
+  `canonical-preview`/`canonical-apply` with Git HEAD/digest-bound CAS,
+  exclusive per-file LACC lock, temp-file atomic replacement and private
+  rollback bytes. It prevents cooperating LACC writers from silently
+  overwriting one another; external writers and multi-file atomicity
+  remain unsupported.
+- Extend the reviewed canonical fact writer with cross-file optimistic
+  concurrency, idempotency and explicit conflict resolution; no silent
+  last-writer-wins overwrites.
 - Keep agents' unverified suggestions separate from source-backed shared memory.
 - Support mixed Codex, Claude, Gemini and other native hosts without a daemon requirement.
 

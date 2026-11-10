@@ -79,6 +79,7 @@ AST extraction, or benchmark imports; use existing helpers when available.
 - For experimental indirect JS/TS source drift, use `search . --query "task" --deps --include-review --json` only when requested; incomplete import resolution requires review.
 - For key-based conflict triage and advisory self-healing, read [memory doctor](references/self-healing.md).
 - For concurrent task handoffs, use [multi-agent](references/multi-agent.md); all handoff messages are unverified proposals, never auto-promoted into source-backed facts.
+- For reviewed concurrent canonical file updates, use `canonical-preview` and `canonical-apply` with an exact `--expect` digest and `--reviewed`; inspect current Git sources first. This is single-file CAS, not multi-file transactions.
 - For bounded search, signature extraction and private log handling, read [exploration](references/exploration.md).
 - For provider/Codex token measurement use `scripts/usage-report.py`; for JetBrains per-session reported totals, use `scripts/session-totals.py`. Read [benchmark protocol](references/benchmark.md) and never infer tokens from context percentages.
 
