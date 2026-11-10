@@ -146,7 +146,13 @@ read-only commands preserve all project files.
 - **Already implemented:** heuristic `dep_graph.py` for exploring candidate references.
   A memory fact can also cite multiple explicit sources today, and each gets verified
   individually. Neither mechanism automatically resolves its import closure.
-- First prototype a deterministic, **bounded graph of resolvable local imports**,
+- **Prototype authored on develop, validation pending:** optional Node
+  `search --deps` and `session-check --deps` traverse bounded local
+  JS/TS imports and flag indirect `dependency-changed`; unresolved
+  dynamic/alias/external imports are marked incomplete. This uses a
+  heuristic parser, **not** a sound AST/resolved module graph. Do not
+  enable by default until tests and false-negative reviews pass.
+- Continue toward a deterministic, **bounded graph of resolvable local imports**,
   starting with JS/TS and configurable depth; reuse insights from the existing heuristic
   `dep_graph.py` but do not claim it already supplies a sound dependency graph.
 - Compare relevant dependency files at the fact's **verified commit** and at current

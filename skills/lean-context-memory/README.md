@@ -132,6 +132,22 @@ Backups live outside WARM topics, remain private and never certify a legacy
 claim. Existing files are not rewritten. See [maintenance](references/maintenance.md).
 This is not an automatic migration or one-click restore.
 
+## Develop preview: indirect dependency staleness
+
+Opt in to bounded, heuristic JS/TS local-import checks:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs search . --query "auth permissions" --deps --json
+node <skill_dir>/scripts/lacc.mjs search . --query "auth permissions" --deps --include-review --json
+node <skill_dir>/scripts/lacc.mjs session-check . --deps --json
+```
+
+A source file can remain unchanged while an imported module changes. This
+mode reports potential indirect drift and requires review for aliases,
+dynamic imports, external packages or incomplete resolution. It is
+**not** a verified universal dependency graph and remains off by default
+until the develop test gate is complete. See [retrieval](references/retrieval.md).
+
 ## Runtime coverage and fallback
 
 See [runtime compatibility matrix](references/runtime.md): Node is the

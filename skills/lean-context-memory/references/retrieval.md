@@ -88,3 +88,29 @@ update their MEMORY_INDEX.md pointers after review.
 This is **retrieval quality infrastructure**, not proof of model-token savings.
 To measure token savings, run paired complete model tasks with matching
 configurations and independent acceptance tests, as documented in benchmark.md.
+
+## Develop preview — experimental JS/TS dependency drift
+
+The bounded Node `search --deps` mode performs *additional*, opt-in checks
+of local static JS/TS imports at the original checked Git revision versus
+current Git index/worktree state. When an imported file changes, the fact
+is flagged `dependency-changed` and excluded from default results in this
+mode, even if its explicit `source:` file is unchanged. Use
+`--deps --include-review --json` to inspect implicated dependencies.
+A `session-check --deps` similarly applies the same heuristic during a
+pre-recall scan.
+
+These checks are **experimental and disabled by default** while
+unvalidated. Only static relative JS/TS imports are in scope, and the
+line-oriented parser is not a compiler. Dynamic imports, path aliases,
+external packages, unsupported languages, cycles beyond budget and
+unresolved modules trigger `dependency-coverage-incomplete` requiring
+review, not an invented "complete graph" certification. The graph is
+bounded at 3 levels, 32 edges, 128 KiB per scanned file and 1 MiB
+per fact. `dependency_local_scan_complete` only describes that
+heuristic's local scan, never semantic certainty. Existing `dep_graph.py`
+remains a manual inbound-reference exploration tool, not this validator.
+
+Do not enable as a default policy until both runtime validation and
+false-negative/false-positive fixtures are reviewed. No automatic
+revalidation, fact changes or file modifications occur.

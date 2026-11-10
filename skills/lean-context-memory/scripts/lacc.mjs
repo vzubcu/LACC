@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { budget, checkMemory, conflicts, defaults, emitLimited, git, gitText, inventory, isGit, LIMITS, localPath, relevance, utf8, verifySources, words } from './lacc-core.mjs';
 import { sessionCheck } from './lacc-session.mjs';
 import { migrationAudit, migrationBackup, migrationInspect } from './lacc-migrate.mjs';
+import { verifyDependencies } from './lacc-dependencies.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const skill = path.resolve(here, '..');
@@ -31,7 +32,7 @@ function options(argv) {
     const arg = argv[i];
     if (arg.startsWith('--')) {
       const key = arg.slice(2);
-      if (['json', 'include-review', 'strict', 'stamp', 'apply'].includes(key)) opts[key] = true;
+      if (['json', 'include-review', 'strict', 'stamp', 'apply', 'deps'].includes(key)) opts[key] = true;
       else if (['query', 'agent', 'limit', 'max-bytes', 'topic', 'expect', 'snapshot'].includes(key)) {
         if (!argv[i + 1] || argv[i + 1].startsWith('--')) throw Error('missing value for ' + arg);
         if (key === 'topic') (opts.topic ??= []).push(argv[++i]);
@@ -156,17 +157,23 @@ function searchMemory(root, opts) {
   const limited = matches.length > LIMITS.candidateCount;
   const candidates = matches.slice(0, LIMITS.candidateCount);
   const states = verifySources(root, candidates);
+  const dependencies = opts.deps ? verifyDependencies(root, candidates) : new Map();
   const selected = [];
   for (const row of candidates) {
     const problems = states.get(row.location) ?? [];
     const freshness = problems[0]?.code ?? 'source-unchanged';
-    const review_required = row.state !== 'confirmed' || freshness !== 'source-unchanged' || row.potential_conflict || row.conflict_check_incomplete;
-    if (!review_required || opts['include-review']) selected.push({ ...row, freshness, review_required });
+    const dep = dependencies.get(row.location);
+    const dependency_issues = dep?.issues ?? [];
+    const review_required = row.state !== 'confirmed' || freshness !== 'source-unchanged' || row.potential_conflict || row.conflict_check_incomplete || dependency_issues.length > 0;
+    if (!review_required || opts['include-review'])
+      selected.push({ ...row, freshness, review_required,
+        ...(opts.deps ? { dependency_scope: dep?.scope, dependency_issues,
+          dependency_local_scan_complete: Boolean(dep?.complete) } : {}) });
   }
   const result = {
     query, status: (all.incomplete || limited ? 'incomplete' : 'complete'), results: selected.slice(0, limit),
     stats: { matched: matches.length, invalid_facts: all.invalid.length, skipped_untrusted: candidates.length - selected.length, scan_incomplete: all.incomplete, verification_limited: limited, returned: Math.min(selected.length, limit), output_truncated: selected.length > limit },
-    note: 'Git source hashes are not semantic proof. Review flagged facts before use.',
+    note: opts.deps ? 'Experimental bounded JS/TS dependency scan, not semantic proof. Unresolved imports require review.' : 'Only explicitly cited Git sources are checked; indirect dependencies not verified by default.',
   };
   let output = emitLimited(result, cap(root, opts));
   const decoded = JSON.parse(output);
@@ -250,7 +257,7 @@ function sync(root, opts) {
   const review = !valid || committed.length || clean.length;
   return { text: output + (review ? 'REVIEW: inspect source changes\n' : 'NO SOURCE DRIFT; not semantic proof\n'), code: strict && review ? 1 : 0 };
 }
-function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
+function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --deps (experimental); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
 export function main(argv = process.argv.slice(2)) {
   const [command = 'help', ...args] = argv;
   if (['help', '--help', '-h'].includes(command)) { process.stdout.write(help()); return 0; }
@@ -277,7 +284,7 @@ export function main(argv = process.argv.slice(2)) {
     process.stdout.write(r.text); return r.code;
   }
   if (command === 'session-check') {
-    const r = sessionCheck(root, { json: Boolean(opts.json), maxBytes: cap(root, opts) });
+    const r = sessionCheck(root, { json: Boolean(opts.json), maxBytes: cap(root, opts), deps: Boolean(opts.deps) });
     process.stdout.write(r.text);
     return r.code;
   }

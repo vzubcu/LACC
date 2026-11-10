@@ -1,5 +1,19 @@
 # Changes
 
+## Develop (unvalidated) — opt-in indirect source staleness
+
+- Prototype opt-in `search --deps` and `session-check --deps` for
+  bounded local JS/TS static imports with Git evidence at the checked
+  revision and current index/worktree.
+- Review indirect `dependency-changed` sources, unresolved imports,
+  aliases, external packages and exhausted depth/edge/file budgets.
+- Keep the heuristic off by default until local acceptance/false-negative
+  testing; unchanged direct-source behavior remains compatible.
+- Author regression fixtures for changed imported module, irrelevant file,
+  aliases and budget overflow. Tests not executed yet.
+- No GitHub Actions, new Node dependencies or automatic writes.
+
+
 ## Develop (unvalidated) — legacy memory backup preparation
 
 - Add a bounded Node migration audit, deterministic snapshot preview,
