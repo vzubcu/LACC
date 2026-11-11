@@ -38,6 +38,7 @@ node --test tests/test_canonical_cas.mjs
 node --test tests/test_memory_transaction.mjs
 node --test tests/test_dependency_graph_contract.mjs
 node --test tests/test_reverse_dependency_impact.mjs
+node --test tests/test_memory_conflict_findings.mjs
 ```
 
 Tests expected after implementation and review: Windows isolated Git PATH,
@@ -106,3 +107,19 @@ A promotion PR from develop to main requires:
 No automatic tag/version or release announcement follows merely from
 merging the implementations into develop. Real-model A/B token measurements
 are a separate quality goal and cannot be fabricated by local helper tests.
+
+## CR-1 explainable evidence acceptance (pending)
+
+- Verify normalized findings cover direct source drift, indirect JS/TS
+  dependency drift, potential keyed conflicts, missing evidence and
+  session checkpoint changes without claiming semantic contradiction.
+- Verify legacy JSON remains stable without `--explain` and trusted
+  search still excludes unverified facts. Explanations must not promote
+  withheld matches into trusted results.
+- Ensure sensitive strings, raw user fact prose, credentials and
+  untrusted diagnostic text are not copied to normalized reports.
+- Check bounded `--max-bytes`, stable IDs across `health` and `doctor`,
+  honest truncation, Windows/Linux and agent-host integrations.
+- No user-facing notification proof exists: `agent-output-only`
+  indicates generated CLI data, not delivery to a person.
+- Tests are **authored, not executed** for current develop.

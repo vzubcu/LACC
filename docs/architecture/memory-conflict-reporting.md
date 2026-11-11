@@ -1,10 +1,27 @@
 # Memory conflict reporting and user-visible transparency
 
-**Status:** design only, not implemented. **Target branch:** develop.
+**Status:** CR-1 diagnostic normalization authored on develop (validation pending); CR-2–CR-5 remain design. **Target branch:** develop.
 **Reviewed:** 2026-11-11.
 **Roadmap milestone:** P1 — Explainable memory trust & conflict reporting.
 **Community feedback:** When remembered information and current code disagree,
 which wins, and will the agent tell the user what it noticed?
+
+## CR-1 implementation boundary
+
+The opt-in Node CLI `--explain --json` normalization is implemented in
+`lacc-findings.mjs` and added to `search`, `health`, `doctor`,
+`session-check` and `dependency-impact`. It maps existing source,
+checkpoint, conflict and RD-2 import-impact issues to stable IDs,
+bounded evidence-oriented findings and suggested review actions,
+**without running another Git check or changing default trusted recall**.
+
+See [actual CLI schema](../../skills/lean-context-memory/references/findings.md).
+The originally proposed JSON below is conceptual and not an exact live
+payload: for example, current_commit is `null` when this layer lacks
+verified HEAD evidence. Output fields are additive and opt-in.
+No automatic user notification, semantic contradiction proof,
+cross-host delivery tracking or autonomous memory correction exists.
+Written tests await the consolidated develop acceptance gate.
 
 ## Decision policy (source priority is not a semantic oracle)
 
@@ -150,11 +167,12 @@ This conflict-reporting layer owns its presentation and trust vocabulary.
 Both should share one provenance evaluator. Do not build CR by making
 the language-specific adapters responsible for UI notifications.
 
-**First implementation candidate:** CR-1, because current direct-Git
-diagnostics can be normalized even before RD-2 supports reverse
-dependency traversal. Keep the existing stable main behavior unchanged
-until the develop validation gate passes.
+**Current milestone:** CR-1 is authored in develop with regression
+fixtures, **not yet tested**. CR-2 source-to-fact explanation upgrades,
+CR-3 host/user disclosure, CR-4 cross-session deduplication and CR-5
+acceptance remain separate tasks. Keep stable main unchanged until the
+complete develop gate passes.
 
 **Explicitly unimplemented:** semantic conflict proof, universal
-host notifications, source-to-fact reverse graph and automatic memory
-repair. This document does not add any runtime commands.
+host notifications, cross-language source-to-fact reverse graph and
+automatic memory repair. The `--explain` CLI flag does **not** notify users.

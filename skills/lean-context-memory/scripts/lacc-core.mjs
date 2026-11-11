@@ -237,17 +237,23 @@ export function relevance(query, row) {
 export function emitLimited(result, maxBytes) {
   const encode = obj => JSON.stringify(obj) + '\n';
   const clone = structuredClone(result);
-  for (const field of ['results', 'items', 'findings']) {
+  for (const field of ['diagnostics', 'results', 'items', 'findings']) {
     if (!Array.isArray(clone[field])) continue;
-    while (utf8(encode(clone)) > maxBytes && clone[field].length) { clone[field].pop(); clone.output_truncated = true; if (clone.stats) clone.stats.output_truncated = true; }
+    while (utf8(encode(clone)) > maxBytes && clone[field].length) {
+      clone[field].pop();
+      clone.output_truncated = true;
+      if (field === 'diagnostics') clone.diagnostics_truncated = true;
+      if (clone.stats) clone.stats.output_truncated = true;
+    }
   }
   const text = encode(clone);
   if (utf8(text) > maxBytes) throw Error('response metadata exceeds output budget');
   return text;
 }
 
-export function checkMemory(root) {
-  const findings = [], add = (code, location) => findings.push({ code, location });
+export function checkMemory(root, { sourceDetails = false } = {}) {
+  const findings = [], add = (code, location, detail = null) =>
+    findings.push(detail ? { code, location, ...detail } : { code, location });
   const limit = budget(root), items = inventory(root, { bounded: false });
   for (const [name, linesMax, bytesMax, prefix] of [
     ['MEMORY_INDEX.md', LIMITS.indexLines, LIMITS.indexBytes, 'index'],
@@ -270,11 +276,16 @@ export function checkMemory(root) {
   for (const record of items.facts) {
     if (found.has(record.fact)) add('duplicate-fact', record.location + ' duplicates ' + found.get(record.fact));
     else found.set(record.fact, record.location);
-    if (record.state === 'review') add('pending-review', record.location);
+    if (record.state === 'review') add('pending-review', record.location,
+      sourceDetails ? { fact: { key: record.key ?? null, location: record.location,
+        revision: record.revision, sources: record.sources } } : null);
   }
   for (const [key, locations] of conflicts(items.facts)) add('potential-conflict', 'key=' + key + '; ' + locations.join(', '));
   const statuses = verifySources(root, items.facts);
-  for (const row of items.facts) for (const issue of statuses.get(row.location) ?? []) add(issue.code, row.location + (issue.source ? ' ' + issue.source : ''));
+  for (const row of items.facts) for (const issue of statuses.get(row.location) ?? [])
+    add(issue.code, row.location + (issue.source ? ' ' + issue.source : ''),
+      sourceDetails ? { source: issue.source, fact: { key: row.key ?? null,
+        location: row.location, revision: row.revision, sources: row.sources } } : null);
   if (limit.topic_bytes !== null) for (const item of items.files) if (item.size > limit.topic_bytes) add('topic-budget', item.path);
   if (limit.topics_total_bytes !== null && items.bytes > limit.topics_total_bytes) add('topics-total-budget', String(items.bytes));
   return { status: findings.length ? 'review' : 'healthy', findings_total: findings.length, topics: items.files.length, topic_bytes: items.bytes, findings };

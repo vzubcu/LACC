@@ -63,6 +63,25 @@ node <skill_dir>/scripts/lacc.mjs session-check . --json
 Do not treat `status: review` or `incomplete` as a semantic failure
 of every claim; inspect evidence manually. No memory is auto-corrected.
 
+## Develop preview: explainable memory diagnostics (CR-1)
+
+The Node CLI can opt in to normalized, bounded evidence explanations
+without changing default trusted search results:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs search . --query "auth policy" --json --explain
+node <skill_dir>/scripts/lacc.mjs doctor . --json --explain
+node <skill_dir>/scripts/lacc.mjs session-check . --json --explain
+node <skill_dir>/scripts/lacc.mjs dependency-impact . --json --explain
+```
+
+The add-on `diagnostics[]` records possible staleness, missing evidence,
+key conflicts and incomplete coverage, with stable IDs, scoped Git
+evidence and actions. **It does not establish a semantic contradiction,
+notify a user, reverify claims, or modify memory.** No host hook is
+promised. See [findings contract](references/findings.md). Behavioral
+tests are written but not executed until the develop acceptance gate.
+
 ## Daily operations — Node.js runtime
 
 ```powershell
