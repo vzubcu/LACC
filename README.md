@@ -2,17 +2,37 @@
 
 **Portable skills for AI agents.**
 
-LACC is an extensible collection of independently installable skills. The first available
-skill is lean-context-memory, which includes advisory context-pressure monitoring and optional token-usage benchmarking. Planned
-domains include .NET Framework, security, compliance and other workflows; their implementation
-will be listed in the catalog when available. The catalog is independent of any one agent,
-provider or programming language.
+LACC is an extensible collection of independently installable skills. The first
+available skill is `lean-context-memory`: Git-backed project memory with
+task-aware retrieval, read-only diagnostics, advisory context-pressure monitoring,
+and optional token-usage benchmarking. Other skills for .NET, security,
+compliance and related workflows are planned, not yet part of the catalog.
+The catalog is independent of any one agent, provider or programming language.
 
 **Development roadmap:** [ROADMAP.md](ROADMAP.md) is the canonical forward-looking
 plan, with implemented capabilities, priority order, acceptance gates and the
 community-requested *session-start freshness* and *dependency-aware staleness*
 milestones. The [changelog](CHANGELOG.md) describes changes already shipped;
 historical implementation plans are not a current feature backlog.
+
+## Release status
+
+| Branch | What you can expect | Validation status |
+|---|---|---|
+| [`main`](https://github.com/vzubcu/LACC/tree/main) | Documented `lean-context-memory v3.2` core with Node.js/Git source checks, bounded retrieval, health/doctor and sync; optional legacy Python tools | Portable implementation available; do not assume every OS/host combination has passed native acceptance |
+| [`develop`](https://github.com/vzubcu/LACC/tree/develop) | Work-in-progress improvements including memory freshness, dependency-aware checks, multi-agent coordination and explainable diagnostics | Experimental and **not part of the stable `main` feature contract** until consolidated testing and merge |
+
+The README on `main` describes **what is available on `main`**, not everything
+implemented on `develop`. Do not use experimental commands from `develop`
+against a stable installation unless you intentionally install that branch.
+The current stable skill is **v3.2**, not a published standalone `lacc` npm package.
+
+**Platform intent:** Windows, Linux and macOS (Apple Silicon / Intel), using
+Node.js built-ins and Git for core operations. Portability is a design goal,
+**not evidence of a passing native test matrix**. The latest documented
+Windows regression and complete macOS validation are pending; do not infer
+macOS success from a Linux smoke run. Consult the
+[runtime matrix](skills/lean-context-memory/references/runtime.md).
 
 ## Install
 
@@ -22,9 +42,13 @@ From your project directory, run:
 npx skills add vzubcu/LACC --skill lean-context-memory
 ```
 
-Choose your agent in the installer. Node.js 22.20+ and Git are needed for installation.
-The core runtime is now a **bundled Node.js CLI** and needs no Bash, WSL or Python; Git is required for verified source evidence. The older Python/Bash helpers are optional for advanced maintenance.
-No model-provider SDK is required. The examples use the installer's current stable version.
+Choose your agent in the installer. The **`npx skills` installer** is
+documented here with a Node.js **22.20+** requirement (check its current
+requirements when installing). The **bundled LACC runtime** separately
+requires **Node.js 22+**, using only built-in modules. Git is required for
+verified source evidence; an installation without working Git cannot confirm
+facts. The Node.js core needs no Bash, WSL, Docker or Python. Older Python/Bash
+helpers are optional for advanced maintenance. No model-provider SDK is required.
 
 For a specific agent, without interactive prompts:
 
@@ -45,10 +69,9 @@ It does not automatically certify memory, run a model, or establish token saving
 
 ## Universal runtime (Memory v3.2)
 
-A skill installation alone does not guarantee a compatible runtime. After
-installing, let the agent detect the available tools. When Node.js 22+ exists
-(including Windows without WSL/Python/Git Bash), execute the CLI included
-inside the skill:
+Installing a skill does not prove the runtime is available. After
+installation, check the tools on the host. With Node.js 22+ and Git,
+run the bundled CLI on Windows, Linux or macOS (without Bash, WSL or Python):
 
 ```powershell
 node <skill_dir>/scripts/lacc.mjs capabilities
@@ -86,10 +109,11 @@ node tests/test_node_runtime.mjs
 Remove-Item Env:LACC_TEST_DEBUG
 ```
 
-The Node runtime suite now includes a Windows `git.exe` / isolated-PATH
-regression instead of an automatic Windows skip, plus a fail-closed check without Git.
-**The updated Windows tests still require execution on a Windows machine**; earlier
-pilot evidence was 5 passed / 1 skipped, and is not a pass for the new test.
+The Node suite includes a native Windows `git.exe`/isolated-PATH regression
+and a fail-closed check for missing Git. **These tests are present, not
+automatically proven to have passed on your machine.** The updated Windows
+case requires actual Windows execution. Native macOS acceptance also remains
+to be recorded before treating the full platform matrix as validated.
 
 When CPython 3.9+ is available, compare Node/Python trust decisions against the
 same disposable Git fixtures (optional; skipped if Python is unavailable):
@@ -129,13 +153,16 @@ See the [installer reference](https://github.com/vercel-labs/skills/blob/main/do
 
 ## Memory v3.0 — find relevant project knowledge
 
-LACC can now search source-backed project memory without loading entire
-topic files into the agent context:
+LACC searches source-backed project memory without loading entire
+topic files into the agent context. The **bundled Node.js CLI** is the
+default for core retrieval:
 
 ```bash
-python3 /path/to/lean-context-memory/scripts/memory-search.py . \
-  --query "authentication token session rotation" --limit 5 --max-bytes 5000
+node <skill_dir>/scripts/lacc.mjs search . --query "authentication token session rotation" --json
 ```
+
+The optional legacy Python equivalent remains available under
+`skills/lean-context-memory/scripts/memory-search.py` when Python is installed.
 
 The local ranker scores lexical relevance, checks unchanged Git evidence
 and excludes stale/review records by default. It is read-only and has
@@ -150,12 +177,14 @@ remain unmeasured until a controlled A/B benchmark is completed.
 
 ## Memory v3.1 — self-healing without automatic rewrites
 
-A read-only `memory-doctor.py` now helps investigate stale evidence and
-possible conflicts between facts sharing an explicit, stable `key`:
+The bundled read-only `doctor` command helps investigate stale evidence
+and possible conflicts between facts sharing an explicit, stable `key`:
 
 ```bash
-python3 /path/to/lean-context-memory/scripts/memory-doctor.py . --json
+node <skill_dir>/scripts/lacc.mjs doctor . --json
 ```
+
+The legacy Python equivalent is `skills/lean-context-memory/scripts/memory-doctor.py`.
 
 Results include a diagnosis, affected memory locations and safe next steps,
 while preserving every fact until a human/agent verifies real sources and tests.
@@ -186,11 +215,15 @@ Before host-native compact, refresh `memory/ACTIVE_STATE.md`; afterward reload t
 
 ## Machine-readable memory health (optional)
 
-For scripts or agent tools that need structured results:
+For scripts or agent tools that need structured results, use the core
+Node.js implementation:
 
 ```bash
-python3 /path/to/lean-context-memory/scripts/memory-health.py . --json
+node <skill_dir>/scripts/lacc.mjs health . --json
 ```
+
+The legacy Python checker, `skills/lean-context-memory/scripts/memory-health.py`,
+remains available for the older maintenance workflow.
 
 The checker reports full source-backed findings as JSON and preserves its
 0/1/2 exit-code contract. Git source verification is batched by historical
@@ -225,13 +258,14 @@ via `usage-report.py capture-codex-exec`.
 **Status: no completed real-model A/B savings result is published.** Passing helper tests,
 installer checks, a handoff exercise or shrinking SKILL.md do not establish net token savings.
 
-1. Run fixed tasks with and without lean-context-memory v2.4 in fresh sessions. Also compare
-   against the host's native memory; compare v2.3 separately when evaluating the upgrade.
+1. Run fixed tasks with and without the **current `main` version (v3.2)** in
+   fresh sessions, and compare against the host's native memory. Treat v2.3/v2.4
+   only as historical upgrade baselines, if intentionally included.
 2. Match the application fixture, prompt, exact model, agent/tool versions, reasoning settings,
    permissions and acceptance tests. Alternate variant order and start with five pairs per task.
 3. Count the complete run: instructions, bootstrap, exploration, retries, memory maintenance,
    compaction and final checks. Keep cold-start and warmed-memory experiments separate.
-4. Import actual provider/host-reported usage with `lean-context-memory/scripts/usage-report.py`.
+4. Import actual provider/host-reported usage with `skills/lean-context-memory/scripts/usage-report.py`.
    Compare normalized records and report failures as well as increases in usage.
 
 Report total input/output tokens, cached input, paired median/range and acceptance pass rates.
@@ -270,12 +304,14 @@ Preserve any custom edits to the installed package before replacement. Project `
 files are separate from installed skill resources; rerun initialization afterward to refresh
 marked rules and helper paths while preserving existing project facts.
 
-v2.4 keeps daily memory and benchmarking operationally separate without splitting them into
-different installable skills. Update lean-context-memory and rerun initialization to refresh
-marked rules and helper paths. The optional measurement tools remain under
-`skills/lean-context-memory/scripts/` and do not run during normal memory operations.
-Default sync is advisory; use `--strict` for review gates. Storage caps are now opt-in,
-and `memory-read.py` enforces a separate recall-output budget.
+The current v3.2 skill keeps daily memory separate from optional benchmarking
+without splitting them into different installable skills. Updating the
+skill and rerunning initialization refreshes marked rules and helper paths
+without intentionally replacing project memory. Optional measurement tools
+remain under `skills/lean-context-memory/scripts/` and do not run during
+normal operations. Default `sync` is advisory; use `--strict` for review
+gates. Storage caps are opt-in, and memory read helpers enforce a
+separate recall-output budget.
 
 Skill sources now live in `skills/lean-context-memory/`. Existing installed copies continue to work.
 If you run helpers directly from a clone, change `scripts/...` to
@@ -305,6 +341,7 @@ Each skill is self-contained under `skills/<name>/`, with one `SKILL.md` and its
 There is no build step, generated duplicate, npm publishing credential or custom installer to maintain.
 New skills can join the same catalog without changing existing install commands.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the layout and checks.
-CI tests helper behavior and real CLI installation, including resource integrity and initialization.
-Client behavior and actual token savings require separate end-to-end evaluation.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the layout and local checks.
+The repository contains validation tooling, but a workflow or authored
+regression test is not evidence that a given OS or agent host passed.
+Actual token savings and client behavior require separate end-to-end evaluation.
