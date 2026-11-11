@@ -2,7 +2,7 @@
 
 **Scope:** [LACC — Lean Agent Capabilities Collection](README.md), an extensible collection of installable AI-agent skills.  
 **Current published-in-repository skill:** `lean-context-memory v3.2`.  
-**Last reviewed:** 2026-11-10. **Status:** planning; this document is not evidence that future work is implemented.
+**Last reviewed:** 2026-11-11. **Status:** planning; this document is not evidence that future work is implemented.
 
 This is the **canonical forward-looking roadmap**. `CHANGELOG.md` records shipped changes;
 historical `docs/superpowers/plans/` describe earlier implementation plans, not the current backlog.
@@ -19,6 +19,31 @@ Version labels below are *tentative*; priorities and acceptance criteria matter 
 5. No hosted CI/GitHub Actions consumption for these milestones: test locally on Windows and Linux.
 6. Do not claim token savings without matched, complete real-agent A/B measurements.
 
+## Current execution checkpoint — 2026-11-11
+
+The **last merged design milestone** is PR #24 (cross-language reverse
+dependency architecture). The **last merged runtime feature** is PR #22
+(journaled migration/restore). Both are on **develop** only. **main** stays
+on the stable v3.2 baseline. PR #23 is an **open** validation/hardening PR,
+not yet integrated into develop.
+
+| Scope | Evidence | Status |
+|---|---|---|
+| PR #15–#22 | Develop policy; session gate; legacy audit/snapshot; JS/TS opt-in dependencies; handoffs; private storage; canonical CAS; journaled migration/restore | **Code merged into develop; feature validation incomplete** |
+| PR #23 | Validation branch reports Windows Node.js 24.13: 34 pass, 1 optional Python-parity skip, 0 fail; fixes snapshot directory creation and two test fixtures; Python/Bash-dependent checks blocked | **OPEN PR; agent-reported partial validation, not integrated / not a complete release gate** |
+| PR #24 | Language-neutral reverse dependency architecture, RD-1..RD-5 | **Design merged into develop; inverse graph NOT implemented** |
+| Exori AI feedback | What if memory conflicts with current code, and does the agent tell the user? | **New CR-1..CR-5 design below; not implemented** |
+
+**Immediate action:** review PR #23 and its local logs, reconcile its
+changes with current develop, then merge any accepted fixes **only into
+develop**. Do not treat a Windows Node pass as proof of Python/Linux parity,
+installer compatibility or end-to-end agent notification.
+
+**Next feature:** RD-1 common cross-language graph/adapter contract,
+followed by RD-2 reverse graph traversal; implement CR-1 common reporting
+in a separate PR so that direct and indirect findings share vocabulary.
+CR-1 could precede RD-2 because direct Git findings already exist.
+
 ## Implemented baseline — verify before duplicating
 
 | Area | Available today | Important limit |
@@ -32,9 +57,12 @@ Version labels below are *tentative*; priorities and acceptance criteria matter 
 | Context and usage tools | Context-pressure advice and provider/host usage importers | No published, measured real-model savings |
 | Test harness | Node tests with Windows subprocess timeouts, an isolated-PATH `git.exe` case, a missing-Git fail-closed case, and an optional shared Node/Python parity harness | Updated Windows case and optional parity harness require execution; no full cross-runtime parity result |
 
-**Current gaps explicitly not shipped:** automatically enforced session-start health gate;
-indirect/transitive dependency staleness; lossless migration of old unverified memory;
-multi-agent concurrency coordination; a published `npx lacc` package.
+**Stable-main vs. develop:** stable `main` does not ship the experimental
+session gate, JS/TS dependency scanner, journaled migration or multi-agent
+features; those have code merged to `develop` with incomplete validation.
+No universal enforced session hook, complete inverse dependency engine,
+semantic conflict notifier, safe noncooperating-editor coordination,
+fully automatic legacy semantic migration or published `npx lacc` package exists.
 
 
 ## Implementation audit — partial capabilities are not zero
@@ -49,19 +77,19 @@ The roadmap tracks **slices of behavior**, not whole feature names. Labels:
 
 | Roadmap capability | Existing implementation (do not duplicate) | Missing work | Precise status |
 |---|---|---|---|
-| Cross-platform Node core | Bundled `lacc.mjs` with Git-backed verification and prior Rider pilot: 5 passed, 1 skipped. A new Windows `git.exe` isolated-PATH test and optional Node/Python parity fixture harness are now authored | Execute updated tests on Windows and Linux, resolve any parity failures, test a second host | **Implemented / pilot reported; new P0 tests authored, execution pending** |
-| Existing-memory cleanup | Read-only `health` and `doctor`; Python `memory-maintain.py compact/revalidate` uses preview, digest-bound apply and manual review | Automated *lossless legacy migration audit*, archival manifest/backup and rollback; migrate arbitrary old notes safely in Node-first environments | **Partial foundation; migration planned** |
-| Session freshness | `SKILL.md` already tells agents to run `sync` at task start; `sync` checks checkpoint/worktree drift; `search` verifies *cited* source evidence at retrieval; `health` checks facts | A single bounded, explicit startup health gate and proof it is invoked for each supported host/session; startup `sync` alone is not complete per-fact health | **Existing manual workflow; enforced/combined gate planned** |
-| Indirect dependencies | `dep_graph.py` provides bounded *candidate references* for manual investigation; fact metadata already permits **multiple explicit `source:` files**, each checked by source verification | Automatically resolve imported dependencies, compare them at checked commit and worktree, report indirect change and incomplete graph coverage | **Manual exploration implemented; automatic indirect staleness planned** |
-| Multi-agent memory | Shared on-disk `memory/`, `AGENTS.md` and native instruction bridges for Claude/Gemini/Roo; Codex uses `AGENTS.md` | Concurrent-writer coordination, immutable handoff envelopes, compare-and-swap, conflict merge protocol | **Shared store implemented; safe coordination planned** |
-| Measurement | `context-pressure.py`, `usage-report.py`, `usage_providers.py`, `session-totals.py`, A/B guidance and tests | Matched *real-agent* end-to-end measurements showing outcome quality and full token costs | **Instrumentation implemented; savings unmeasured** |
-| Multi-skill platform | Installer-discoverable `skills/<name>/SKILL.md` layout, documented catalog rules, one shipped skill | Separate CS-Cart/.NET/security/GDPR skills; reviewed self-improvement and multi-skill acceptance tests | **Catalog foundation implemented; new skills planned** |
+| Cross-platform Node core | Bundled Node CLI, Windows isolated-PATH tests and optional Python-parity fixtures; PR #23 reports 34 Windows Node PASS / 1 parity SKIP | Review/integrate PR #23; finish Python/Linux parity, installer and host integration tests | **Implemented in develop; Windows Node validation reported; full P0 pending** |
+| Existing-memory cleanup | Develop includes health/doctor, migration audit, digest-bound backups, inspect, journaled migration/restore and recovery | Validate crash/concurrent-writer behavior and manual provenance review; no full automatic legacy semantic migration | **Develop code integrated, validation pending; semantic auto-migration absent** |
+| Session freshness | sync, search, health and bounded session-check on develop; agent instruction bridges | Validate all supported hosts and incomplete scans; no universal automatic hook | **Develop implementation; host automation and end-to-end acceptance pending** |
+| Indirect dependencies | dep_graph.py heuristic and opt-in develop search --deps / session-check --deps static JS/TS forward prototype | Language-neutral reverse graph/source-to-fact impact RD-1..RD-5; unknown coverage must remain explicit | **Experimental forward prototype merged; reverse engine design only** |
+| Multi-agent memory | Shared facts, develop handoffs, single-file canonical CAS and journaled multi-file operations | Non-cooperating writers, fault-injected recovery and semantic conflict resolution | **Cooperative code merged to develop; general concurrency not proven** |
+| Measurement | Context-pressure tools, usage importers and synthetic A/B method | Matched real-agent measurements of full token cost and task quality | **Instrumentation exists; savings unmeasured** |
+| Conflict transparency | Direct Git/source and keyed-conflict findings available in CLI | Unified finding/report schema, agent disclosure and verified per-host delivery (CR-1..CR-5) | **Partial diagnostics; reporting planned** |
+| Multi-skill platform | Installable catalog and lean-context-memory v3.2 skill | Independent CS-Cart/.NET/security/GDPR skills, integration suites and reviewed improvements | **Catalog implemented; domain skills planned** |
 
 **Evidence reviewed:** `skills/lean-context-memory/SKILL.md`, `scripts/lacc.mjs`,
 `scripts/lacc-core.mjs`, `scripts/memory-maintain.py`, `scripts/dep_graph.py`,
 `tests/test_node_runtime.mjs`, `references/runtime.md`, `references/benchmark.md`.
-This is a **static repository audit plus user-reported Windows pilot**, not a new
-end-to-end test run. Avoid upgrading any status without executing its acceptance checks.
+This is a **static repository audit, plus agent-reported local Windows results in open PR #23**, not a new independently repeated end-to-end test run. Do not upgrade any status without checking complete acceptance evidence.
 
 ## Prioritized delivery plan
 
@@ -145,6 +173,50 @@ promotes migrated unverified notes; healthy status is earned, never forced by de
 **Acceptance:** on a changed source, a fresh session reports a review-required finding
 before trust; a missing runtime/Git or skipped scan never reports a verified pass;
 read-only commands preserve all project files.
+
+### P1 — Explainable memory trust, conflict reporting & user transparency (new; design only)
+
+**Community feedback (Exori AI):** "When the memory says one thing and the
+current code says another, which wins, and does the agent tell you it noticed?"
+
+**Trust precedence:** current, independently checked source and tests are
+primary evidence; historical memory cannot override verified current behavior.
+However, changed file bytes or a keyed potential-conflict signal alone do
+**not** prove a semantic contradiction. Treat mismatches as
+**potential staleness / review required** pending substantive rechecking.
+Never silently rewrite memory, invent provenance or claim a false conflict.
+
+- **Existing foundation:** \`search\` excludes directly stale source-backed
+  facts by default, \`health\` and \`doctor\` report evidence drift, and
+  develop \`session-check\` surfaces review candidates. These commands
+  do **not** guarantee user-visible notification across all agent hosts.
+- **CR-1 — unified findings:** one stable, bounded schema across \`search\`,
+  \`health\`, \`doctor\`, \`session-check\`: fact identity, kind/severity,
+  evidence path/commit, trust, scan coverage, redacted reason and action.
+  Extend the existing evaluator instead of duplicating Git logic.
+- **CR-2 — source-to-fact evidence chains:** once RD-1/RD-2 exists,
+  include \`changed dependency -> imported module -> cited fact\` with
+  resolver provenance and explicit incomplete language coverage.
+- **CR-3 — agent disclosure:** update native bridges/guidance to tell
+  users about *material and relevant* memory-code inconsistencies
+  before relying on historical facts. A CLI diagnostic means
+  **reported to agent**, not necessarily **shown to user**;
+  optional host hooks must be implemented and tested per host.
+- **CR-4 — useful explanations:** short/detail formats, grouping,
+  stable finding IDs/deduplication, bounded token cost, security redaction.
+- **CR-5 — adversarial acceptance:** distinguish Git byte drift from
+  confirmed semantic conflict; changed direct/dependency sources,
+  missing evidence/unknown language, contradictory facts, large/incomplete
+  scans, no host notification, sensitive output and Windows/Linux paths.
+
+**Acceptance:** an integrated agent can explain why a fact is withheld,
+what current source evidence was checked, what remains unknown and
+whether it actually showed the user a warning. No auto-promotion or
+auto-reverification. Universal platform popups are not promised.
+
+**Design:** [Memory conflict reporting and transparency](docs/architecture/memory-conflict-reporting.md).
+**Status:** CR-1..CR-5 planned only; existing diagnostics are partial,
+not a unified end-user notification implementation.
 
 ### P1 — Dependency-aware memory staleness (candidate v3.5)
 
@@ -302,9 +374,15 @@ create circular dependencies or unverifiable “self-improvement.”
 
 ## Working order and status rules
 
-**Recommended next delivery:** P0 runtime parity, followed by P1 migration and
-session-start health; dependency-aware review should be prototyped alongside
-the freshness contract, **not** rushed into the existing “source-unchanged” status.
+**Recommended next delivery (2026-11-11):** review and reconcile the
+**open PR #23** with current develop (reported 34 Windows Node PASS, one
+optional Python-parity SKIP), retain full cross-runtime/host validation
+as a release gate, and **do not merge develop into main yet**.
+**Next new runtime feature: RD-1** cross-language graph/adapter contract
+(following merged design PR #24). Then implement RD-2 reverse
+dependency impact and CR-1 normalized explainable findings as separate
+PRs. Both must reuse existing Git provenance and remain opt-in until
+locally validated.
 
 Use the per-slice status definitions in the implementation audit above:
 **implemented**, **locally validated**, **pilot reported**, **partial**, **planned**,
