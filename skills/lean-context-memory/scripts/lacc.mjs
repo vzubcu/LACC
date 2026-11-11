@@ -186,7 +186,7 @@ function searchMemory(root, opts) {
   const result = {
     query, status: (all.incomplete || limited ? 'incomplete' : 'complete'), results: selected.slice(0, limit),
     stats: { matched: matches.length, invalid_facts: all.invalid.length, skipped_untrusted: candidates.length - selected.length, scan_incomplete: all.incomplete, verification_limited: limited, returned: Math.min(selected.length, limit), output_truncated: selected.length > limit },
-    note: opts.deps ? 'Experimental bounded JS/TS dependency scan, not semantic proof. Unresolved imports require review.' : 'Only explicitly cited Git sources are checked; indirect dependencies not verified by default.',
+    note: opts.deps ? 'Experimental bounded static cross-language dependency scan. Unknown MSBuild symbols, Composer autoload and Python runtime imports require review; no semantic proof.' : 'Only explicitly cited Git sources are checked; indirect dependencies not verified by default.',
     ...(opts.explain ? normalizeMemoryFindings([
       ...diagnosticIssues, ...(all.incomplete || limited ? [{ code: 'scan-incomplete', location: 'memory/topics' }] : []),
     ], { facts: new Map(candidates.map(row => [row.location, row])) }) : {}),
@@ -289,12 +289,12 @@ export function main(argv = process.argv.slice(2)) {
   if (command === 'capabilities') { process.stdout.write(JSON.stringify(runtimeStatus(), null, 2) + '\n'); return 0; }
   if (command === 'dependency-contract') {
     process.stdout.write(JSON.stringify({
-      status: 'experimental-js-ts-reverse',
+      status: 'experimental-cross-language-static-reverse',
       ...dependencyGraphContract,
       registeredAdapters: registeredImpactAdapters(),
       reverseTraversalImplemented: true,
       currentJsTsPrototypeSeparate: false,
-      note: 'RD-2 reverse impact uses bounded JS/TS static-relative imports and the original Git evidence verifier. Other languages, aliases, dynamic resolution and unknown dependencies remain incomplete. Not semantic correctness.',
+      note: 'RD-3 opt-in static adapters cover JS/TS relative imports, .NET project references, literal PHP includes/Composer manifests and Python local imports. Compiler symbols, PSR-4 runtime resolution, dynamic imports and unknown dependencies require review; no semantic guarantee.',
     }, null, 2) + '\n');
     return 0;
   }
@@ -330,7 +330,7 @@ export function main(argv = process.argv.slice(2)) {
         output_truncated: affected.length > count,
       },
       changed_paths: analysis.changedPaths.slice(0, 12),
-      note: 'Read-only, opted-in JS/TS reverse impact scoped to source-backed facts. Incomplete coverage requires review; no semantic validation or automatic memory edit.',
+      note: 'Read-only, opt-in static cross-language reverse impact scoped to cited sources. .NET symbol resolution, PHP autoload, Python dynamic imports and unknown coverage require review. No automatic memory edit or semantic verification.',
       ...(opts.explain ? normalizeMemoryFindings([
         ...affected.flatMap(row => row.issues.map(issue => ({ ...issue, location: row.location }))),
         ...(incomplete ? [{ code: 'scan-incomplete', location: 'memory/topics' }] : []),

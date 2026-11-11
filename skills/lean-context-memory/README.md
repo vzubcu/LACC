@@ -151,6 +151,25 @@ Backups live outside WARM topics, remain private and never certify a legacy
 claim. Existing files are not rewritten. See [maintenance](references/maintenance.md).
 This is not an automatic migration or one-click restore.
 
+## Develop preview: cross-language static adapters (RD-3)
+
+The experimental opt-in reverse dependency analysis now includes
+`.NET` project manifest references, PHP literal includes/Composer
+manifests and Python local imports alongside JS/TS. These are **bounded
+heuristics**, not compiler-/framework-resolved dependency graphs.
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs dependency-impact . --explain --json
+node <skill_dir>/scripts/lacc.mjs search . --query "permission" --deps --include-review --explain --json
+```
+
+Cross-language relationships reuse RD-1/2's Git checks and inverse
+traversal, and CR-1 provides adapter-scoped explanations. Always
+review unresolved .NET symbols, PSR-4/CS-Cart hooks, Python runtime
+imports, dynamic dependencies and absent project evidence.
+See [cross-language adapter reference](references/cross-language.md).
+Authored tests are not executed on develop yet.
+
 ## Develop preview: reverse dependency impact (RD-2)
 
 Without altering trusted recall defaults, developers can opt in to:

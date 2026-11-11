@@ -146,10 +146,10 @@ test('CLI reports contract-only state without claiming adapters or reverse scan'
   assert.equal(r.status, 0, r.stderr);
   const info = JSON.parse(r.stdout);
   assert.equal(info.schema, dependencyGraphContract.schema);
-  assert.equal(info.status, 'experimental-js-ts-reverse');
+  assert.equal(info.status, 'experimental-cross-language-static-reverse');
   assert.equal(info.reverseTraversalImplemented, true);
-  assert.ok(info.registeredAdapters.some(adapter =>
-    adapter.id === 'js-ts-static' && adapter.languages.includes('typescript')));
+  for (const id of ['js-ts-static','dotnet-static','php-static','python-static'])
+    assert.ok(info.registeredAdapters.some(adapter => adapter.id === id));
   assert.equal(info.universalCoverageVerified, undefined);
   assert.match(info.note, /not semantic correctness/i);
 });

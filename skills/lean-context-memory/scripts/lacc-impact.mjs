@@ -2,6 +2,7 @@
 // LACC's existing Git source verifier. Read-only, offline and opt-in.
 import { buildDependencyIndex, createDependencyAdapterRegistry } from './lacc-graph-contract.mjs';
 import { createJsTsScanner, jsTsLanguage, JS_TS_SCANNER } from './lacc-dependencies.mjs';
+import { createCrossLanguageScanner, languageForSource, CROSS_ADAPTERS } from './lacc-cross-adapters.mjs';
 import { git, gitText, verifySources } from './lacc-core.mjs';
 
 export const IMPACT_LIMITS = Object.freeze({
@@ -9,6 +10,9 @@ export const IMPACT_LIMITS = Object.freeze({
   totalEdges: 1024, maximumChangedPaths: 256, maximumIssuesPerFact: 24,
 });
 const ADAPTER = 'js-ts-static';
+const META = [JS_TS_SCANNER, ...CROSS_ADAPTERS];
+const language = path => jsTsLanguage(path) ?? languageForSource(path);
+function adapterFor(path) { return jsTsLanguage(path) ? JS_TS_SCANNER : CROSS_ADAPTERS.find(x => x.languages.includes(language(path))) ?? null; }
 function fullRevision(root, revision, cache) {
   if (cache.has(revision)) return cache.get(revision);
   const r = /^[a-f\d]{7,40}$/i.test(revision ?? '')
@@ -30,13 +34,11 @@ function addIssue(map, location, code, source, dependency, extra = {}) {
 }
 function getRegistry() {
   const registry = createDependencyAdapterRegistry();
-  registry.register({
-    id: JS_TS_SCANNER.id,
-    version: JS_TS_SCANNER.version,
-    languages: [...JS_TS_SCANNER.languages],
-    scope: JS_TS_SCANNER.scope,
-    // Executing a scanner is an explicit RD-2 impact operation only.
-    scan: createJsTsScanner,
+  for (const item of META) registry.register({
+    id: item.id, version: item.version,
+    languages: [...item.languages], scope: item.scope,
+    // Explicit impact analysis only. No build, package manager, LSP or Python execution.
+    scan: item.id === JS_TS_SCANNER.id ? createJsTsScanner : createCrossLanguageScanner,
   });
   return registry;
 }
@@ -69,8 +71,10 @@ export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LI
     graphFacts.push({ id: row.key ?? location, location, revision: rev, sources: row.sources, state });
     const existing = perRevision.get(rev) ?? new Set();
     perRevision.set(rev, existing);
-    const scan = scannerCache.get(rev) ?? createJsTsScanner(root, rev);
-    scannerCache.set(rev, scan);
+    const scanners = scannerCache.get(rev) ?? {
+      js: createJsTsScanner(root, rev), cross: createCrossLanguageScanner(root, rev),
+    };
+    scannerCache.set(rev, scanners);
     const queue = row.sources.map(source => ({ source, depth: 0 }));
     const visited = new Set();
     let counted = 0, bytes = 0, incomplete = false;
@@ -79,7 +83,8 @@ export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LI
       if (visited.has(next.source)) continue;
       visited.add(next.source);
       existing.add(next.source);
-      if (!jsTsLanguage(next.source)) {
+      const meta = adapterFor(next.source);
+      if (!meta) {
         addIssue(issues, location, 'dependency-coverage-incomplete', next.source, 'unsupported-language');
         incomplete = true;
         continue;
@@ -87,8 +92,10 @@ export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LI
       const cacheKey = rev + '\0' + next.source;
       let result = scannedNodes.get(cacheKey);
       if (!result) {
-        try { result = scan.scan(next.source); }
-        catch {
+        try {
+          const scanner = meta.id === JS_TS_SCANNER.id ? scanners.js : scanners.cross;
+          result = scanner.scan(next.source);
+        } catch {
           result = { edges: [], unknown: ['scanner-failed-or-unsafe-path'], bytes: 0 };
         }
         scannedNodes.set(cacheKey, result);
@@ -101,8 +108,16 @@ export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LI
       }
       if (result.unknown.length) incomplete = true;
       for (const reason of result.unknown)
-        addIssue(issues, location, 'dependency-coverage-incomplete', next.source, reason);
-      for (const dep of result.edges) {
+        addIssue(issues, location, 'dependency-coverage-incomplete', next.source, reason,
+          { adapter: meta.id, language: language(next.source) });
+      for (const rawDep of result.edges) {
+        const dep = typeof rawDep === 'string'
+          ? { path: rawDep, kind: 'import', confidence: 'heuristic' } : rawDep;
+        if (!dep || typeof dep.path !== 'string') {
+          addIssue(issues, location, 'dependency-coverage-incomplete', next.source, 'invalid-adapter-edge');
+          incomplete = true;
+          continue;
+        }
         if (next.depth >= IMPACT_LIMITS.depth) {
           addIssue(issues, location, 'dependency-coverage-incomplete', next.source, 'depth-limit');
           incomplete = true;
@@ -118,22 +133,29 @@ export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LI
         edgesTotal++;
         edges.push({
           from: { kind: 'file', id: next.source },
-          to: { kind: 'file', id: dep },
-          kind: 'import', confidence: 'heuristic',
-          language: jsTsLanguage(next.source), workspace: '.',
-          revision: rev, adapter: ADAPTER, adapterVersion: JS_TS_SCANNER.version,
+          to: { kind: 'file', id: dep.path },
+          kind: dep.kind ?? 'import', confidence: dep.confidence ?? 'heuristic',
+          language: language(next.source), workspace: '.',
+          revision: rev, adapter: meta.id, adapterVersion: meta.version,
           evidence: { revision: rev, source: next.source },
         });
-        queue.push({ source: dep, depth: next.depth + 1 });
+        queue.push({ source: dep.path, depth: next.depth + 1 });
       }
       if (graphTruncated) break;
     }
-    const previous = reports.get(rev) ?? { incomplete: false, reasons: new Set() };
-    previous.incomplete ||= incomplete;
-    for (const item of issues.get(location))
-      if (item.code === 'dependency-coverage-incomplete')
-        previous.reasons.add(item.dependency);
-    reports.set(rev, previous);
+    // Coverage is scoped per adapter+Git revision; never merge C# and Python
+    // into a misleadingly complete JS/TS report.
+    for (const source of visited) {
+      const meta = adapterFor(source);
+      if (!meta) continue;
+      const k = rev + '\0' + meta.id;
+      const previous = reports.get(k) ?? { rev, meta, incomplete: false, reasons: new Set() };
+      previous.incomplete ||= incomplete;
+      for (const item of issues.get(location))
+        if (item.code === 'dependency-coverage-incomplete')
+          previous.reasons.add(item.dependency);
+      reports.set(k, previous);
+    }
   }
 
   // If the graph is truncated at the global edge budget, a fact outside the
@@ -141,9 +163,9 @@ export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LI
   if (truncated || graphTruncated) for (const row of facts)
     addIssue(issues, row.location, 'dependency-coverage-incomplete',
       row.sources?.[0] ?? 'unknown', 'global-scan-incomplete');
-  const coverage = [...reports.entries()].map(([rev, info]) => ({
-    adapter: ADAPTER, version: JS_TS_SCANNER.version,
-    revision: rev, workspace: '.', scope: JS_TS_SCANNER.scope,
+  const coverage = [...reports.values()].map(info => ({
+    adapter: info.meta.id, version: info.meta.version,
+    revision: info.rev, workspace: '.', scope: info.meta.scope,
     status: info.incomplete ? 'partial' : 'complete',
     reasons: [...info.reasons].sort().slice(0, 32),
   }));
@@ -197,16 +219,18 @@ export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LI
   // Now change the direction: changed file -> every dependent -> cited fact.
   // This also considers old-only import edges (deletions/renames).
   for (const change of changed) {
-    const queue = [{ source: change.path, chain: [change.path] }];
+    const queue = [{ source: change.path, chain: [change.path], adapters: [] }];
     const visited = new Set();
     while (queue.length) {
-      const { source, chain } = queue.shift();
+      const { source, chain, adapters } = queue.shift();
       if (visited.has(source)) continue;
       visited.add(source);
       for (const fact of index.factsCiting({ source, revision: change.revision })) {
         addIssue(issues, fact.location,
           chain.length > 1 ? 'dependency-changed' : 'direct-source-changed',
-          source, change.path, { chain, reason: change.reason });
+          source, change.path, { chain, reason: change.reason,
+            ...(adapters.length ? { adapter: adapters[adapters.length-1],
+              adapters } : {}) });
       }
       if (chain.length > IMPACT_LIMITS.depth) continue;
       for (const edge of index.dependentsOf({
@@ -214,13 +238,14 @@ export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LI
       })) {
         const parent = edge.from.id;
         if (!visited.has(parent))
-          queue.push({ source: parent, chain: [...chain, parent] });
+          queue.push({ source: parent, chain: [...chain, parent],
+            adapters: [...adapters, edge.adapter] });
       }
     }
   }
   return makeResult(facts, issues, changed, {
-    ...index.statistics, reverseTraversal: true, adapter: ADAPTER,
-    scope: JS_TS_SCANNER.scope,
+    ...index.statistics, reverseTraversal: true,
+    adapters: META.map(x => x.id), scope: 'bounded-static-cross-language-cited-source-closure',
   });
 }
 
@@ -233,7 +258,7 @@ function makeResult(facts, issues, changed, graph) {
     byFact.set(row.location, {
       issues: sorted,
       complete: sorted.length === 0 && !graph.truncated,
-      scope: 'static-relative-JS-TS-revision-scoped-reverse-graph',
+      scope: 'bounded-cross-language-static-revision-scoped-reverse-graph',
     });
   }
   return {

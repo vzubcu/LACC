@@ -103,7 +103,7 @@ export function sessionCheck(root, { json = false, maxBytes = 8192, deps = false
     total_findings: findings.length,
     items: findings.slice(0, 30),
     output_truncated: findings.length > 30,
-    note: deps ? 'Experimental revision-scoped JS/TS reverse impact enabled. Unresolved graph requires review; no semantic guarantee.' : 'Only directly cited sources were verified; indirect imports not checked. Invoke at session start.',
+    note: deps ? 'Experimental revision-scoped static JS/TS, .NET, PHP/Composer and Python reverse impact enabled. Unknown runtime/symbol edges require review; no semantic guarantee.' : 'Only directly cited sources were verified; indirect imports not checked. Invoke at session start.',
     ...(explain ? normalizeMemoryFindings(findings, {
       facts: new Map(facts.map(row => [row.location, row])),
     }) : {}),

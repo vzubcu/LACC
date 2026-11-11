@@ -1,8 +1,8 @@
 # RD-1 — Portable dependency graph contract
 
-**Branch:** develop. **Status:** RD-1 code integrated; RD-2 JS/TS opt-in reverse impact authored, **behavioral tests pending**.
+**Branch:** develop. **Status:** RD-1/RD-2 plus RD-3 static .NET/PHP/Python adapters authored; **behavioral tests pending**.
 **Goal:** provide a single language-neutral contract for evidence and indexes.
-RD-1 remains the shared contract; RD-2 now reuses it for a bounded JS/TS parser and inverse graph traversal. Other languages and semantic resolving are not shipped.
+RD-1 remains the shared contract; RD-2/3 now reuse it for bounded JS/TS and .NET/PHP/Python static edges and inverse walks. Compiler/framework semantic resolving remains unimplemented.
 
 ## Implementation
 
@@ -12,8 +12,8 @@ RD-1 remains the shared contract; RD-2 now reuses it for a bounded JS/TS parser 
   `normalizeAdapterCoverage`, `normalizeAdapterScanResult`,
   `createDependencyAdapterRegistry` and `buildDependencyIndex`.
 - `node <skill_dir>/scripts/lacc.mjs dependency-contract` now reports
-  `status: experimental-js-ts-reverse` with a single registered JS/TS
-  static-import adapter and a bounded inverse traversal. It still makes
+  `status: experimental-js-ts-reverse` with four registered static adapters (JS/TS, .NET, PHP/Composer,
+  Python) and a bounded inverse traversal. It still makes
   no cross-language/semantic coverage claim. RD-1 alone never scans.
 - RD-1 never edits canonical memory, starts a language server, invokes an
   adapter scan, accesses the network, or labels an unverified fact confirmed.

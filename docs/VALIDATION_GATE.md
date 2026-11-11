@@ -39,6 +39,7 @@ node --test tests/test_memory_transaction.mjs
 node --test tests/test_dependency_graph_contract.mjs
 node --test tests/test_reverse_dependency_impact.mjs
 node --test tests/test_memory_conflict_findings.mjs
+node --test tests/test_cross_language_dependency_impact.mjs
 ```
 
 Tests expected after implementation and review: Windows isolated Git PATH,
@@ -123,3 +124,18 @@ are a separate quality goal and cannot be fabricated by local helper tests.
 - No user-facing notification proof exists: `agent-output-only`
   indicates generated CLI data, not delivery to a person.
 - Tests are **authored, not executed** for current develop.
+
+## RD-3 cross-language adapters (validation pending)
+
+- Validate C# file -> project manifest -> ProjectReference and changes
+  in Directory.Build.props/targets; ensure `using` without Roslyn never
+  produces a false complete-coverage assertion.
+- Validate Composer manifest/PSR-4 handling and literal PHP includes;
+  keep runtime autoloaders and CS-Cart hooks explicitly incomplete.
+- Validate Python package relative/local absolute imports, pyproject
+  configuration, namespace/dynamic imports and `sys.path` caveats.
+- Test a mixed project with JS/TS, .NET, PHP, Python and unknown files;
+  report adapter scopes, changed-file evidence and partial coverage.
+- Test Windows path separators, symlink/traversal, large manifests,
+  Git commit/index/worktree drift, deleted imports and no script execution.
+- Tests are **authored, not executed** until consolidated develop validation.
