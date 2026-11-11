@@ -21,7 +21,8 @@ function exec(bin, args, timeout = 15000) {
   const r = spawnSync(bin, args, {
     cwd: root, encoding: 'utf8', windowsHide: true,
     timeout, maxBuffer: 16 * 1024 * 1024,
-    env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never' },
+    env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never',
+      PYTHONDONTWRITEBYTECODE: '1' },
   });
   return {
     code: r.status, signal: r.signal ?? null,
@@ -68,6 +69,12 @@ function tapSummary(output) {
   return { tests: get('tests'), passed: get('pass'),
     failed: get('fail'), skipped: get('skipped') ?? get('skip') };
 }
+function pythonUnitSummary(output) {
+  const count = output.match(/Ran (\d+) tests? in [\d.]+s/);
+  const skipped = output.match(/skipped=(\d+)/);
+  return { tests: count ? Number(count[1]) : null,
+    skipped: skipped ? Number(skipped[1]) : 0 };
+}
 function run() {
   let head;
   try { head = git('rev-parse', '--verify', 'HEAD'); }
@@ -111,15 +118,18 @@ function run() {
   function executeSuite(label, bin, args, timeout = 300000) {
     const started = Date.now();
     const res = exec(bin, args, timeout);
-    const tap = label.endsWith('.mjs') ? tapSummary(res.stdout + '\n' + res.stderr) : null;
+    const combined = res.stdout + '\n' + res.stderr;
+    const tap = label.endsWith('.mjs') ? tapSummary(combined) : null;
+    const pyUnit = label === 'python-unittest' ? pythonUnitSummary(combined) : null;
     const status = res.error || res.code !== 0 ? 'FAIL'
-      : tap && (tap.tests === null || tap.failed !== 0 || tap.skipped > 0) ? 'INCOMPLETE'
-      : 'PASS';
+      : tap && (tap.tests === null || tap.failed !== 0 || tap.skipped !== 0) ? 'INCOMPLETE'
+      : pyUnit && (pyUnit.tests === null || pyUnit.tests < 1 || pyUnit.skipped !== 0)
+        ? 'INCOMPLETE' : 'PASS';
     fs.writeFileSync(path.join(output, label.replace(/[^a-z0-9_.-]/gi, '_') + '.log'),
       '$ ' + [bin, ...args].join(' ') + '\n' + res.stdout + '\n' + res.stderr, { mode: 0o600 });
     baseline.suite_results.push({
       suite: label, status, exit_code: res.code, signal: res.signal,
-      error: res.error, duration_ms: Date.now() - started, ...tap,
+      error: res.error, duration_ms: Date.now() - started, ...tap, ...pyUnit,
     });
     process.stdout.write(label + ': ' + status + ' (exit=' + res.code + ')\n');
   }
