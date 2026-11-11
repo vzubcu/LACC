@@ -132,6 +132,25 @@ Backups live outside WARM topics, remain private and never certify a legacy
 claim. Existing files are not rewritten. See [maintenance](references/maintenance.md).
 This is not an automatic migration or one-click restore.
 
+## Develop preview: reverse dependency impact (RD-2)
+
+Without altering trusted recall defaults, developers can opt in to:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs dependency-impact . --json
+node <skill_dir>/scripts/lacc.mjs search . --query "auth policy" --deps --include-review --json
+node <skill_dir>/scripts/lacc.mjs session-check . --deps --json
+```
+
+RD-2 uses revision-scoped JS/TS relative imports and inverse graph
+walks to identify which source-backed facts depend on changed files.
+It explains paths such as `permissions.ts -> auth.ts -> fact`,
+but only for the *bounded closure of cited sources*. Unknown languages,
+dynamic imports, path aliases, external packages and truncated scans
+require review, not an invented clean result. No global repository
+index, daemon, automatic rewrite or guaranteed semantic correctness.
+Behavioral tests for this version are **not run**.
+
 ## Develop preview: indirect dependency staleness
 
 Opt in to bounded, heuristic JS/TS local-import checks:

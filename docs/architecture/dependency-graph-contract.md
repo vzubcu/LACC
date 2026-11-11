@@ -1,8 +1,8 @@
 # RD-1 — Portable dependency graph contract
 
-**Branch:** develop. **Status:** code integrated after PR review; **behavioral tests pending**.
+**Branch:** develop. **Status:** RD-1 code integrated; RD-2 JS/TS opt-in reverse impact authored, **behavioral tests pending**.
 **Goal:** provide a single language-neutral contract for evidence and indexes.
-No automatic reverse invalidation, parser, graph cache or resolver is shipped in RD-1.
+RD-1 remains the shared contract; RD-2 now reuses it for a bounded JS/TS parser and inverse graph traversal. Other languages and semantic resolving are not shipped.
 
 ## Implementation
 
@@ -11,13 +11,14 @@ No automatic reverse invalidation, parser, graph cache or resolver is shipped in
   `normalizeDependencyEdge`, `normalizeDependencyFact`,
   `normalizeAdapterCoverage`, `normalizeAdapterScanResult`,
   `createDependencyAdapterRegistry` and `buildDependencyIndex`.
-- `node <skill_dir>/scripts/lacc.mjs dependency-contract` reports the
-  introspection schema as `status: contract-only`, with **zero registered
-  runtime adapters**, and explicitly says reverse traversal is not implemented.
+- `node <skill_dir>/scripts/lacc.mjs dependency-contract` now reports
+  `status: experimental-js-ts-reverse` with a single registered JS/TS
+  static-import adapter and a bounded inverse traversal. It still makes
+  no cross-language/semantic coverage claim. RD-1 alone never scans.
 - RD-1 never edits canonical memory, starts a language server, invokes an
   adapter scan, accesses the network, or labels an unverified fact confirmed.
-- Existing experimental JS/TS `--deps` is **not** replaced or rewired
-  in RD-1; RD-2 will integrate its extractor with this same graph contract.
+- RD-2 rewires opt-in `--deps` to the same JS/TS import extractor and
+  revision-scoped graph. No default memory verification policy changes.
 
 ## Nodes, edges and provenance
 
@@ -82,9 +83,9 @@ returns synchronous, in-memory, read-only *query methods*:
 - `coverageReports()` -> per-adapter/per-workspace/per-revision reports.
 - `statistics` -> edge/fact totals, partial coverage, truncation flags.
 
-No traversal order or all-dependent closure is promised in RD-1. RD-2
-adds bounded reverse walks from **actual changed Git paths**, with
-historical edges and source-to-fact paths.
+RD-1 alone provides direct indexes; RD-2 now uses them for a bounded
+reverse walk from changed paths **within the cited-source closure**.
+A repository-wide index and cross-language resolver are not present.
 
 Limits: at most 4096 edges, 1000 indexed facts, 16 cited sources per
 fact, 512 UTF-8 bytes per identifier, 32 coverage reasons. Caller
@@ -131,8 +132,8 @@ cycles, limits, unsafe paths, duplicate facts, incomplete coverage and
 non-execution of adapter callbacks. These tests must run locally on Windows
 and Linux during the develop validation gate; authoring them is not a pass.
 
-Before promoting a release, test integration with real code through RD-2
-and RD-3, and compare Git stage/worktree state, deletions, aliases,
+Before promoting a release, execute RD-2 regression cases and test
+integration with real code through RD-3, and compare Git stage/worktree state, deletions, aliases,
 symbol resolution and false-negative rates. See the broader
 [reverse dependency design](reverse-dependency-memory.md) and
 [conflict-reporting contract](memory-conflict-reporting.md).

@@ -32,9 +32,9 @@ branch, reapplied via merged PR #26.
 | PR #24 | Cross-language reverse dependency architecture RD-1..RD-5 | **Design merged in develop** |
 | PR #25 | Memory-code discrepancy explanations and CR-1..CR-5 reporting roadmap | **Design merged in develop** |
 | RD-1 | Versioned graph/adapter and source-to-fact index contract, portable Node implementation, tests authored | **Implementation on develop, validation pending; no graph scanning yet** |
+| RD-2 | Static JS/TS historical/current import edges connected to revision-scoped reverse index; opt-in change-to-fact impact output and existing retrieval/health commands | **Implementation on develop, validation pending; scoped, not a cross-language semantic index** |
 
-**Implementation sequence:** RD-1 contract → RD-2 changed-dependency
-reverse traversal → CR-1 consistent evidence reporting → RD-3 adapters
+**Implementation sequence:** RD-1 contract (authored) → RD-2 reverse impact (authored) → CR-1 consistent evidence reporting → RD-3 adapters
 (.NET/PHP/Python) → RD-4 optional semantic enrichment/cache → RD-5
 cross-language acceptance. CR-1 can proceed alongside RD-2, but must
 reuse the existing source Git evaluator.
@@ -80,7 +80,7 @@ The roadmap tracks **slices of behavior**, not whole feature names. Labels:
 | Cross-platform Node core | Bundled Node CLI, Windows isolated-PATH tests and optional Python-parity fixtures; PR #23 reported 34 Windows Node PASS / 1 parity SKIP on its older head | Fixes from PR #23 merged via PR #26; finish current develop regression, Python/Linux parity, installer and host tests | **Implemented in develop; Windows Node validation reported; full P0 pending** |
 | Existing-memory cleanup | Develop includes health/doctor, migration audit, digest-bound backups, inspect, journaled migration/restore and recovery | Validate crash/concurrent-writer behavior and manual provenance review; no full automatic legacy semantic migration | **Develop code integrated, validation pending; semantic auto-migration absent** |
 | Session freshness | sync, search, health and bounded session-check on develop; agent instruction bridges | Validate all supported hosts and incomplete scans; no universal automatic hook | **Develop implementation; host automation and end-to-end acceptance pending** |
-| Indirect dependencies | Heuristic dep_graph.py; opt-in JS/TS forward scan; RD-1 language-neutral graph/adapter contract and direct source-to-fact index authored on develop | RD-2 changed-file reverse traversal, RD-3 adapters, strict partial coverage and tests | **RD-1 integrated, validation pending; full reverse engine not built** |
+| Indirect dependencies | RD-1 graph contract plus RD-2 bounded JS/TS reverse traversal and optional `dependency-impact` / `search --deps` / `session-check --deps` authored in develop | Executed tests and broad reverse coverage; RD-3 non-JS adapters, RD-4 semantics/cache and RD-5 acceptance | **Opt-in RD-2 code integrated; validation pending** |
 | Multi-agent memory | Shared facts, develop handoffs, single-file canonical CAS and journaled multi-file operations | Non-cooperating writers, fault-injected recovery and semantic conflict resolution | **Cooperative code merged to develop; general concurrency not proven** |
 | Measurement | Context-pressure tools, usage importers and synthetic A/B method | Matched real-agent measurements of full token cost and task quality | **Instrumentation exists; savings unmeasured** |
 | Conflict transparency | Direct Git/source and keyed-conflict findings available in CLI | Unified finding/report schema, agent disclosure and verified per-host delivery (CR-1..CR-5) | **Partial diagnostics; reporting planned** |
@@ -283,10 +283,16 @@ network service, or Python/Bash dependency. Keep the Node+Git core portable.
   are registered and inverse *traversal* is not implemented. RD-2 must
   connect real scanners, changes and historical edges; no semantic
   validation is inferred from the contract.
-- **RD-2 — reverse-walk JS/TS prototype:** reuse the existing `--deps`
-  source verifier, index local static imports, walk changed dependencies
-  backwards, return affected facts with evidence paths. Detect committed,
-  staged, unstaged, deleted and renamed paths and bound graph traversal.
+- **RD-2 — reverse-walk JS/TS prototype (authored on develop,
+  validation pending):** reuse the existing Git verifier with RD-1
+  revision-scoped graph indexes. The opt-in `dependency-impact`
+  command identifies changed reachable dependencies and walks their
+  inverse edges to linked source-backed facts, with evidence chains.
+  `search --deps` and `session-check --deps` reuse this same
+  engine. The static JS/TS parser is heuristic, bounded and not a
+  compiler; no full repo-wide graph or cross-language resolver exists.
+  Commit/index/worktree drift is checked through existing provenance,
+  with historical/current imports retained for deleted/renamed paths.
 - **RD-3 — non-JS adapters:** separate adapters for C#/.NET
   (`ProjectReference`, project manifests, optional symbol resolution),
   PHP/Composer/CS-Cart, Python and JVM/Go/Rust project/module graphs.
@@ -308,10 +314,11 @@ Do not auto-rewrite, revalidate or promote memory facts.
 
 **Design:** [Language-neutral reverse dependency engine](docs/architecture/reverse-dependency-memory.md).
 **RD-1 contract:** [Graph/adapter index contract](docs/architecture/dependency-graph-contract.md).
-**Status:** RD-1 contract **authored in develop, validation pending**;
-RD-2 reverse traversal, built-in language adapters and change-driven
-fact impact are **not implemented**. The old JS/TS forward prototype
-remains experimental and unvalidated.
+**Status:** RD-1 contract and opt-in RD-2 **JS/TS reverse
+impact prototype authored in develop, validation pending**. RD-2 is
+a bounded subgraph reachable from cited sources, not an exhaustive
+repository-wide graph. Full language adapters (RD-3), semantic symbol
+resolution (RD-4) and broad acceptance (RD-5) are not implemented.
 
 **Acceptance:** a changed imported dependency reaches an unchanged
 cited source and its fact; mixed C#/.NET, PHP, Python and JS fixtures
@@ -382,13 +389,13 @@ create circular dependencies or unverifiable “self-improvement.”
 
 ## Working order and status rules
 
-**Recommended next delivery (2026-11-11):** RD-1 contract is
-authored and integrated into develop; after reviewing the branch state,
-implement **RD-2 reverse dependency traversal** using the existing JS/TS
-prototype and this shared index. Then **CR-1 normalized explainable
-findings** in an independent PR. No default enforcement, no memory
-promotion and **no develop -> main merge** until the consolidated
-Windows/Linux/Python/host validation gate is complete.
+**Recommended next delivery (2026-11-11):** RD-1 and RD-2
+source-backed JS/TS reverse-impact code are authored and integrated
+into develop, **not validated**. Next implement **CR-1 — unified
+explainable conflict findings** in an independent PR; then RD-3
+adapters for .NET, PHP/Composer and Python, followed by RD-4/5.
+Keep opt-in dependency checks and do not merge develop into main
+until the consolidated Windows/Linux/Python/agent-host acceptance gate.
 
 Use the per-slice status definitions in the implementation audit above:
 **implemented**, **locally validated**, **pilot reported**, **partial**, **planned**,

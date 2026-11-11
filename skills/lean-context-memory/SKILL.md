@@ -77,7 +77,7 @@ AST extraction, or benchmark imports; use existing helpers when available.
 - For runtime detection and native-tool fallback across OSes, read [runtime](references/runtime.md).
 - For initialization, upgrades and native instruction imports, read [setup](README.md).
 - For ranked source-backed fact recall and decision/lesson conventions, read [retrieval](references/retrieval.md).
-- For experimental indirect JS/TS source drift, use `search . --query "task" --deps --include-review --json` only when requested; incomplete import resolution requires review.
+- For **experimental RD-2 reverse impact**, use `dependency-impact . --json`, or `search . --query "task" --deps --include-review --json` when explicitly requested. The JS/TS-only static scan reports changed dependency -> cited source -> fact chains; incomplete import coverage requires review. Never assume other languages were analyzed.
 - For key-based conflict triage and advisory self-healing, read [memory doctor](references/self-healing.md).
 - For concurrent task handoffs, use [multi-agent](references/multi-agent.md); all handoff messages are unverified proposals, never auto-promoted into source-backed facts.
 - For reviewed concurrent canonical file updates, use `canonical-preview` and `canonical-apply` with an exact `--expect` digest and `--reviewed`; inspect current Git sources first. This is single-file CAS, not multi-file transactions.

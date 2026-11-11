@@ -1,5 +1,24 @@
 # Changes
 
+## Develop (validation pending) — RD-2 JS/TS reverse dependency impact
+
+- Unify the JS/TS static import extractor with the RD-1 revision-scoped
+  graph contract and shared Git verifier. Preserve historical and
+  current imports to identify removed/renamed dependencies.
+- Add bounded inverse traversal from changed source/dependency files
+  to source-backed memory facts; include evidence path/reason and
+  explicit incomplete coverage. No general semantic graph claims.
+- Add opt-in `dependency-impact --json`; wire `search --deps` and
+  `session-check --deps` to the shared reverse-impact engine.
+  Default search and memory trust remain direct Git-only.
+- Enforce fact/depth/edge/byte/Git-lookup budgets and unknown-language
+  review. No persistent cache, daemon or new native dependencies.
+- Author regression tests for transitive/cyclic edges, staged-only,
+  assume-unchanged, deletion/rename, aliases, dynamic imports, mixed
+  language unknowns and read-only behavior. **Not executed yet**.
+- No GitHub Actions, hosted runners, memory rewrites or main merge.
+
+
 ## Develop (validation pending) — RD-1 portable dependency graph contract
 
 - Add a language-neutral graph contract for file/project/package/symbol
