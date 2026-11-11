@@ -405,7 +405,7 @@ network service, or Python/Bash dependency. Keep the Node+Git core portable.
   Tree-sitter, language servers, SCIP, Roslyn and advanced manifest
   semantics remain optional future extensions requiring independent
   reviews; never download or execute unapproved tools.
-- **RD-5 — measured acceptance:** Windows/Linux/**native macOS** tests, mixed-language
+- **RD-5 — measured acceptance (local runner and aggregation authored, unexecuted):** Windows/Linux/**native macOS** tests, mixed-language
   fixtures, historical edges, path attacks, false positive/negative rates,
   scan limits, latency and total context-token overhead. Retain opt-in
   mode until validated and avoid claiming all languages fully supported.
@@ -495,7 +495,7 @@ create circular dependencies or unverifiable “self-improvement.”
 
 **Recommended next delivery (2026-11-11):** RD-4 and CR-3B advisory
 answer-disclosure code/tests are authored in develop, **unexecuted**.
-Next complete **RD-5/CR-5** consolidated validation of security,
+Next execute the authored [RD-5/CR-5 local native runner](docs/CONSOLIDATED_VALIDATION_RUNBOOK.md) and independent host-response acceptance. Local reports, the cross-OS aggregator and their unit tests exist but are **NOT executed** on the current develop revision. Complete consolidated validation of security,
 privacy, functionality, token benchmarks and executed native Windows,
 Linux AND macOS host-response acceptance for Codex, Claude, Gemini
 and Roo. Do not promote develop to main until tests
