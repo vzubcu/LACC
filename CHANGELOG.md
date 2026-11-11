@@ -1,5 +1,22 @@
 # Changes
 
+## Develop (validation pending) — CR-3B answer-level disclosure candidates
+
+- Add bounded, offline `answer-disclosure . --query TEXT --json` using existing
+  trusted search and CR-1/CR-2 evidence; optionally inspect `--claim`,
+  `--deps` and one local `--response-file` with exact canonical wording.
+- Include stable withheld-fact IDs, conservative source/coverage reasons,
+  one safe suggested answer warning, explicit incomplete-scan states and
+  strict separation of diagnostics, supplied text and unobserved host delivery.
+- Refresh Codex/Claude/Gemini/Roo instruction rules to require relevant
+  exclusions in the agent's actual answer; no universal interceptor or
+  notification proof is claimed.
+- Author native Node fixtures for direct/indirect drift, unrelated tasks,
+  conflict, missing Git, privacy, incomplete output and supplied response audit.
+  **Tests NOT EXECUTED**, real host answer acceptance pending CR-5.
+- No new packages, automatic memory mutation, hosted CI or main merge.
+
+
 ## Develop (validation pending) — RD-4 optional JS/TS alias hints & safe parser cache
 
 - Add opt-in `--semantic` for **exact literal** tsconfig/jsconfig
