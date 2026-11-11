@@ -41,6 +41,7 @@ node --test tests/test_reverse_dependency_impact.mjs
 node --test tests/test_memory_conflict_findings.mjs
 node --test tests/test_cross_language_dependency_impact.mjs
 node --test tests/test_memory_evidence_chains.mjs
+node --test tests/test_agent_disclosure_protocol.mjs
 ```
 
 Tests expected after implementation and review: Windows isolated Git PATH,
@@ -155,3 +156,23 @@ are a separate quality goal and cannot be fabricated by local helper tests.
 - Check Windows/Linux, privacy, no memory mutation and no false user
   notification, as part of the consolidated develop validation.
 - Tests authored; **do not mark PASS before execution**.
+
+## CR-3 host disclosure protocol (NOT EXECUTED)
+
+- Validate `disclosure-contract` introspection without a project,
+  with Codex, Claude, Gemini and Roo instruction bridges and no
+  invented delivery telemetry or user notification state.
+- Verify `init --agent all` creates marked AGENTS.md and native
+  bridges, preserves existing project rules and is idempotent; `auto`
+  never creates unrelated native files or follows unsafe symlinks.
+- The `--explain --json` protocol must remain agent guidance only;
+  detect a relevant source-drift warning but never claim it was
+  displayed to the user or that semantic contradiction is proven.
+- Verify unchanged default JSON and trusted fact filtering, no
+  user-notification API calls, no memory file rewrite, and no secrets.
+- Test small `--max-bytes` responses retain `user_delivery: not-observed`
+  after optional guidance truncation; candidacy may be incomplete.
+- Test Windows/Linux paths and real host instruction loading separately:
+  a generated bridge is **not** proof a host actually obeyed it.
+- All assertions are authored, **not run** before consolidated develop
+  acceptance. No hosted GitHub Actions.

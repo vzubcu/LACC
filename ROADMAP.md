@@ -36,13 +36,15 @@ branch, reapplied via merged PR #26.
 | CR-1 | Common bounded `--explain --json` findings for search, health, doctor, session-check and dependency-impact | **Implementation on develop, validation pending; outputs are agent-only, not user notifications** |
 | RD-3 | Optional static C#/.NET project/manifest, PHP literal include/Composer, and Python local-import adapters connected to RD-1/RD-2 graph | **Code in develop, validation pending; symbol/runtime resolution incomplete** |
 | CR-2 | Git revision, adapter/version, relation type and source-to-fact links carried through per-hop evidence traces | **Code authored in develop; validation pending; semantic verification not claimed** |
+| CR-3 | Host-neutral disclosure contract, Codex/Claude/Gemini/Roo marked instruction bridges, additive agent-only guidance for `--explain --json` | **Authored in develop; validation pending; no host delivery confirmation** |
 
-**Implementation sequence:** RD-1 graph (authored) → RD-2 JS/TS reverse
-impact (authored) → CR-1 findings (authored) → RD-3 .NET/PHP/Python static
-adapters (authored) → CR-2 evidence-chain explanations (authored) →
-**CR-3 host/user disclosure** → RD-4 optional semantic indexes,
-CR-4 UX/deduplication → RD-5/CR-5 cross-platform acceptance.
-Develop code is unvalidated until the consolidated release gate.
+**Implementation sequence:** RD-1 graph → RD-2 JS/TS reverse impact →
+CR-1 findings → RD-3 .NET/PHP/Python static adapters → CR-2 evidence
+chains → CR-3 **agent disclosure guidance** (all authored in develop,
+not validated) → **CR-4 scoped deduplication and useful explanations**
+→ RD-4 optional semantic indexes/cache → RD-5/CR-5 cross-platform
+acceptance. No host-confirmed notification mechanism is implemented.
+Develop remains unvalidated until the consolidated release gate.
 
 **Validation boundary:** all newly written RD-1 tests and current develop
 acceptance tests remain to be executed in the future consolidated phase.
@@ -88,7 +90,7 @@ The roadmap tracks **slices of behavior**, not whole feature names. Labels:
 | Indirect dependencies | RD-1 common graph, RD-2 JS/TS reverse impact, RD-3 .NET/PHP/Python static adapters (opt-in) in develop | Execute acceptance tests, semantic/symbol resolution, unsupported-language policy, cache and benchmarking | **Develop code integrated; validation pending, incomplete coverage disclosed** |
 | Multi-agent memory | Shared facts, develop handoffs, single-file canonical CAS and journaled multi-file operations | Non-cooperating writers, fault-injected recovery and semantic conflict resolution | **Cooperative code merged to develop; general concurrency not proven** |
 | Measurement | Context-pressure tools, usage importers and synthetic A/B method | Matched real-agent measurements of full token cost and task quality | **Instrumentation exists; savings unmeasured** |
-| Conflict transparency | CR-1 normalized findings and CR-2 Git/static adapter evidence chains, opt-in `--explain --json` | CR-3 host disclosure, CR-4 persistent UX/deduplication and CR-5 acceptance | **CR-1/CR-2 authored in develop; validation pending, no user notification** |
+| Conflict transparency | CR-1 findings, CR-2 Git/static evidence chains, and CR-3 opt-in agent-only disclosure guidance + Codex/Claude/Gemini/Roo instruction bridges | CR-4 deduplication/UX, CR-5 host-acceptance; no trusted user-delivery integration | **CR-1/2/3 authored in develop; tests unexecuted; no automatic user notification** |
 | Multi-skill platform | Installable catalog and lean-context-memory v3.2 skill | Independent CS-Cart/.NET/security/GDPR skills, integration suites and reviewed improvements | **Catalog implemented; domain skills planned** |
 
 **Evidence reviewed:** `skills/lean-context-memory/SKILL.md`, `scripts/lacc.mjs`,
@@ -211,11 +213,17 @@ Never silently rewrite memory, invent provenance or claim a false conflict.
   changed-file reason, ending at the cited memory fact. Missing or
   inconsistent evidence becomes `partial`, not a fabricated link.
   It does not infer current HEAD, semantic contradiction or user delivery.
-- **CR-3 — agent disclosure:** update native bridges/guidance to tell
-  users about *material and relevant* memory-code inconsistencies
-  before relying on historical facts. A CLI diagnostic means
-  **reported to agent**, not necessarily **shown to user**;
-  optional host hooks must be implemented and tested per host.
+- **CR-3 — agent/host disclosure (authored in develop, validation
+  pending):** `lacc-disclosure.mjs` defines a host-neutral protocol and
+  a read-only `disclosure-contract` introspection command. CR-1
+  `--explain --json` results gain additive `disclosure_protocol`
+  guidance; `lacc init` embeds material-warning rules into the marked
+  `AGENTS.md` block and native Codex/Claude/Gemini/Roo bridges.
+  Guidance requires agents to evaluate task relevance and disclose
+  important uncertainties before trusting affected memory. LACC cannot
+  observe actual user delivery, record host receipts or guarantee host
+  compliance; output always says `not-observed`. Re-run `init` to
+  refresh existing installed instruction bridges.
 - **CR-4 — useful explanations:** short/detail formats, grouping,
   stable finding IDs/deduplication, bounded token cost, security redaction.
 - **CR-5 — adversarial acceptance:** distinguish Git byte drift from
@@ -229,12 +237,14 @@ whether it actually showed the user a warning. No auto-promotion or
 auto-reverification. Universal platform popups are not promised.
 
 **Design:** [Memory conflict reporting and transparency](docs/architecture/memory-conflict-reporting.md).
-**Status:** CR-1 and CR-2 code authored in develop with
-**unexecuted** regression tests. CR-3–CR-5 remain planned.
-The CLI reports to agents only; no semantic contradiction proof
-or user notification is claimed.
-**Contracts:** [normalized findings](skills/lean-context-memory/references/findings.md)
-and [evidence chains](skills/lean-context-memory/references/evidence-chains.md).
+**Status:** CR-1, CR-2 and CR-3 code authored in develop, all
+**validation pending**. CR-4–CR-5 remain planned.
+LACC now instructs agents to surface material findings; it still
+cannot confirm a host loaded the instructions or a user saw a notice.
+No semantic contradiction proof, automatic message or memory repair.
+**Contracts:** [normalized findings](skills/lean-context-memory/references/findings.md),
+[evidence chains](skills/lean-context-memory/references/evidence-chains.md),
+[agent disclosure](skills/lean-context-memory/references/disclosure.md).
 
 ### P1 — Dependency-aware memory staleness (candidate v3.5)
 
@@ -411,13 +421,13 @@ create circular dependencies or unverifiable “self-improvement.”
 
 ## Working order and status rules
 
-**Recommended next delivery (2026-11-11):** CR-2 evidence-chain code
-is authored in develop alongside RD-1/2/3 and CR-1, all
-**unvalidated**. The next separate implementation is
-**CR-3 — agent/host disclosure contract** with honest host-specific
-capability and notification state; then CR-4 UX, RD-4 semantic
-enrichment and consolidated RD-5/CR-5 tests before develop → main.
-No GitHub Actions or hosted CI.
+**Recommended next delivery (2026-11-11):** CR-3 host-neutral
+communication rules and Codex/Claude/Gemini/Roo instruction bridges
+are authored in develop, with **tests unexecuted**. Next implement
+**CR-4 — deduplicated, bounded user-facing explanation UX**, preserving
+privacy, task relevance and truthful delivery states. Then RD-4
+optional semantic adapters/cache, and consolidated RD-5/CR-5
+validation before develop → main. No hosted CI or GitHub Actions.
 
 Use the per-slice status definitions in the implementation audit above:
 **implemented**, **locally validated**, **pilot reported**, **partial**, **planned**,

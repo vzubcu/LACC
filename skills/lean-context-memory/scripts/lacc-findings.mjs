@@ -2,6 +2,7 @@
 // It never evaluates code semantics, verifies sources, edits memory or sends notices.
 import { createHash } from 'node:crypto';
 import { explainMemoryEvidence } from './lacc-evidence-chain.mjs';
+import { disclosureGuidance } from './lacc-disclosure.mjs';
 
 export const FINDING_SCHEMA = 1;
 const MAX = Object.freeze({ diagnostics: 40, input: 2000, sources: 8, chain: 8, fieldBytes: 240 });
@@ -130,6 +131,9 @@ export function normalizeMemoryFindings(issues, opts = {}) {
     diagnostics_truncated: sorted.length > MAX.diagnostics || issues.length > MAX.input,
     diagnostics_input_incomplete: issues.length > MAX.input,
     notification: 'agent-output-only',
+    disclosure_protocol: disclosureGuidance(sorted.slice(0, MAX.diagnostics), {
+      truncated: sorted.length > MAX.diagnostics || issues.length > MAX.input,
+    }),
     note: 'Git byte drift is potential staleness, not proof of semantic conflict. No user-visible delivery or automatic memory mutation was performed.',
   };
 }

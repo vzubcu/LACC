@@ -129,12 +129,29 @@ trusted upstream evidence actually exists. Finding IDs remain stable,
 and expanded per-hop metadata is collected only under `--explain`.
 See [CR-2 evidence chains](evidence-chains.md).
 
-## What is explicitly not implemented (CR-3–CR-5)
+## CR-3 — agent disclosure guidance (develop only; validation pending)
+
+CR-1 `--explain --json` reports gain a small top-level
+`disclosure_protocol` instruction for the agent to assess task
+relevance before reporting material uncertainty.
+`status: agent-guidance-only` and `user_delivery: not-observed`
+mean that no host delivery event was observed.
+`candidates_before_output_budget` is not a number of messages
+delivered; the output byte budget may truncate diagnostics.
+
+`node lacc.mjs disclosure-contract` lists the instruction bridges
+for Codex/Claude/Gemini/Roo. Finding IDs, the legacy field
+`disclosure: reported-to-agent-only` and output without
+`--explain` are unchanged. No host notification API, delivery
+receipt or user acknowledgment store exists. See the
+[agent disclosure protocol](disclosure.md).
+
+## What is explicitly not implemented (CR-4–CR-5)
 
 - No arbitrary-symbol dependency proof, semantic LSP/compiler
   comparison or independently validated runtime behavior (RD-4).
 - No guaranteed user-facing notifications, host hooks, popup, email
-  or confirmation that a specific user saw a warning (CR-3).
+  or confirmation that any user saw a warning (future host integration).
 - No durable cross-session warning acknowledgment/deduplication store
   or advanced explanation UI (CR-4). IDs support only current result
   deduplication; no secret persistent log is created.

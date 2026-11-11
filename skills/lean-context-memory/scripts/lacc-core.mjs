@@ -246,6 +246,16 @@ export function emitLimited(result, maxBytes) {
       if (clone.stats) clone.stats.output_truncated = true;
     }
   }
+  if (utf8(encode(clone)) > maxBytes && clone.disclosure_protocol) {
+    // Keep truthful delivery state when the optional CR-3 guidance would
+    // otherwise exceed a low token/byte budget.
+    clone.disclosure_protocol = {
+      schema: 1, status: 'agent-guidance-only',
+      user_delivery: 'not-observed', delivery_confirmed: false,
+      details_truncated: true,
+    };
+    clone.output_truncated = true;
+  }
   const text = encode(clone);
   if (utf8(text) > maxBytes) throw Error('response metadata exceeds output budget');
   return text;
