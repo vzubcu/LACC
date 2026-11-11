@@ -1,5 +1,19 @@
 # Changes
 
+## Develop (validation pending) — RD-5/CR-5 native local acceptance tooling
+
+- Author dependency-free `tests/run_consolidated.mjs` for local native
+  Windows/Linux/macOS Node suites, optional Python/installer checks and
+  private outside-repo logs with exact Git SHA, exit codes and TAP skips.
+- Author `tests/aggregate_consolidated.mjs` to inventory matching
+  platform reports, refuse missing/skipped/dirty/mixed-SHA evidence and
+  **never** claim real host response acceptance or user delivery.
+- Add conservative aggregation regression fixtures and a native
+  [validation runbook](docs/CONSOLIDATED_VALIDATION_RUNBOOK.md).
+- **Tests NOT EXECUTED**; no `.github/` changes, hosted CI, new
+  packages or main merge. Release remains blocked by native real-host
+  CR-5 acceptance and independent security/privacy review.
+
 ## Develop (validation pending) — CR-3B answer-level disclosure candidates
 
 - Add bounded, offline `answer-disclosure . --query TEXT --json` using existing

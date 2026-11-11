@@ -8,6 +8,20 @@ been run.** Do not advertise develop as the stable release.
 
 **Hard constraints:** local execution, no hosted GitHub Actions, no
 auto-merges into main, preserve user memory and private handoffs.
+
+**New RD-5/CR-5 local tooling (authored, NOT EXECUTED):**
+[consolidated native runbook](CONSOLIDATED_VALIDATION_RUNBOOK.md).
+On a clean native Windows/Linux/macOS develop checkout run
+`node tests/run_consolidated.mjs` (explicit `--installer` only where
+installer prerequisites and network are approved). Review the
+resulting **private** JSON/logs. With three same-SHA reviewed reports,
+run `node tests/aggregate_consolidated.mjs win.json linux.json mac.json`.
+This aggregation never proves actual Codex/Claude/Gemini/Roo responses,
+host delivery or user notification; release is still NOT PASSED.
+
+The authored `tests/test_consolidated_validation_contract.mjs` confirms
+that missing/forged/mismatched-platform reports do not become release
+certificates. These tests are NOT executed under the current workflow.
 Do not mark any item PASS until an actual command exits successfully and
 the relevant assertions are reviewed.
 
