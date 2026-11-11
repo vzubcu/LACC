@@ -21,9 +21,13 @@ implementations that still need acceptance/regression testing.
 Feature PRs target develop and are not advertised as released.
 See [development and promotion process](docs/DEVELOPMENT_WORKFLOW.md).
 [Reverse dependency engine design](docs/architecture/reverse-dependency-memory.md) explains the proposed cross-language adapter model and change-driven memory invalidation (design only, not shipped).
+[Memory conflict reporting design](docs/architecture/memory-conflict-reporting.md) specifies how agents should explain source/memory discrepancies, with no claim of universal automatic notifications.
 
 [Consolidated local validation gate](docs/VALIDATION_GATE.md) lists what must
-pass before any develop-to-main promotion; it has **not been executed**.
+pass before any develop-to-main promotion; the full gate is **not complete**.
+[PR #23](https://github.com/vzubcu/LACC/pull/23) reports partial Windows
+Node checks and remains open pending review; do not treat those results
+as cross-runtime or release validation.
 The normal `npx skills add vzubcu/LACC` installation resolves the default
 main branch, not develop.
 

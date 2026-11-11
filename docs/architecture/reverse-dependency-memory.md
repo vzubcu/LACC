@@ -163,6 +163,17 @@ handling and a content-addressed cache are the intended optimization.
 - Git ignore / untracked, aliases, dynamic imports, vendored modules,
   case sensitivity and symlinks need explicit coverage and security tests.
 
+## Link to explainable memory reporting
+
+The inverse dependency engine should emit **evidence**, not UI-specific
+notifications. The independent
+[memory conflict reporting design](memory-conflict-reporting.md) defines
+how changed dependency -> cited fact chains become consistent diagnostic
+findings, and how agents may disclose *material* uncertainty to users.
+A changed file means **possible staleness**, not proof that a code claim
+semantically contradicts memory. Do not mark the user as notified merely
+because the CLI returned a finding.
+
 ## Delivery slices and acceptance
 
 **RD-1 — common contract and trust semantics (research/design):**
