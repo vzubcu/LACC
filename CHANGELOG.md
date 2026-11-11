@@ -1,5 +1,22 @@
 # Changes
 
+## Develop (validation pending) — RD-1 portable dependency graph contract
+
+- Add a language-neutral graph contract for file/project/package/symbol
+  dependency nodes, revision-scoped evidence edges, and source-backed fact
+  indexes, with direct forward/reverse query primitives.
+- Add explicit adapter registry and scan-result validation, conservative
+  coverage reports and strict path/size limits; **no built-in adapters
+  executed and no automatic changed-file reverse traversal in RD-1**.
+- Expose `node lacc.mjs dependency-contract` for honest contract-only
+  capability introspection. Existing JS/TS `--deps` is not rewired yet.
+- Author cross-language, historical-revision and hostile-input fixtures;
+  deliberately **do not execute tests** during develop integration.
+- Reapply three previous agent-reported code/test fixes from PR #23 through
+  PR #26 without overwriting newer roadmap changes.
+- No new native packages, GitHub Actions, hosted runners or main merge.
+
+
 ## Develop (unvalidated) — recoverable multi-file memory migration
 
 - Add read-only `migration-plan` and `migration-restore-preview` commands.

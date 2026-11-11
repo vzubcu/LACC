@@ -13,6 +13,7 @@ import { verifyDependencies } from './lacc-dependencies.mjs';
 import { handoffPublish, handoffList, handoffRead } from './lacc-handoff.mjs';
 import { canonicalPreview, canonicalApply } from './lacc-cas.mjs';
 import { transactionPreview, transactionApply, transactionInspect, transactionRecover } from './lacc-transaction.mjs';
+import { dependencyGraphContract, createDependencyAdapterRegistry } from './lacc-graph-contract.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const skill = path.resolve(here, '..');
@@ -57,7 +58,7 @@ function runtimeStatus() {
     platform: process.platform, node: process.version,
     git: probe('git', ['--version']), python: probe('python', ['--version']) ?? probe('python3', ['--version']),
     bash: probe('bash', ['--version']),
-    commands: { init: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true },
+    commands: { init: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true },
     strict_git_evidence: Boolean(probe('git', ['--version'])),
     python_maintenance: 'optional separate Python tool; not implemented in Node',
     mode: 'node',
@@ -260,7 +261,7 @@ function sync(root, opts) {
   const review = !valid || committed.length || clean.length;
   return { text: output + (review ? 'REVIEW: inspect source changes\n' : 'NO SOURCE DRIFT; not semantic proof\n'), code: strict && review ? 1 : 0 };
 }
-function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --deps (experimental); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --reviewed\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
+function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover, dependency-contract\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --deps (experimental); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --reviewed\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
 export function main(argv = process.argv.slice(2)) {
   const [command = 'help', ...args] = argv;
   if (['help', '--help', '-h'].includes(command)) { process.stdout.write(help()); return 0; }
@@ -268,6 +269,17 @@ export function main(argv = process.argv.slice(2)) {
   const root = path.resolve(opts._[0] || '.');
   if (opts._.length > 1) throw Error('only one project_dir is allowed');
   if (command === 'capabilities') { process.stdout.write(JSON.stringify(runtimeStatus(), null, 2) + '\n'); return 0; }
+  if (command === 'dependency-contract') {
+    process.stdout.write(JSON.stringify({
+      status: 'contract-only',
+      ...dependencyGraphContract,
+      registeredAdapters: createDependencyAdapterRegistry().describe(),
+      reverseTraversalImplemented: false,
+      currentJsTsPrototypeSeparate: true,
+      note: 'RD-1 schema and in-memory indexes only; RD-2 will connect the JS/TS scanner and Git change tracking. No memory trust is assigned.',
+    }, null, 2) + '\n');
+    return 0;
+  }
   if (!fs.statSync(root).isDirectory()) throw Error('invalid project directory');
   if (command === 'init') { process.stdout.write(JSON.stringify(init(root, opts), null, 2) + '\n'); return 0; }
   if (command === 'read') { process.stdout.write(readMemory(root, opts)); return 0; }
