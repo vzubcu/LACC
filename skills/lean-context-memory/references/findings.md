@@ -106,8 +106,12 @@ is best-effort and must be tested with adversarial data.
 
 `coverage.complete` describes whether **this diagnostic could be
 classified**; it is never certification of a complete project scan
-or the underlying memory claim. Source-to-fact dependency-chain
-coverage remains limited to the optional JS/TS RD-2 scanner.
+or the underlying memory claim. Source-to-fact dependency-chain coverage remains limited
+to the bounded static JS/TS and RD-3 .NET/PHP/Python adapters.
+For indirect findings, `verification_scope` identifies the adapter
+(`experimental-js-ts-static-imports`, `experimental-dotnet-static`,
+`experimental-php-static` or `experimental-python-static`) when
+available. It is not proof of semantic or complete project analysis.
 
 ## What is explicitly not implemented (CR-2–CR-5)
 

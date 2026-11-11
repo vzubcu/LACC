@@ -85,7 +85,10 @@ export function memoryFinding(issue, { fact = null, scope = 'direct-git-provenan
       current_commit: null, // existing verifier does not supply HEAD on this path
       dependency_chain,
       verification_scope: kind === 'indirect-dependency-drift' ||
-        code === 'dependency-coverage-incomplete' ? 'experimental-js-ts-static-imports' : scope,
+        code === 'dependency-coverage-incomplete'
+        ? (['dotnet-static','php-static','python-static'].includes(issue.adapter)
+          ? 'experimental-' + issue.adapter
+          : 'experimental-js-ts-static-imports') : scope,
     },
     trust: 'review-required',
     reason, recommended_action,

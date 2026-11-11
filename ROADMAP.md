@@ -34,13 +34,14 @@ branch, reapplied via merged PR #26.
 | RD-1 | Versioned graph/adapter and source-to-fact index contract, portable Node implementation, tests authored | **Implementation on develop, validation pending; no graph scanning yet** |
 | RD-2 | Static JS/TS historical/current import edges connected to revision-scoped reverse index; opt-in change-to-fact impact output and existing retrieval/health commands | **Implementation on develop, validation pending; scoped, not a cross-language semantic index** |
 | CR-1 | Common bounded `--explain --json` findings for search, health, doctor, session-check and dependency-impact | **Implementation on develop, validation pending; outputs are agent-only, not user notifications** |
+| RD-3 | Optional static C#/.NET project/manifest, PHP literal include/Composer, and Python local-import adapters connected to RD-1/RD-2 graph | **Code in develop, validation pending; symbol/runtime resolution incomplete** |
 
 **Implementation sequence:** RD-1 contract (authored) → RD-2 JS/TS reverse
-impact (authored) → CR-1 common findings (authored) → **RD-3 cross-language
-adapters** (.NET/PHP/Python) → CR-2/CR-3 evidence explanations and
-host/user disclosure → RD-4 semantic enrichment/cache and CR-4 UX
-→ RD-5/CR-5 acceptance. Develop remains unvalidated by the consolidated
-release gate.
+impact (authored) → CR-1 common findings (authored) → RD-3 bounded
+cross-language static adapters (authored) → **CR-2 evidence-chain
+explanations / CR-3 host disclosure** → RD-4 richer semantic indexing
+and CR-4 UX → RD-5/CR-5 cross-platform acceptance.
+Develop code is not certified until the consolidated release gate.
 
 **Validation boundary:** all newly written RD-1 tests and current develop
 acceptance tests remain to be executed in the future consolidated phase.
@@ -83,7 +84,7 @@ The roadmap tracks **slices of behavior**, not whole feature names. Labels:
 | Cross-platform Node core | Bundled Node CLI, Windows isolated-PATH tests and optional Python-parity fixtures; PR #23 reported 34 Windows Node PASS / 1 parity SKIP on its older head | Fixes from PR #23 merged via PR #26; finish current develop regression, Python/Linux parity, installer and host tests | **Implemented in develop; Windows Node validation reported; full P0 pending** |
 | Existing-memory cleanup | Develop includes health/doctor, migration audit, digest-bound backups, inspect, journaled migration/restore and recovery | Validate crash/concurrent-writer behavior and manual provenance review; no full automatic legacy semantic migration | **Develop code integrated, validation pending; semantic auto-migration absent** |
 | Session freshness | sync, search, health and bounded session-check on develop; agent instruction bridges | Validate all supported hosts and incomplete scans; no universal automatic hook | **Develop implementation; host automation and end-to-end acceptance pending** |
-| Indirect dependencies | RD-1 graph contract plus RD-2 bounded JS/TS reverse traversal and optional `dependency-impact` / `search --deps` / `session-check --deps` authored in develop | Executed tests and broad reverse coverage; RD-3 non-JS adapters, RD-4 semantics/cache and RD-5 acceptance | **Opt-in RD-2 code integrated; validation pending** |
+| Indirect dependencies | RD-1 common graph, RD-2 JS/TS reverse impact, RD-3 .NET/PHP/Python static adapters (opt-in) in develop | Execute acceptance tests, semantic/symbol resolution, unsupported-language policy, cache and benchmarking | **Develop code integrated; validation pending, incomplete coverage disclosed** |
 | Multi-agent memory | Shared facts, develop handoffs, single-file canonical CAS and journaled multi-file operations | Non-cooperating writers, fault-injected recovery and semantic conflict resolution | **Cooperative code merged to develop; general concurrency not proven** |
 | Measurement | Context-pressure tools, usage importers and synthetic A/B method | Matched real-agent measurements of full token cost and task quality | **Instrumentation exists; savings unmeasured** |
 | Conflict transparency | Opt-in CR-1 `--explain --json` produces consistent bounded diagnostics, with source/revision context when available and no extra Git checks | CR-2 richer evidence, CR-3 user-facing disclosures, CR-4 persisted dedup/UX, CR-5 acceptance | **CR-1 implemented on develop; tests not executed; no automatic notification** |
@@ -302,11 +303,15 @@ network service, or Python/Bash dependency. Keep the Node+Git core portable.
   compiler; no full repo-wide graph or cross-language resolver exists.
   Commit/index/worktree drift is checked through existing provenance,
   with historical/current imports retained for deleted/renamed paths.
-- **RD-3 — non-JS adapters:** separate adapters for C#/.NET
-  (`ProjectReference`, project manifests, optional symbol resolution),
-  PHP/Composer/CS-Cart, Python and JVM/Go/Rust project/module graphs.
-  Unknown runtime wiring (DI, reflection, events, hooks, dynamic imports,
-  schemas, lockfiles) must trigger explicit incomplete coverage, not pass.
+- **RD-3 — non-JS adapters (code authored in develop; not tested):**
+  `dotnet-static@1` links C# files to a uniquely identified project and
+  literal `ProjectReference`/MSBuild imports; `php-static@1` follows
+  literal includes and Composer manifest changes; `python-static@1`
+  follows simple local Python imports/pyproject config. Each reuses the
+  RD-1/2 reverse graph and Git verification. All three deliberately
+  report partial coverage where compiler symbols, PSR-4/CS-Cart hooks,
+  runtime import resolution and build/package logic cannot be checked.
+  JVM/Go/Rust and optional LSP/Roslyn/Tree-sitter remain future adapters.
 - **RD-4 — optional richer parsing:** evaluate Tree-sitter, language
   servers and SCIP indexes for syntax/symbol accuracy, but never require
   them or start unapproved external processes/downloads. Add a safe,
@@ -323,11 +328,11 @@ Do not auto-rewrite, revalidate or promote memory facts.
 
 **Design:** [Language-neutral reverse dependency engine](docs/architecture/reverse-dependency-memory.md).
 **RD-1 contract:** [Graph/adapter index contract](docs/architecture/dependency-graph-contract.md).
-**Status:** RD-1 contract and opt-in RD-2 **JS/TS reverse
-impact prototype authored in develop, validation pending**. RD-2 is
-a bounded subgraph reachable from cited sources, not an exhaustive
-repository-wide graph. Full language adapters (RD-3), semantic symbol
-resolution (RD-4) and broad acceptance (RD-5) are not implemented.
+**Status:** RD-1/RD-2 and RD-3 static .NET, PHP/Composer and
+Python adapter code authored on develop, **tests unexecuted**. The graph
+only covers bounded dependencies reachable from cited files; symbol-level
+resolution, full framework/runtime behavior (RD-4), and comprehensive
+cross-platform validation (RD-5) are not implemented.
 
 **Acceptance:** a changed imported dependency reaches an unchanged
 cited source and its fact; mixed C#/.NET, PHP, Python and JS fixtures
@@ -398,14 +403,14 @@ create circular dependencies or unverifiable “self-improvement.”
 
 ## Working order and status rules
 
-**Recommended next delivery (2026-11-11):** RD-1 and RD-2
-dependency work and CR-1 explainable diagnostics are integrated in
-develop, **not validated**. The next separate implementation is
-**RD-3 — portable C#/.NET, PHP/Composer and Python adapters** on the
-common graph contract, preserving honest unknown/dynamic coverage;
-then complete CR-2/CR-3 explanation and host disclosure tasks.
-No develop → main merge before consolidated Windows/Linux/Python
-and agent-host acceptance.
+**Recommended next delivery (2026-11-11):** RD-3 static adapters
+are now authored in develop alongside RD-1/RD-2 and CR-1,
+**not validated**. Continue in separate PRs with **CR-2 evidence-chain
+explanations**, then CR-3 host/user disclosure protocols, RD-4 optional
+semantic enrichment and CR-4 UX, and finally RD-5/CR-5 acceptance.
+Preserve honest partial-coverage outcomes for unsupported languages
+and dynamic dependencies; do not merge develop into main before the
+consolidated tests and security review.
 
 Use the per-slice status definitions in the implementation audit above:
 **implemented**, **locally validated**, **pilot reported**, **partial**, **planned**,

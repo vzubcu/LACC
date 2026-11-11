@@ -21,6 +21,9 @@ payload: for example, current_commit is `null` when this layer lacks
 verified HEAD evidence. Output fields are additive and opt-in.
 No automatic user notification, semantic contradiction proof,
 cross-host delivery tracking or autonomous memory correction exists.
+RD-3 now supplies optional, heuristic `.NET`, PHP/Composer and Python
+static dependency edges in addition to JS/TS; their unresolved
+compiler/framework/runtime semantics are expressly marked incomplete.
 Written tests await the consolidated develop acceptance gate.
 
 ## Decision policy (source priority is not a semantic oracle)

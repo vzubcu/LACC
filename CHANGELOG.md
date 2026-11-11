@@ -1,5 +1,23 @@
 # Changes
 
+## Develop (validation pending) — RD-3 cross-language static adapters
+
+- Add portable `dotnet-static@1`, `php-static@1` and
+  `python-static@1` adapters using only bundled Node/Git tools.
+- Track .NET source-to-project, static `ProjectReference` and build
+  manifest edges; literal PHP includes and Composer config edges;
+  Python local relative/absolute imports and pyproject config.
+- Integrate all adapters with existing RD-1/2 graph, Git verifier,
+  reverse impact, opt-in `--deps` and CR-1 explanation scopes.
+- Preserve old/current import edges, bounded file/Git scans and honest
+  `dependency-coverage-incomplete` when symbols, DI, Composer PSR-4,
+  CS-Cart hooks, Python runtime imports or MSBuild logic are unknown.
+- Author mixed-language regression fixtures and update the validation
+  gate; **do not execute tests** until consolidated develop review.
+- No extra runtime dependencies, compiler/interpreter execution,
+  GitHub Actions, hosted runners or main branch merge.
+
+
 ## Develop (validation pending) — CR-1 unified memory findings
 
 - Add `lacc-findings.mjs`, a dependency-free, read-only diagnostic

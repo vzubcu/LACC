@@ -77,7 +77,7 @@ AST extraction, or benchmark imports; use existing helpers when available.
 - For runtime detection and native-tool fallback across OSes, read [runtime](references/runtime.md).
 - For initialization, upgrades and native instruction imports, read [setup](README.md).
 - For ranked source-backed fact recall and decision/lesson conventions, read [retrieval](references/retrieval.md).
-- For **experimental RD-2 reverse impact**, use `dependency-impact . --json`, or `search . --query "task" --deps --include-review --json` when explicitly requested. The JS/TS-only static scan reports changed dependency -> cited source -> fact chains; incomplete import coverage requires review. Never assume other languages were analyzed.
+- For **experimental RD-2/RD-3 reverse impact**, use `dependency-impact . --json`, or `search . --query "task" --deps --include-review --json` when explicitly requested. Static adapters cover JS/TS, .NET project manifests, PHP literal includes/Composer and Python local imports; inspect [cross-language adapter limits](references/cross-language.md). All unsupported dynamic or symbol relationships require review; never infer semantic completeness.
 - For key-based conflict triage and advisory self-healing, read [memory doctor](references/self-healing.md).
 - For CR-1 read-only, normalized reasons when a memory claim is withheld, append `--explain --json` to `search`, `health`, `doctor` or `session-check` and consult [memory findings](references/findings.md). `--explain` does not mean the user saw a notification or that Git byte drift proved a semantic conflict.
 - For concurrent task handoffs, use [multi-agent](references/multi-agent.md); all handoff messages are unverified proposals, never auto-promoted into source-backed facts.

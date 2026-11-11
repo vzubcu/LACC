@@ -1,6 +1,6 @@
 # Design proposal: Language-neutral reverse dependency and change-driven memory invalidation
 
-**Status:** RD-1 contract and opt-in RD-2 JS/TS reverse-impact prototype authored on develop (validation pending); RD-3+ cross-language engine remains design only. **Branch:** develop. **Reviewed:** 2026-11-11.
+**Status:** RD-1/RD-2 and opt-in RD-3 .NET/PHP/Python static adapters authored on develop (validation pending); RD-4+ semantic analysis and full cross-language coverage remain design. **Branch:** develop. **Reviewed:** 2026-11-11.
 **Parent milestone:** ROADMAP.md — P1 Dependency-aware memory staleness.
 **Trigger:** community feedback: if a cited source imports another changed module, a
 source-only Git check can return a misleading "source unchanged"; reverse walk from
@@ -11,13 +11,13 @@ changed dependencies to affected cited files and memory facts.
 The [portable dependency graph contract](dependency-graph-contract.md)
 now defines normalized, revision-scoped nodes/edges, explicit
 adapter-scan coverage, direct forward/reverse indexes and source-to-fact
-links. `node lacc.mjs dependency-contract` now reports a single opt-in JS/TS
-static import adapter and reverse traversal availability. RD-2 uses
-the bounded *cited-source subgraph* to trace changed dependencies back
-to facts, exposing missing coverage explicitly. Persistent caches,
-repository-wide reverse indexes, other language resolvers and symbol-
-level semantics are still future RD-3/RD-4 work. This is **not** a
-completed cross-language dependency detector.
+links. `node lacc.mjs dependency-contract` reports four opt-in static adapters:
+JS/TS, .NET manifests, PHP includes/Composer and Python local imports.
+RD-2/RD-3 use the bounded *cited-source subgraph* to trace changed
+dependencies back to facts, exposing missing coverage explicitly.
+Persistent caches, repository-wide reverse indexes, MSBuild/Roslyn,
+Composer/autoload and Python runtime semantic resolution remain future
+RD-4/refinement work. This is **not** a complete dependency detector.
 
 ## Scope and core invariants
 

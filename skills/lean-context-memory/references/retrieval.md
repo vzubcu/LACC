@@ -151,3 +151,17 @@ external packages, reflection, hooks, runtime configuration and other
 languages require explicit review. Scan budgets bound facts, depth,
 edges, file bytes and historical Git lookups. Authored regression
 tests are not yet executed; integrate only on develop until validated.
+
+## RD-3 (develop preview) — cross-language static dependency evidence
+
+The optional `--deps` checker now recognizes C#/.NET project manifests,
+literal PHP includes/Composer manifests and Python local imports in
+addition to JS/TS. All are revision-scoped, mapped into the same RD-1
+index and scanned with the same bounded Git verifier and RD-2 reverse
+walk. The static adapters deliberately label dynamic, framework-specific
+or compiler-resolved dependencies **incomplete**, not clean.
+
+See [cross-language adapters](cross-language.md) for supported edges,
+limits and examples. Node/Git suffice; no `dotnet`, PHP, Composer or
+Python execution is performed. The new regression tests are authored
+only; there is no develop-release acceptance result yet.
