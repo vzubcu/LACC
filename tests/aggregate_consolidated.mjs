@@ -67,7 +67,9 @@ if (seen.size > 1 && new Set([...seen.values()].map(r => r.head)).size !== 1)
 for (const p of platforms) if (!seen.has(p))
   out.issues.push('Missing native ' + p + ' report.');
 const python = [...seen.values()].some(r => r.suite_results?.some(s =>
-  s.suite === 'python-unittest' && s.status === 'PASS' && s.exit_code === 0));
+  s.suite === 'python-unittest' && s.status === 'PASS' &&
+  s.exit_code === 0 && Number.isSafeInteger(s.tests) && s.tests > 0 &&
+  s.skipped === 0));
 if (!python) out.issues.push('Python unit tests not confirmed on any platform.');
 const installer = [...seen.values()].some(r => r.installer_check === 'PASS');
 if (!installer) out.issues.push('Installer smoke not confirmed on any platform.');
