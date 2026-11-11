@@ -75,6 +75,23 @@ It does not replace verified host-level delivery receipts, source
 revalidation, nor real token/cost measurement; the same Git fact
 evaluator remains authoritative for finding generation.
 
+## CR-3B planned answer-level gate (follow-up community feedback)
+
+A further community observation sharpened the acceptance criterion:
+**a withheld memory fact that materially affects a proposed answer must
+be acknowledged in that answer—not only in a CLI health check.**
+CR-3 instructions do not prove this happened, and LACC has no universal
+response interceptor or verified user-delivery receipt.
+
+The new **CR-3B** work package and CR-5 release gate require actual
+generated-answer fixtures across supported hosts. Relevant excluded
+facts must trigger concise, evidence-based warnings; unrelated facts
+must not interrupt normal answers. The protocol must distinguish
+CLI detection, an answer containing the warning, and separately
+observed host delivery. This is **planned, not implemented or tested**.
+
+See [Answer-Level Disclosure Gate specification](answer-level-disclosure-gate.md).
+
 ## Decision policy (source priority is not a semantic oracle)
 
 1. **Fresh, checked code and tests are primary evidence** for describing
