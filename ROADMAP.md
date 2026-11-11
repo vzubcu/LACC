@@ -21,28 +21,28 @@ Version labels below are *tentative*; priorities and acceptance criteria matter 
 
 ## Current execution checkpoint — 2026-11-11
 
-The **last merged design milestone** is PR #24 (cross-language reverse
-dependency architecture). The **last merged runtime feature** is PR #22
-(journaled migration/restore). Both are on **develop** only. **main** stays
-on the stable v3.2 baseline. PR #23 is an **open** validation/hardening PR,
-not yet integrated into develop.
+**main** remains the stable v3.2 baseline. **develop** contains experimental
+implementations PR #15–#22 and code corrections from the agent's validation
+branch, reapplied via merged PR #26.
 
 | Scope | Evidence | Status |
 |---|---|---|
-| PR #15–#22 | Develop policy; session gate; legacy audit/snapshot; JS/TS opt-in dependencies; handoffs; private storage; canonical CAS; journaled migration/restore | **Code merged into develop; feature validation incomplete** |
-| PR #23 | Validation branch reports Windows Node.js 24.13: 34 pass, 1 optional Python-parity skip, 0 fail; fixes snapshot directory creation and two test fixtures; Python/Bash-dependent checks blocked | **OPEN PR; agent-reported partial validation, not integrated / not a complete release gate** |
-| PR #24 | Language-neutral reverse dependency architecture, RD-1..RD-5 | **Design merged into develop; inverse graph NOT implemented** |
-| Exori AI feedback | What if memory conflicts with current code, and does the agent tell the user? | **New CR-1..CR-5 design below; not implemented** |
+| PR #15–#22 | Session gate, migration/snapshots, opt-in JS/TS dependency scan, multi-agent handoffs, canonical CAS and journaled restore | **Integrated into develop; complete validation pending** |
+| PR #23 → PR #26 | Agent reported 34 Windows Node PASS, one optional Python-parity SKIP on its older head; three fixes cherry-picked into new PR #26, which is merged. Outdated PR #23 was closed as superseded | **Fixes integrated; results are not current-develop certification** |
+| PR #24 | Cross-language reverse dependency architecture RD-1..RD-5 | **Design merged in develop** |
+| PR #25 | Memory-code discrepancy explanations and CR-1..CR-5 reporting roadmap | **Design merged in develop** |
+| RD-1 | Versioned graph/adapter and source-to-fact index contract, portable Node implementation, tests authored | **Implementation on develop, validation pending; no graph scanning yet** |
 
-**Immediate action:** review PR #23 and its local logs, reconcile its
-changes with current develop, then merge any accepted fixes **only into
-develop**. Do not treat a Windows Node pass as proof of Python/Linux parity,
-installer compatibility or end-to-end agent notification.
+**Implementation sequence:** RD-1 contract → RD-2 changed-dependency
+reverse traversal → CR-1 consistent evidence reporting → RD-3 adapters
+(.NET/PHP/Python) → RD-4 optional semantic enrichment/cache → RD-5
+cross-language acceptance. CR-1 can proceed alongside RD-2, but must
+reuse the existing source Git evaluator.
 
-**Next feature:** RD-1 common cross-language graph/adapter contract,
-followed by RD-2 reverse graph traversal; implement CR-1 common reporting
-in a separate PR so that direct and indirect findings share vocabulary.
-CR-1 could precede RD-2 because direct Git findings already exist.
+**Validation boundary:** all newly written RD-1 tests and current develop
+acceptance tests remain to be executed in the future consolidated phase.
+The earlier PR #23 test report does **not** certify newer code, Python
+parity, Linux compatibility or all supported agent hosts.
 
 ## Implemented baseline — verify before duplicating
 
@@ -77,10 +77,10 @@ The roadmap tracks **slices of behavior**, not whole feature names. Labels:
 
 | Roadmap capability | Existing implementation (do not duplicate) | Missing work | Precise status |
 |---|---|---|---|
-| Cross-platform Node core | Bundled Node CLI, Windows isolated-PATH tests and optional Python-parity fixtures; PR #23 reports 34 Windows Node PASS / 1 parity SKIP | Review/integrate PR #23; finish Python/Linux parity, installer and host integration tests | **Implemented in develop; Windows Node validation reported; full P0 pending** |
+| Cross-platform Node core | Bundled Node CLI, Windows isolated-PATH tests and optional Python-parity fixtures; PR #23 reported 34 Windows Node PASS / 1 parity SKIP on its older head | Fixes from PR #23 merged via PR #26; finish current develop regression, Python/Linux parity, installer and host tests | **Implemented in develop; Windows Node validation reported; full P0 pending** |
 | Existing-memory cleanup | Develop includes health/doctor, migration audit, digest-bound backups, inspect, journaled migration/restore and recovery | Validate crash/concurrent-writer behavior and manual provenance review; no full automatic legacy semantic migration | **Develop code integrated, validation pending; semantic auto-migration absent** |
 | Session freshness | sync, search, health and bounded session-check on develop; agent instruction bridges | Validate all supported hosts and incomplete scans; no universal automatic hook | **Develop implementation; host automation and end-to-end acceptance pending** |
-| Indirect dependencies | dep_graph.py heuristic and opt-in develop search --deps / session-check --deps static JS/TS forward prototype | Language-neutral reverse graph/source-to-fact impact RD-1..RD-5; unknown coverage must remain explicit | **Experimental forward prototype merged; reverse engine design only** |
+| Indirect dependencies | Heuristic dep_graph.py; opt-in JS/TS forward scan; RD-1 language-neutral graph/adapter contract and direct source-to-fact index authored on develop | RD-2 changed-file reverse traversal, RD-3 adapters, strict partial coverage and tests | **RD-1 integrated, validation pending; full reverse engine not built** |
 | Multi-agent memory | Shared facts, develop handoffs, single-file canonical CAS and journaled multi-file operations | Non-cooperating writers, fault-injected recovery and semantic conflict resolution | **Cooperative code merged to develop; general concurrency not proven** |
 | Measurement | Context-pressure tools, usage importers and synthetic A/B method | Matched real-agent measurements of full token cost and task quality | **Instrumentation exists; savings unmeasured** |
 | Conflict transparency | Direct Git/source and keyed-conflict findings available in CLI | Unified finding/report schema, agent disclosure and verified per-host delivery (CR-1..CR-5) | **Partial diagnostics; reporting planned** |
@@ -89,7 +89,7 @@ The roadmap tracks **slices of behavior**, not whole feature names. Labels:
 **Evidence reviewed:** `skills/lean-context-memory/SKILL.md`, `scripts/lacc.mjs`,
 `scripts/lacc-core.mjs`, `scripts/memory-maintain.py`, `scripts/dep_graph.py`,
 `tests/test_node_runtime.mjs`, `references/runtime.md`, `references/benchmark.md`.
-This is a **static repository audit, plus agent-reported local Windows results in open PR #23**, not a new independently repeated end-to-end test run. Do not upgrade any status without checking complete acceptance evidence.
+This is a **static repository audit plus agent-reported local Windows results on an earlier PR #23 head**, not a new independently repeated end-to-end test run. Do not upgrade any status without checking complete acceptance evidence.
 
 ## Prioritized delivery plan
 
@@ -274,10 +274,15 @@ network service, or Python/Bash dependency. Keep the Node+Git core portable.
   JS/TS *forward* import graph only. `dep_graph.py` is heuristic candidate
   exploration. Neither provides a language-neutral inverse graph, a
   source-to-fact impact index, or comprehensive semantic project resolution.
-- **RD-1 — common graph/adapter contract:** unify forward edges, inverse
-  edges, `source -> fact` references, per-fact Git verified revision,
-  resolver provenance, confidence and explicit missing coverage. Ensure
-  historical edges removed in new code are not lost.
+- **RD-1 — common graph/adapter contract (implemented in develop,
+  validation pending):** `lacc-graph-contract.mjs` normalizes language-
+  neutral nodes/edges, adapter descriptors/results and source-backed fact
+  references by verified Git revision. It supplies direct forward/reverse
+  lookup indexes, strict path/budget checks and scoped coverage reporting.
+  `dependency-contract` CLI introspection explicitly says no adapters
+  are registered and inverse *traversal* is not implemented. RD-2 must
+  connect real scanners, changes and historical edges; no semantic
+  validation is inferred from the contract.
 - **RD-2 — reverse-walk JS/TS prototype:** reuse the existing `--deps`
   source verifier, index local static imports, walk changed dependencies
   backwards, return affected facts with evidence paths. Detect committed,
@@ -301,9 +306,12 @@ network service, or Python/Bash dependency. Keep the Node+Git core portable.
 falsity; `unaffected-within-covered-scope` never means full safety.
 Do not auto-rewrite, revalidate or promote memory facts.
 
-**Design:** [Language-neutral reverse dependency memory engine](docs/architecture/reverse-dependency-memory.md).
-**Status:** specified in roadmap, implementation **not started**;
-the earlier JS/TS forward prototype remains experimental and unvalidated.
+**Design:** [Language-neutral reverse dependency engine](docs/architecture/reverse-dependency-memory.md).
+**RD-1 contract:** [Graph/adapter index contract](docs/architecture/dependency-graph-contract.md).
+**Status:** RD-1 contract **authored in develop, validation pending**;
+RD-2 reverse traversal, built-in language adapters and change-driven
+fact impact are **not implemented**. The old JS/TS forward prototype
+remains experimental and unvalidated.
 
 **Acceptance:** a changed imported dependency reaches an unchanged
 cited source and its fact; mixed C#/.NET, PHP, Python and JS fixtures
@@ -374,15 +382,13 @@ create circular dependencies or unverifiable “self-improvement.”
 
 ## Working order and status rules
 
-**Recommended next delivery (2026-11-11):** review and reconcile the
-**open PR #23** with current develop (reported 34 Windows Node PASS, one
-optional Python-parity SKIP), retain full cross-runtime/host validation
-as a release gate, and **do not merge develop into main yet**.
-**Next new runtime feature: RD-1** cross-language graph/adapter contract
-(following merged design PR #24). Then implement RD-2 reverse
-dependency impact and CR-1 normalized explainable findings as separate
-PRs. Both must reuse existing Git provenance and remain opt-in until
-locally validated.
+**Recommended next delivery (2026-11-11):** RD-1 contract is
+authored and integrated into develop; after reviewing the branch state,
+implement **RD-2 reverse dependency traversal** using the existing JS/TS
+prototype and this shared index. Then **CR-1 normalized explainable
+findings** in an independent PR. No default enforcement, no memory
+promotion and **no develop -> main merge** until the consolidated
+Windows/Linux/Python/host validation gate is complete.
 
 Use the per-slice status definitions in the implementation audit above:
 **implemented**, **locally validated**, **pilot reported**, **partial**, **planned**,

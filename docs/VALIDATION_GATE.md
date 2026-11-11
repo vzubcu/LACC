@@ -1,8 +1,10 @@
 # Consolidated acceptance gate: develop -> main
 
-**Status: prepared, NOT RUN.** This checklist covers untested implementations
-currently integrated into develop. It is intentionally separate from the
-published main branch. Do not advertise develop as the stable release.
+**Status: NOT COMPLETE for current develop.** An earlier Windows agent
+run reported 34 Node tests passed and one optional Python-parity skip on
+the former PR #23 head. Fixes were incorporated via PR #26, and RD-1
+changes were added later. **No complete validation of current develop has
+been run.** Do not advertise develop as the stable release.
 
 **Hard constraints:** local execution, no hosted GitHub Actions, no
 auto-merges into main, preserve user memory and private handoffs.
@@ -34,6 +36,7 @@ node --test tests/test_dependency_staleness.mjs
 node --test tests/test_multiagent_handoff.mjs
 node --test tests/test_canonical_cas.mjs
 node --test tests/test_memory_transaction.mjs
+node --test tests/test_dependency_graph_contract.mjs
 ```
 
 Tests expected after implementation and review: Windows isolated Git PATH,
