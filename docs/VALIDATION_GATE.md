@@ -168,8 +168,8 @@ are a separate quality goal and cannot be fabricated by local helper tests.
 ## CR-3B answer-level disclosure gate — release-blocking (CODE AUTHORED, UNTESTED)
 
 **Community report:** an excluded stale fact must not silently disappear
-when the answer materially touches that fact. The bounded CLI/agent-rule gate is **authored**, but its tests and real
-answer-level agent checks have **not** been executed.
+when the answer materially touches that fact. The bounded CLI/agent-rule gate is
+**authored**, but its tests and real answer-level agent checks have **not** been executed.
 
 - In controlled task fixtures, retrieve relevant memory with the
   standard trust filter and `--explain` evidence. Where a relevant
@@ -204,7 +204,7 @@ warning and optional exact-text local draft audit authored on develop;
 host event hook, actual response observation or universal answer interceptor.
 Test actual agent answers before promoting develop; do not count
 supplied-file audits as generated-host-answer evidence. This
-criterion must be developed, run and evaluated before
+criterion must be executed and evaluated before
 `develop` can be promoted to `main`.
 [Detailed specification](architecture/answer-level-disclosure-gate.md).
 
