@@ -37,7 +37,7 @@ branch, reapplied via merged PR #26.
 | RD-3 | Optional static C#/.NET project/manifest, PHP literal include/Composer, and Python local-import adapters connected to RD-1/RD-2 graph | **Code in develop, validation pending; symbol/runtime resolution incomplete** |
 | CR-2 | Git revision, adapter/version, relation type and source-to-fact links carried through per-hop evidence traces | **Code authored in develop; validation pending; semantic verification not claimed** |
 | CR-3 | Host-neutral disclosure contract, Codex/Claude/Gemini/Roo marked instruction bridges, additive agent-only guidance for `--explain --json` | **Authored in develop; validation pending; no host delivery confirmation** |
-| CR-3B — Answer-Level Disclosure Gate | Require relevant excluded/review memory facts to be acknowledged in the **agent's answer**, not merely in CLI health output; host-specific acceptance with honest delivery semantics | **Planned only; not implemented, not validated; required before promoting develop to main** |
+| CR-3B — Answer-Level Disclosure Gate | Require relevant excluded/review memory facts to be acknowledged in the **agent's answer**, not merely in CLI health output; host-specific acceptance with honest delivery semantics | **Advisory Node CLI + agent bridge authored in develop; tests and actual host responses unverified; release-blocking acceptance pending** |
 | CR-4 | Task-scoped bounded disclosure summaries, brief/detail groups, new-vs-agent-seen counts and opt-in private seven-day Git/evidence-bound seen markers | **Code authored in develop; validation pending; no automatic suppression, semantic repair or user delivery proof** |
 | RD-4 (initial scope) | Opt-in exact JS/TS tsconfig/jsconfig alias hints and private content-addressed parser-token cache with disk revalidation; common Git source verifier remains authoritative | **Code authored on develop, macOS/Windows/Linux validation pending; full semantic symbols and graph caching not implemented** |
 
@@ -46,7 +46,7 @@ CR-1 findings → RD-3 .NET/PHP/Python static adapters → CR-2 evidence
 chains → CR-3 disclosure guidance → CR-4 task-scoped UX →
 RD-4 **initial opt-in literal JS/TS aliases and validated parser-token
 cache** (all code authored in develop, **not tested**) →
-**CR-3B Answer-Level Disclosure Gate (planned)** →
+**CR-3B answer-level candidate/audit implementation (authored, untested)** →
 **RD-5/CR-5 cross-platform acceptance**, then future optional
 compiler/LSP semantic resolvers with independent review.
 Windows, Linux **and native macOS** are required; no assumed host delivery.
@@ -96,7 +96,7 @@ The roadmap tracks **slices of behavior**, not whole feature names. Labels:
 | Indirect dependencies | RD-1/2 reverse graph, RD-3 .NET/PHP/Python adapters, initial RD-4 opt-in JS/TS literal alias hints and private parse-token cache | Full symbol resolution and graph caching, benchmarking, security review and real macOS/Windows/Linux acceptance | **Develop authored, no consolidated tests executed; unknown coverage remains review-required** |
 | Multi-agent memory | Shared facts, develop handoffs, single-file canonical CAS and journaled multi-file operations | Non-cooperating writers, fault-injected recovery and semantic conflict resolution | **Cooperative code merged to develop; general concurrency not proven** |
 | Measurement | Context-pressure tools, usage importers and synthetic A/B method | Matched real-agent measurements of full token cost and task quality | **Instrumentation exists; savings unmeasured** |
-| Conflict transparency | CR-1 diagnostics, CR-2 per-hop provenance, CR-3 host instruction guidance, CR-4 task-scoped grouping and explicit private agent-seen markers (without suppression) | CR-5 cross-host acceptance and actual observed-delivery integrations remain unimplemented | **CR-1..4 authored in develop; tests unexecuted; no user notification proof** |
+| Conflict transparency | CR-1/2 evidence, CR-3/4 guidance and grouping, CR-3B lexical answer candidates and explicit draft-text audit (no suppression) | Real generated answer and host-delivery acceptance in CR-5 remains unimplemented | **Code authored in develop; tests unexecuted; no observed user delivery** |
 | Multi-skill platform | Installable catalog and lean-context-memory v3.2 skill | Independent CS-Cart/.NET/security/GDPR skills, integration suites and reviewed improvements | **Catalog implemented; domain skills planned** |
 
 **Evidence reviewed:** `skills/lean-context-memory/SKILL.md`, `scripts/lacc.mjs`,
@@ -230,8 +230,8 @@ Never silently rewrite memory, invent provenance or claim a false conflict.
   observe actual user delivery, record host receipts or guarantee host
   compliance; output always says `not-observed`. Re-run `init` to
   refresh existing installed instruction bridges.
-- **CR-3B — Answer-Level Disclosure Gate (NEW; planned, NOT
-  implemented):** community follow-up: *if an answer touches a fact
+- **CR-3B — Answer-Level Disclosure Gate (authored in develop;
+  validation pending):** community follow-up: *if an answer touches a fact
   that was excluded from trusted retrieval, disclose that exclusion in
   the answer itself—not only in a health check*. Before composing a
   material answer, the agent must correlate the current task and
@@ -246,11 +246,14 @@ Never silently rewrite memory, invent provenance or claim a false conflict.
   change alone may be called a proven semantic conflict. Incomplete
   searches, truncated diagnostics or an unavailable source must be
   reported as uncertainty rather than a false clean result.
-  **Implementation options:** a bounded answer-context candidate
-  contract followed by a host-specific pre-response rule/hook if
-  supported; do not claim a generic output interceptor works across
-  Codex/Claude/Gemini/Roo. An instruction or emitted diagnostic is
-  not proof that the user saw it.
+  **Authored behavior:** opt-in read-only `answer-disclosure . --query TEXT
+  [--claim TEXT] [--deps] --json` derives bounded evidence and a safe
+  proposed warning from the existing trust-filtered search/CR-1 verifier.
+  Optional `--response-file PATH` checks exact canonical warning text
+  in an explicitly supplied local draft without asserting host response
+  emission. Codex/Claude/Gemini/Roo `init` instruction bridges require
+  answer-level warnings when material, not generic unrelated alerts.
+  No universal host response interceptor or user delivery proof exists.
   **Release gate:** test positive (direct and indirect source drift,
   withheld relevant result), negative (unrelated finding), incomplete
   coverage, sensitive text, no Git, byte budgets and response-draft
@@ -293,9 +296,9 @@ No auto-promotion or auto-reverification; universal platform popups
 are not promised.
 
 **Design:** [Memory conflict reporting and transparency](docs/architecture/memory-conflict-reporting.md).
-**Status:** CR-1–CR-4 code authored in develop with **no
-consolidated tests executed**. **CR-3B answer-level gate is newly
-planned and unimplemented**; CR-5 acceptance remains planned.
+**Status:** CR-1–CR-4 and CR-3B advisory CLI/agent-rule code authored in develop,
+with **no consolidated tests executed**. CR-3B real host-answer
+acceptance and CR-5 remain outstanding; the CLI cannot prove delivery.
 LACC can group and mark agent-seen findings; it cannot verify that
 a user saw a notice, that a claim was semantically corrected, or
 that a host loaded its rules. No automatic message or memory repair.
@@ -490,11 +493,9 @@ create circular dependencies or unverifiable “self-improvement.”
 
 ## Working order and status rules
 
-**Recommended next delivery (2026-11-11):** RD-4's initial
-literal alias hints and conservative parser cache are authored in
-develop, **tests unexecuted**. The next implementation gate is **CR-3B — Answer-Level Disclosure**
-to prevent relevant excluded facts from going silently unmentioned
-in actual responses. Then **RD-5/CR-5** consolidates security,
+**Recommended next delivery (2026-11-11):** RD-4 and CR-3B advisory
+answer-disclosure code/tests are authored in develop, **unexecuted**.
+Next complete **RD-5/CR-5** consolidated validation of security,
 privacy, functionality, token benchmarks and executed native Windows,
 Linux AND macOS host-response acceptance for Codex, Claude, Gemini
 and Roo. Do not promote develop to main until tests
