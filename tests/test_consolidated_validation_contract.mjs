@@ -28,7 +28,7 @@ function report(osName, sha = 'a'.repeat(40)) {
       suite, status: 'PASS', exit_code: 0,
       tests: 1, passed: 1, failed: 0, skipped: 0,
     }));
-  suites.push({ suite: 'python-unittest', status: 'PASS', exit_code: 0 });
+  suites.push({ suite: 'python-unittest', status: 'PASS', exit_code: 0, tests: 1, skipped: 0 });
   return {
     schema: 1, scope: 'one-local-native-host', platform: osName, head: sha,
     branch: 'develop', node: 'v22.20.0', repo_status_before: 'clean',
@@ -66,7 +66,7 @@ test('malformed, symlink and oversized evidence files fail closed', t => {
     assert.equal(data.issues.length, 3);
     assert.equal(data.release_gate, 'NOT_PASSED');
   } catch (e) {
-    if (process.platform !== 'win32' || !['EPERM', 'EACCES'].includes(e.code))
+    if (process.platform !== 'win32' || !['EPERM', 'EACCES', 'EINVAL', 'ENOTSUP'].includes(e.code))
       throw e;
     const r = exec([aggregate, bad, tooLarge]);
     assert.equal(r.status, 1);
