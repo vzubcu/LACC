@@ -42,6 +42,7 @@ node --test tests/test_memory_conflict_findings.mjs
 node --test tests/test_cross_language_dependency_impact.mjs
 node --test tests/test_memory_evidence_chains.mjs
 node --test tests/test_agent_disclosure_protocol.mjs
+node --test tests/test_disclosure_ux.mjs
 ```
 
 Tests expected after implementation and review: Windows isolated Git PATH,
@@ -176,3 +177,23 @@ are a separate quality goal and cannot be fabricated by local helper tests.
   a generated bridge is **not** proof a host actually obeyed it.
 - All assertions are authored, **not run** before consolidated develop
   acceptance. No hosted GitHub Actions.
+
+## CR-4 task-scoped disclosure UX (NOT EXECUTED)
+
+- Deterministic groups: identical changed sources are grouped with
+  stable IDs; new warnings are prioritized, previously agent-seen
+  findings remain visible/unresolved, and brief/detail modes do not
+  disclose raw fact text or secrets.
+- Read-only `disclosure-summary` never writes metadata; explicit
+  `disclosure-mark-seen` validates current finding ID and exact Git
+  HEAD, stores no raw claim, uses `wx` private ignored records and
+  remains idempotent within the same evidence/time window.
+- Verify task isolation, evidence/HEAD binding, seven-day expiration,
+  marker tamper/symlink/path traversal rejection and no false user
+  notification or memory fact revalidation.
+- Check incomplete scan, missing Git, truncation, hostile values and
+  `--max-bytes` budget, Windows/Linux paths and multi-agent concurrency.
+- Real byte and token cost A/B comparisons must be measured, not
+  inferred from the number of grouped warnings.
+- Test cases are **authored only**; run the consolidated gate before
+  develop -> main. No GitHub Actions or hosted runners.

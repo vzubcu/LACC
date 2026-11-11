@@ -50,6 +50,23 @@ node --test tests/test_node_runtime.mjs
 
 Node tests create isolated temporary Git repositories and do not require Bash or Python. Windows and Linux parity should be validated on a real Windows workstation and at least one Linux runtime. No GitHub Actions workflows or runners are added. See also the existing Python suite for regression parity. Results from helper tests cannot establish token savings.
 
+## Develop preview: CR-4 task-scoped disclosure summaries
+
+The optional `disclosure-summary . --task <id> --json` command
+groups findings from the bounded session gate with brief or `--detail`
+modes, without changing canonical memory. `--deps` opts into
+experimental static dependency analysis. It reports all unresolved
+warnings and explicitly distinguishes new from previously
+agent-seen markers; no suppressed/confirmed facts are invented.
+
+An agent may run `disclosure-mark-seen` only for an **actually observed
+current finding**, with `--task`, `--id` and matching
+`--expect-head`. This explicit action writes private advisory
+metadata with at most seven-day validity. The CLI never proves a
+user was notified, never resolves memory, and performs no periodic
+file cleanup. See [CR-4 disclosure UX](disclosure-ux.md).
+Behavioral tests are authored but not executed.
+
 ## Develop preview: CR-3 agent/host disclosure contract
 
 The local CLI can describe the **instruction-only** host protocol:

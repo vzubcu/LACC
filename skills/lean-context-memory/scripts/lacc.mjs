@@ -16,6 +16,7 @@ import { transactionPreview, transactionApply, transactionInspect, transactionRe
 import { dependencyGraphContract, createDependencyAdapterRegistry } from './lacc-graph-contract.mjs';
 import { normalizeMemoryFindings, FINDING_SCHEMA } from './lacc-findings.mjs';
 import { disclosureContract, DISCLOSURE_AGENT_RULES } from './lacc-disclosure.mjs';
+import { buildDisclosureSummary, markDisclosureSeen } from './lacc-disclosure-ux.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const skill = path.resolve(here, '..');
@@ -38,7 +39,7 @@ function options(argv) {
     const arg = argv[i];
     if (arg.startsWith('--')) {
       const key = arg.slice(2);
-      if (['json', 'include-review', 'strict', 'stamp', 'apply', 'deps', 'reviewed', 'explain'].includes(key)) opts[key] = true;
+      if (['json', 'include-review', 'strict', 'stamp', 'apply', 'deps', 'reviewed', 'explain', 'detail'].includes(key)) opts[key] = true;
       else if (['query', 'agent', 'limit', 'max-bytes', 'topic', 'expect', 'snapshot', 'task', 'actor', 'message', 'expect-head', 'id', 'file', 'content-file', 'plan'].includes(key)) {
         if (!argv[i + 1] || argv[i + 1].startsWith('--')) throw Error('missing value for ' + arg);
         if (key === 'topic') (opts.topic ??= []).push(argv[++i]);
@@ -60,7 +61,7 @@ function runtimeStatus() {
     platform: process.platform, node: process.version,
     git: probe('git', ['--version']), python: probe('python', ['--version']) ?? probe('python3', ['--version']),
     bash: probe('bash', ['--version']),
-    commands: { init: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true, 'dependency-impact': true, 'explain-findings': true, 'disclosure-contract': true },
+    commands: { init: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true, 'dependency-impact': true, 'explain-findings': true, 'disclosure-contract': true, 'disclosure-summary': true, 'disclosure-mark-seen': true },
     strict_git_evidence: Boolean(probe('git', ['--version'])),
     python_maintenance: 'optional separate Python tool; not implemented in Node',
     mode: 'node',
@@ -281,7 +282,7 @@ function sync(root, opts) {
   const review = !valid || committed.length || clean.length;
   return { text: output + (review ? 'REVIEW: inspect source changes\n' : 'NO SOURCE DRIFT; not semantic proof\n'), code: strict && review ? 1 : 0 };
 }
-function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover, dependency-contract, dependency-impact, disclosure-contract\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --explain (normalized, agent-only); --deps (experimental); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --reviewed\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
+function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover, dependency-contract, dependency-impact, disclosure-contract, disclosure-summary, disclosure-mark-seen\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --explain (normalized, agent-only); --detail (disclosure summary); --deps (experimental); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --task ID; --expect-head SHA; --reviewed\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
 export function main(argv = process.argv.slice(2)) {
   const [command = 'help', ...args] = argv;
   if (['help', '--help', '-h'].includes(command)) { process.stdout.write(help()); return 0; }
@@ -303,6 +304,48 @@ export function main(argv = process.argv.slice(2)) {
   }
   if (!fs.statSync(root).isDirectory()) throw Error('invalid project directory');
   if (command === 'init') { process.stdout.write(JSON.stringify(init(root, opts), null, 2) + '\n'); return 0; }
+  if (command === 'disclosure-summary' || command === 'disclosure-mark-seen') {
+    if (!opts.task) throw Error('--task is required for disclosure commands');
+    const maxBytes = cap(root, opts);
+    const scan = sessionCheck(root, {
+      json: true, explain: true, deps: Boolean(opts.deps), maxBytes,
+    });
+    const parsed = JSON.parse(scan.text);
+    if (command === 'disclosure-mark-seen') {
+      const text = markDisclosureSeen(root, parsed, {
+        task: opts.task, id: opts.id,
+        expectedHead: opts['expect-head'], maxBytes,
+      });
+      process.stdout.write(text);
+      return 0;
+    }
+    const limit = opts.limit == null ? 6 : Number(opts.limit);
+    const summary = buildDisclosureSummary(root, parsed, {
+      task: opts.task, detail: Boolean(opts.detail), limit, maxBytes,
+    });
+    if (opts.json) process.stdout.write(summary);
+    else {
+      const result = JSON.parse(summary);
+      const header = 'DISCLOSURE SUMMARY: ' + result.status +
+        '; groups=' + result.total_groups + '; unresolved=' +
+        result.unresolved_findings + '; new=' + result.new_findings +
+        '; seen-markers=' + result.seen_markers + '\n';
+      const lines = result.results.map(group =>
+        '- ' + group.focus + ': ' + group.findings + ' unresolved (' +
+        group.new_findings + ' new, ' + group.seen_markers +
+        ' seen markers); ' + group.kinds.join(', ') + '\n');
+      const footer = '[No memory facts resolved; user delivery not observed. ' +
+        'Use --json --detail for finding IDs.]\n';
+      let out = header;
+      for (const line of lines) {
+        if (utf8(out + line + footer) > maxBytes) break;
+        out += line;
+      }
+      process.stdout.write(out + footer);
+    }
+    return parsed.status === 'healthy' && !parsed.scan_incomplete &&
+      !parsed.diagnostics_truncated && !parsed.output_truncated ? 0 : 1;
+  }
   if (command === 'read') { process.stdout.write(readMemory(root, opts)); return 0; }
   if (command === 'search') { process.stdout.write(searchMemory(root, opts)); return 0; }
   if (command === 'dependency-impact') {

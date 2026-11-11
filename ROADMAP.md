@@ -37,14 +37,15 @@ branch, reapplied via merged PR #26.
 | RD-3 | Optional static C#/.NET project/manifest, PHP literal include/Composer, and Python local-import adapters connected to RD-1/RD-2 graph | **Code in develop, validation pending; symbol/runtime resolution incomplete** |
 | CR-2 | Git revision, adapter/version, relation type and source-to-fact links carried through per-hop evidence traces | **Code authored in develop; validation pending; semantic verification not claimed** |
 | CR-3 | Host-neutral disclosure contract, Codex/Claude/Gemini/Roo marked instruction bridges, additive agent-only guidance for `--explain --json` | **Authored in develop; validation pending; no host delivery confirmation** |
+| CR-4 | Task-scoped bounded disclosure summaries, brief/detail groups, new-vs-agent-seen counts and opt-in private seven-day Git/evidence-bound seen markers | **Code authored in develop; validation pending; no automatic suppression, semantic repair or user delivery proof** |
 
 **Implementation sequence:** RD-1 graph → RD-2 JS/TS reverse impact →
 CR-1 findings → RD-3 .NET/PHP/Python static adapters → CR-2 evidence
-chains → CR-3 **agent disclosure guidance** (all authored in develop,
-not validated) → **CR-4 scoped deduplication and useful explanations**
-→ RD-4 optional semantic indexes/cache → RD-5/CR-5 cross-platform
-acceptance. No host-confirmed notification mechanism is implemented.
-Develop remains unvalidated until the consolidated release gate.
+chains → CR-3 disclosure guidance → CR-4 scoped grouped UX and opt-in
+agent-seen markers (**all authored in develop; validation pending**) →
+**RD-4 optional semantic indexing/cache** → RD-5/CR-5 cross-platform
+acceptance. Host-confirmed notification remains unimplemented.
+Develop is unvalidated until the consolidated release gate.
 
 **Validation boundary:** all newly written RD-1 tests and current develop
 acceptance tests remain to be executed in the future consolidated phase.
@@ -90,7 +91,7 @@ The roadmap tracks **slices of behavior**, not whole feature names. Labels:
 | Indirect dependencies | RD-1 common graph, RD-2 JS/TS reverse impact, RD-3 .NET/PHP/Python static adapters (opt-in) in develop | Execute acceptance tests, semantic/symbol resolution, unsupported-language policy, cache and benchmarking | **Develop code integrated; validation pending, incomplete coverage disclosed** |
 | Multi-agent memory | Shared facts, develop handoffs, single-file canonical CAS and journaled multi-file operations | Non-cooperating writers, fault-injected recovery and semantic conflict resolution | **Cooperative code merged to develop; general concurrency not proven** |
 | Measurement | Context-pressure tools, usage importers and synthetic A/B method | Matched real-agent measurements of full token cost and task quality | **Instrumentation exists; savings unmeasured** |
-| Conflict transparency | CR-1 findings, CR-2 Git/static evidence chains, and CR-3 opt-in agent-only disclosure guidance + Codex/Claude/Gemini/Roo instruction bridges | CR-4 deduplication/UX, CR-5 host-acceptance; no trusted user-delivery integration | **CR-1/2/3 authored in develop; tests unexecuted; no automatic user notification** |
+| Conflict transparency | CR-1 diagnostics, CR-2 per-hop provenance, CR-3 host instruction guidance, CR-4 task-scoped grouping and explicit private agent-seen markers (without suppression) | CR-5 cross-host acceptance and actual observed-delivery integrations remain unimplemented | **CR-1..4 authored in develop; tests unexecuted; no user notification proof** |
 | Multi-skill platform | Installable catalog and lean-context-memory v3.2 skill | Independent CS-Cart/.NET/security/GDPR skills, integration suites and reviewed improvements | **Catalog implemented; domain skills planned** |
 
 **Evidence reviewed:** `skills/lean-context-memory/SKILL.md`, `scripts/lacc.mjs`,
@@ -224,8 +225,20 @@ Never silently rewrite memory, invent provenance or claim a false conflict.
   observe actual user delivery, record host receipts or guarantee host
   compliance; output always says `not-observed`. Re-run `init` to
   refresh existing installed instruction bridges.
-- **CR-4 — useful explanations:** short/detail formats, grouping,
-  stable finding IDs/deduplication, bounded token cost, security redaction.
+- **CR-4 — task-scoped explanation UX and deduplication (authored in
+  develop, validation pending):** `lacc-disclosure-ux.mjs` adds
+  read-only `disclosure-summary --task <id> [--deps] [--detail] --json`,
+  grouping existing CR-1/2/3 normalized findings by changed/cited
+  source and sorting new warnings first. It preserves full unresolved
+  counts and incomplete-scan/truncation flags, with bounded brief and
+  detailed presentation and real serialized-input byte counts
+  (not unmeasured token savings). The explicit write command
+  `disclosure-mark-seen --task <id> --id <finding-id> --expect-head
+  <commit>` stores minimal private task/Git/evidence-bound
+  **agent-seen** markers with seven-day validity. A marker never
+  resolves or suppresses a finding, implies delivery or changes
+  canonical memory. Retention is manual; no cleanup worker exists.
+  Default recall and `--explain` output remain unchanged.
 - **CR-5 — adversarial acceptance:** distinguish Git byte drift from
   confirmed semantic conflict; changed direct/dependency sources,
   missing evidence/unknown language, contradictory facts, large/incomplete
@@ -237,14 +250,15 @@ whether it actually showed the user a warning. No auto-promotion or
 auto-reverification. Universal platform popups are not promised.
 
 **Design:** [Memory conflict reporting and transparency](docs/architecture/memory-conflict-reporting.md).
-**Status:** CR-1, CR-2 and CR-3 code authored in develop, all
-**validation pending**. CR-4–CR-5 remain planned.
-LACC now instructs agents to surface material findings; it still
-cannot confirm a host loaded the instructions or a user saw a notice.
-No semantic contradiction proof, automatic message or memory repair.
+**Status:** CR-1–CR-4 code authored in develop with **no
+consolidated tests executed**. CR-5 acceptance remains planned.
+LACC can group and mark agent-seen findings; it cannot verify that
+a user saw a notice, that a claim was semantically corrected, or
+that a host loaded its rules. No automatic message or memory repair.
 **Contracts:** [normalized findings](skills/lean-context-memory/references/findings.md),
 [evidence chains](skills/lean-context-memory/references/evidence-chains.md),
-[agent disclosure](skills/lean-context-memory/references/disclosure.md).
+[agent disclosure](skills/lean-context-memory/references/disclosure.md),
+[task-scoped disclosure UX](skills/lean-context-memory/references/disclosure-ux.md).
 
 ### P1 — Dependency-aware memory staleness (candidate v3.5)
 
@@ -421,13 +435,13 @@ create circular dependencies or unverifiable “self-improvement.”
 
 ## Working order and status rules
 
-**Recommended next delivery (2026-11-11):** CR-3 host-neutral
-communication rules and Codex/Claude/Gemini/Roo instruction bridges
-are authored in develop, with **tests unexecuted**. Next implement
-**CR-4 — deduplicated, bounded user-facing explanation UX**, preserving
-privacy, task relevance and truthful delivery states. Then RD-4
-optional semantic adapters/cache, and consolidated RD-5/CR-5
-validation before develop → main. No hosted CI or GitHub Actions.
+**Recommended next delivery (2026-11-11):** CR-4 grouped
+disclosure UX and optional agent-seen markers are authored in develop,
+with **tests unexecuted**. The next feature is **RD-4 — optional
+semantic enrichment and bounded caching**, strictly opt-in and with
+no unverified symbol links; CR-5/RD-5 comprehensive Windows/Linux,
+security, privacy, host and token-cost A/B validation follows before
+develop → main. No GitHub Actions or hosted CI.
 
 Use the per-slice status definitions in the implementation audit above:
 **implemented**, **locally validated**, **pilot reported**, **partial**, **planned**,

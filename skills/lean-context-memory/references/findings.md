@@ -146,15 +146,35 @@ for Codex/Claude/Gemini/Roo. Finding IDs, the legacy field
 receipt or user acknowledgment store exists. See the
 [agent disclosure protocol](disclosure.md).
 
-## What is explicitly not implemented (CR-4–CR-5)
+## CR-4 — grouped disclosure UX (develop only; not validated)
+
+The new `disclosure-summary . --task <id> --json` command uses
+the existing bounded `session-check --explain` payload to group
+potentially stale findings by changed/cited source. `--detail`
+expands bounded actions and trace status; `--deps` opts into
+static dependency analysis. It reports unresolved/new/agent-seen
+counts, incomplete scans and actual byte sizes, not unmeasured
+token savings. Regular `search/health/doctor --explain` output
+is unchanged.
+
+An explicit `disclosure-mark-seen` command records an agent-seen
+bookmark for a *current* finding under the private
+`memory/disclosures/<task>/` directory, bound to Git HEAD and
+evidence and valid for at most seven days. It does **not** resolve
+a fact, silence the review requirement, prove user notification,
+or reverify a source. No default command writes the ledger.
+
+See [task-scoped disclosure UX](disclosure-ux.md).
+
+## What is explicitly not implemented (CR-5)
 
 - No arbitrary-symbol dependency proof, semantic LSP/compiler
   comparison or independently validated runtime behavior (RD-4).
 - No guaranteed user-facing notifications, host hooks, popup, email
   or confirmation that any user saw a warning (future host integration).
-- No durable cross-session warning acknowledgment/deduplication store
-  or advanced explanation UI (CR-4). IDs support only current result
-  deduplication; no secret persistent log is created.
+- No verified cross-session **user** acknowledgment or host delivery
+  receipt. CR-4 has only private, optional **agent-seen** markers
+  and deterministic task-scoped grouping; it never auto-suppresses.
 - No completed multi-host, Windows/Linux, privacy or end-to-end
   acceptance gate (CR-5). Regression cases are authored, not executed.
 

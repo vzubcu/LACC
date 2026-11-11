@@ -1,5 +1,27 @@
 # Changes
 
+## Develop (validation pending) — CR-4 grouped disclosure UX
+
+- Add opt-in, read-only `disclosure-summary --task ID --json` with
+  bounded brief/detail grouping, deterministic group identifiers,
+  new vs previously agent-seen counts, honest incomplete/truncated
+  status, and actual serialized input byte measurement (not token savings).
+- Add explicit `disclosure-mark-seen --task ID --id FINDING --expect-head
+  COMMIT` for a currently emitted finding only. Stores tiny private
+  agent-seen markers tied to Git HEAD and evidence fingerprint,
+  at most seven-day validity. Never auto-suppresses, changes memory
+  trust or claims that any user saw a notification.
+- Reuse existing bounded session-check, CR-1 findings, CR-2 evidence
+  and CR-3 instruction guidance; default search/health/doctor JSON
+  remains unchanged.
+- Update generated AGENTS.md disclosure rule to recommend grouping
+  and explicitly warn against using a seen marker as fact repair.
+- Author deterministic, task-isolation, private marker, expiration,
+  Git-concurrency, missing-Git, bytes, output-size and privacy fixtures;
+  **tests NOT executed**, pending consolidated develop acceptance.
+- No new packages, hosted GitHub Actions, semantic repairs or main merge.
+
+
 ## Develop (validation pending) — CR-3 agent/host disclosure contract
 
 - Add read-only `disclosure-contract` introspection and bounded

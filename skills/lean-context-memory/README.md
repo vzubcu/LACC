@@ -63,6 +63,25 @@ node <skill_dir>/scripts/lacc.mjs session-check . --json
 Do not treat `status: review` or `incomplete` as a semantic failure
 of every claim; inspect evidence manually. No memory is auto-corrected.
 
+## Develop preview: task-scoped grouped disclosure UX (CR-4)
+
+Instead of repeating the same Git warning in every agent session,
+use a bounded, read-only view grouped by source and task:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs disclosure-summary . --task auth_fix --json
+node <skill_dir>/scripts/lacc.mjs disclosure-summary . --task auth_fix --deps --detail --json
+```
+
+A separate, explicit `disclosure-mark-seen` command can write a
+private, seven-day, Git HEAD/evidence-bound **agent-seen** marker for
+a finding observed in the current session check. Such markers do not
+resolve/silence findings or prove the user was notified. No marker is
+written by summary, search, health or doctor. Missing Git or incomplete
+coverage cannot be treated as a clean project. See
+[CR-4 disclosure UX](references/disclosure-ux.md). Tests authored
+but not executed on develop.
+
 ## Develop preview: agent and host disclosure guidance (CR-3)
 
 The opt-in `--explain --json` report includes a bounded
