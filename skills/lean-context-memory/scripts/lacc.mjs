@@ -15,6 +15,7 @@ import { canonicalPreview, canonicalApply } from './lacc-cas.mjs';
 import { transactionPreview, transactionApply, transactionInspect, transactionRecover } from './lacc-transaction.mjs';
 import { dependencyGraphContract, createDependencyAdapterRegistry } from './lacc-graph-contract.mjs';
 import { normalizeMemoryFindings, FINDING_SCHEMA } from './lacc-findings.mjs';
+import { disclosureContract, DISCLOSURE_AGENT_RULES } from './lacc-disclosure.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const skill = path.resolve(here, '..');
@@ -59,7 +60,7 @@ function runtimeStatus() {
     platform: process.platform, node: process.version,
     git: probe('git', ['--version']), python: probe('python', ['--version']) ?? probe('python3', ['--version']),
     bash: probe('bash', ['--version']),
-    commands: { init: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true, 'dependency-impact': true, 'explain-findings': true },
+    commands: { init: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true, 'dependency-impact': true, 'explain-findings': true, 'disclosure-contract': true },
     strict_git_evidence: Boolean(probe('git', ['--version'])),
     python_maintenance: 'optional separate Python tool; not implemented in Node',
     mode: 'node',
@@ -82,8 +83,9 @@ function init(root, opts) {
     `- Prefer Node CLI: node ${path.join(here, 'lacc.mjs').replaceAll('\\','/')} <command> . (no Python/Bash required).\n` +
     `- At task start run session-check before trusting WARM facts; read HOT and search WARM by task; if review/incomplete, inspect sources and tests.\n` +
     `- Keep confirmed facts with real sources and checked commits; run health before handoff.\n` +
-    `- If Git or Node is unavailable, use native agent tools and disclose unverified evidence.\n${END}`;
-  const bridge = `${START}\nRead marked LACC instructions in project-root AGENTS.md once; use the same memory/ facts.\n${END}`;
+    `- If Git or Node is unavailable, use native agent tools and disclose unverified evidence.\n` +
+    DISCLOSURE_AGENT_RULES.map(rule => '- ' + rule + '\n').join('') + `${END}`;
+  const bridge = `${START}\nRead marked LACC instructions in project-root AGENTS.md once; use the same memory/ facts.\nFollow AGENTS.md CR-3 material-finding disclosure rules; these are guidance only, not delivery receipts.\n${END}`;
   selected.set('AGENTS.md', common);
   for (const [name, dest] of Object.entries(native)) {
     // In auto mode a symlinked native file remains untouched; explicit targets
@@ -97,7 +99,7 @@ function init(root, opts) {
     }
     if (explicit || agent === 'auto') {
       localPath(root, dest);
-      selected.set(dest, name === 'claude' ? `${START}\n@AGENTS.md\n${END}` : bridge);
+      selected.set(dest, name === 'claude' ? `${START}\n@AGENTS.md\nFollow the shared CR-3 disclosure rules; LACC cannot confirm user-visible delivery.\n${END}` : bridge);
     }
   }
   const templatePaths = ['MEMORY_INDEX.md','ACTIVE_STATE.md','topics/architecture.md','topics/db-and-api.md','topics/gotchas.md','topics/decisions.md','topics/lessons.md'];
@@ -279,7 +281,7 @@ function sync(root, opts) {
   const review = !valid || committed.length || clean.length;
   return { text: output + (review ? 'REVIEW: inspect source changes\n' : 'NO SOURCE DRIFT; not semantic proof\n'), code: strict && review ? 1 : 0 };
 }
-function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover, dependency-contract, dependency-impact\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --explain (normalized, agent-only); --deps (experimental); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --reviewed\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
+function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover, dependency-contract, dependency-impact, disclosure-contract\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --explain (normalized, agent-only); --deps (experimental); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --reviewed\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
 export function main(argv = process.argv.slice(2)) {
   const [command = 'help', ...args] = argv;
   if (['help', '--help', '-h'].includes(command)) { process.stdout.write(help()); return 0; }
@@ -287,6 +289,7 @@ export function main(argv = process.argv.slice(2)) {
   const root = path.resolve(opts._[0] || '.');
   if (opts._.length > 1) throw Error('only one project_dir is allowed');
   if (command === 'capabilities') { process.stdout.write(JSON.stringify(runtimeStatus(), null, 2) + '\n'); return 0; }
+  if (command === 'disclosure-contract') { process.stdout.write(JSON.stringify(disclosureContract(), null, 2) + '\n'); return 0; }
   if (command === 'dependency-contract') {
     process.stdout.write(JSON.stringify({
       status: 'experimental-cross-language-static-reverse',

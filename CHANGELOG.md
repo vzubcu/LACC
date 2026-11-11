@@ -1,5 +1,23 @@
 # Changes
 
+## Develop (validation pending) — CR-3 agent/host disclosure contract
+
+- Add read-only `disclosure-contract` introspection and bounded
+  `disclosure_protocol` guidance on opt-in `--explain --json` findings.
+- Distinguish CLI detection, agent instruction and actual user delivery:
+  status remains `agent-guidance-only`, user delivery `not-observed`,
+  never a claim the user saw an alert.
+- `lacc init` installs task-relevance-aware, privacy-preserving
+  disclosure instructions in marked project AGENTS.md and references
+  them from Claude/Gemini/Roo native instruction bridges.
+- Preserve existing project instructions, repeatable init semantics,
+  normal search output and finding IDs. No automatic memory edits.
+- Author regression cases for contract, native bridges, no false
+  delivery, idempotence and optional search. **Tests unexecuted**.
+- No extra packages, external messaging, .github edits,
+  GitHub Actions or main merge.
+
+
 ## Develop (validation pending) — CR-2 provenance-backed evidence chains
 
 - Add a pure `lacc-evidence-chain.mjs` for direct Git drift and

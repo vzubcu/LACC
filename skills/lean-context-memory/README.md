@@ -63,6 +63,27 @@ node <skill_dir>/scripts/lacc.mjs session-check . --json
 Do not treat `status: review` or `incomplete` as a semantic failure
 of every claim; inspect evidence manually. No memory is auto-corrected.
 
+## Develop preview: agent and host disclosure guidance (CR-3)
+
+The opt-in `--explain --json` report includes a bounded
+`disclosure_protocol`: the agent should assess task relevance and
+communicate material memory uncertainty before relying on affected
+facts. `disclosure-contract` lists Codex, Claude, Gemini and Roo
+instruction bridges, and explicitly says delivery is unobserved.
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs disclosure-contract
+node <skill_dir>/scripts/lacc.mjs init . --agent all
+node <skill_dir>/scripts/lacc.mjs search . --query "auth" --explain --json
+```
+
+`init` updates marked AGENTS.md instructions and native bridges,
+preserving unrelated project instructions. Already initialized
+projects must rerun it to receive these rules. No message is
+sent by the CLI and host display cannot be verified. See the
+[CR-3 disclosure contract](references/disclosure.md).
+Behavioral tests are authored but not executed.
+
 ## Develop preview: evidence-backed explanations (CR-2)
 
 Opt in to detailed Git/static dependency provenance via

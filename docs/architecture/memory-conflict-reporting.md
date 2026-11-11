@@ -1,6 +1,6 @@
 # Memory conflict reporting and user-visible transparency
 
-**Status:** CR-1/CR-2 findings and evidence-chain traces authored on develop (validation pending); CR-3–CR-5 remain design. **Target branch:** develop.
+**Status:** CR-1/CR-2 evidence and CR-3 agent/host disclosure guidance authored on develop (validation pending); CR-4–CR-5 remain design. **Target branch:** develop.
 **Reviewed:** 2026-11-11.
 **Roadmap milestone:** P1 — Explainable memory trust & conflict reporting.
 **Community feedback:** When remembered information and current code disagree,
@@ -39,6 +39,24 @@ unavailable evidence becomes `partial` instead of being inferred.
 See the [actual evidence chain contract](../../skills/lean-context-memory/references/evidence-chains.md).
 No additional Git verification or user-delivery guarantee is
 introduced. The sample design JSON below predates this live trace.
+
+## CR-3 implementation boundary
+
+The read-only `disclosure-contract` CLI command describes Codex,
+Claude, Gemini and Roo instruction bridges with no claimed delivery
+confirmation. Explicit `--explain --json` output includes bounded
+`disclosure_protocol` guidance, **not** a host event. `lacc init`
+generates task-relevance-aware rules in marked AGENTS.md blocks
+and refers to them from native instruction files.
+
+This is instruction only: no UI callbacks, delivery receipts,
+acknowledgment logs or guarantee a host loaded the rules.
+Previously installed projects must rerun `init` to refresh the
+marked block. No user-facing message is sent automatically.
+
+See [CR-3 disclosure contract](../../skills/lean-context-memory/references/disclosure.md).
+CR-4 may reduce repeated prompts; actual host integrations require
+separate evidence before claiming delivery.
 
 ## Decision policy (source priority is not a semantic oracle)
 
@@ -184,9 +202,9 @@ This conflict-reporting layer owns its presentation and trust vocabulary.
 Both should share one provenance evaluator. Do not build CR by making
 the language-specific adapters responsible for UI notifications.
 
-**Current milestone:** CR-1/CR-2 code and regression fixtures are
-in develop, **not yet tested**. CR-3 host/user disclosure, CR-4
-cross-session deduplication and CR-5 acceptance remain separate tasks. Keep stable main unchanged until the
+**Current milestone:** CR-1/CR-2/CR-3 code and regression fixtures
+are in develop, **not tested**. CR-4 deduplication and CR-5
+cross-host acceptance remain separate tasks. Keep stable main unchanged until the
 complete develop gate passes.
 
 **Explicitly unimplemented:** semantic conflict proof, universal

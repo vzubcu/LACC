@@ -50,6 +50,25 @@ node --test tests/test_node_runtime.mjs
 
 Node tests create isolated temporary Git repositories and do not require Bash or Python. Windows and Linux parity should be validated on a real Windows workstation and at least one Linux runtime. No GitHub Actions workflows or runners are added. See also the existing Python suite for regression parity. Results from helper tests cannot establish token savings.
 
+## Develop preview: CR-3 agent/host disclosure contract
+
+The local CLI can describe the **instruction-only** host protocol:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs disclosure-contract
+node <skill_dir>/scripts/lacc.mjs init . --agent all
+node <skill_dir>/scripts/lacc.mjs doctor . --json --explain
+```
+
+`disclosure-contract` reports Codex/Claude/Gemini/Roo instruction
+bridges, never observed user delivery. `init` updates marked LACC
+instructions in AGENTS.md and referenced native files; previously
+installed projects must rerun it to receive CR-3 guidance. Agents
+should tell users about **material, task-relevant** memory uncertainty
+before relying on the affected fact, without claiming notification
+unless host evidence exists. This is not a messaging API.
+See [host disclosure rules](disclosure.md). Tests are unexecuted.
+
 ## Develop preview: session-start pre-recall gate
 
 The Node CLI supports `session-check` when installed from the `develop`
