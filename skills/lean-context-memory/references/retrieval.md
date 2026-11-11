@@ -114,3 +114,40 @@ remains a manual inbound-reference exploration tool, not this validator.
 Do not enable as a default policy until both runtime validation and
 false-negative/false-positive fixtures are reviewed. No automatic
 revalidation, fact changes or file modifications occur.
+
+## Develop preview — RD-2 change-driven reverse impact (NOT validated)
+
+The Node CLI implements a bounded **reverse walk** using the RD-1 common
+graph contract. Each memory fact's cited file is evaluated at its own
+verified Git commit: historical and current JS/TS static relative imports
+form a union of dependent -> dependency edges. The existing LACC Git
+source verifier identifies changes in the revision/index/worktree
+(including staged-only and `assume-unchanged`). Inverting the scoped
+graph traces the changed file back to any cited source and fact.
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs dependency-impact . --json
+node <skill_dir>/scripts/lacc.mjs search . --query "auth policy" --deps --include-review --json
+node <skill_dir>/scripts/lacc.mjs session-check . --deps --json
+```
+
+Output includes `dependency-changed` with an ordered `chain`, e.g.
+`["src/permissions.ts","src/auth.ts"]`, or
+`dependency-coverage-incomplete` for unsupported language, aliases,
+dynamic imports, unavailable sources or exhausted limits. The impact
+command scans **only the bounded dependency closure of memory-cited
+sources**, not every file in the repository. Unrelated files are not
+automatically indexed. No filesystem watcher or background work occurs.
+
+Default retrieval **without** `--deps` is unchanged. When explicitly
+enabled, flagged facts are excluded by default; `--include-review`
+shows why. An empty/clear result means only that nothing was affected
+within the supported, scanned scope, not that every runtime dependency
+or semantic behavior is validated.
+
+This prototype supports only static relative JS/TS imports, using a
+heuristic parser: React/TypeScript compiler aliases, dynamic resolution,
+external packages, reflection, hooks, runtime configuration and other
+languages require explicit review. Scan budgets bound facts, depth,
+edges, file bytes and historical Git lookups. Authored regression
+tests are not yet executed; integrate only on develop until validated.

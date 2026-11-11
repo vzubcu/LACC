@@ -2,7 +2,7 @@
 // This does not install a host hook; SKILL.md instructs agents to invoke it.
 import fs from 'node:fs';
 import { conflicts, emitLimited, git, gitText, inventory, LIMITS, localPath, utf8, verifySources } from './lacc-core.mjs';
-import { verifyDependencies } from './lacc-dependencies.mjs';
+import { analyzeDependencyImpact } from './lacc-impact.mjs';
 
 const HOT = [
   ['MEMORY_INDEX.md', LIMITS.indexLines, LIMITS.indexBytes],
@@ -76,7 +76,7 @@ export function sessionCheck(root, { json = false, maxBytes = 8192, deps = false
       add(issue.code, row.location + (issue.source ? ' ' + issue.source : ''));
   }
   if (deps) {
-    const extra = verifyDependencies(root, facts);
+    const extra = analyzeDependencyImpact(root, facts).byFact;
     for (const row of facts) {
       for (const issue of extra.get(row.location)?.issues ?? [])
         add(issue.code, row.location + ': ' + issue.source + ' -> ' + issue.dependency);
@@ -97,7 +97,7 @@ export function sessionCheck(root, { json = false, maxBytes = 8192, deps = false
     total_findings: findings.length,
     items: findings.slice(0, 30),
     output_truncated: findings.length > 30,
-    note: deps ? 'Experimental JS/TS dependency scan enabled. Unresolved graph remains review-required; no semantic guarantee.' : 'Only directly cited sources were verified; indirect imports not checked. Invoke at session start.',
+    note: deps ? 'Experimental revision-scoped JS/TS reverse impact enabled. Unresolved graph requires review; no semantic guarantee.' : 'Only directly cited sources were verified; indirect imports not checked. Invoke at session start.',
   };
   const output = emitLimited(report, maxBytes);
   if (json) return { text: output, code: findings.length ? 1 : 0 };

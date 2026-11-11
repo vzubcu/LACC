@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { budget, checkMemory, conflicts, defaults, emitLimited, git, gitText, inventory, isGit, LIMITS, localPath, relevance, utf8, verifySources, words } from './lacc-core.mjs';
 import { sessionCheck } from './lacc-session.mjs';
 import { migrationAudit, migrationBackup, migrationInspect } from './lacc-migrate.mjs';
-import { verifyDependencies } from './lacc-dependencies.mjs';
+import { analyzeDependencyImpact, registeredImpactAdapters, IMPACT_LIMITS } from './lacc-impact.mjs';
 import { handoffPublish, handoffList, handoffRead } from './lacc-handoff.mjs';
 import { canonicalPreview, canonicalApply } from './lacc-cas.mjs';
 import { transactionPreview, transactionApply, transactionInspect, transactionRecover } from './lacc-transaction.mjs';
@@ -58,7 +58,7 @@ function runtimeStatus() {
     platform: process.platform, node: process.version,
     git: probe('git', ['--version']), python: probe('python', ['--version']) ?? probe('python3', ['--version']),
     bash: probe('bash', ['--version']),
-    commands: { init: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true },
+    commands: { init: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true, 'dependency-impact': true },
     strict_git_evidence: Boolean(probe('git', ['--version'])),
     python_maintenance: 'optional separate Python tool; not implemented in Node',
     mode: 'node',
@@ -161,7 +161,7 @@ function searchMemory(root, opts) {
   const limited = matches.length > LIMITS.candidateCount;
   const candidates = matches.slice(0, LIMITS.candidateCount);
   const states = verifySources(root, candidates);
-  const dependencies = opts.deps ? verifyDependencies(root, candidates) : new Map();
+  const dependencies = opts.deps ? analyzeDependencyImpact(root, candidates).byFact : new Map();
   const selected = [];
   for (const row of candidates) {
     const problems = states.get(row.location) ?? [];
@@ -261,7 +261,7 @@ function sync(root, opts) {
   const review = !valid || committed.length || clean.length;
   return { text: output + (review ? 'REVIEW: inspect source changes\n' : 'NO SOURCE DRIFT; not semantic proof\n'), code: strict && review ? 1 : 0 };
 }
-function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover, dependency-contract\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --deps (experimental); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --reviewed\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
+function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover, dependency-contract, dependency-impact\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --deps (experimental); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --reviewed\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
 export function main(argv = process.argv.slice(2)) {
   const [command = 'help', ...args] = argv;
   if (['help', '--help', '-h'].includes(command)) { process.stdout.write(help()); return 0; }
@@ -271,12 +271,12 @@ export function main(argv = process.argv.slice(2)) {
   if (command === 'capabilities') { process.stdout.write(JSON.stringify(runtimeStatus(), null, 2) + '\n'); return 0; }
   if (command === 'dependency-contract') {
     process.stdout.write(JSON.stringify({
-      status: 'contract-only',
+      status: 'experimental-js-ts-reverse',
       ...dependencyGraphContract,
-      registeredAdapters: createDependencyAdapterRegistry().describe(),
-      reverseTraversalImplemented: false,
-      currentJsTsPrototypeSeparate: true,
-      note: 'RD-1 schema and in-memory indexes only; RD-2 will connect the JS/TS scanner and Git change tracking. No memory trust is assigned.',
+      registeredAdapters: registeredImpactAdapters(),
+      reverseTraversalImplemented: true,
+      currentJsTsPrototypeSeparate: false,
+      note: 'RD-2 reverse impact uses bounded JS/TS static-relative imports and the original Git evidence verifier. Other languages, aliases, dynamic resolution and unknown dependencies remain incomplete. Not semantic correctness.',
     }, null, 2) + '\n');
     return 0;
   }
@@ -284,6 +284,50 @@ export function main(argv = process.argv.slice(2)) {
   if (command === 'init') { process.stdout.write(JSON.stringify(init(root, opts), null, 2) + '\n'); return 0; }
   if (command === 'read') { process.stdout.write(readMemory(root, opts)); return 0; }
   if (command === 'search') { process.stdout.write(searchMemory(root, opts)); return 0; }
+  if (command === 'dependency-impact') {
+    const count = opts.limit == null ? 20 : Number(opts.limit);
+    if (!Number.isSafeInteger(count) || count < 1 || count > 20)
+      throw Error('--limit must be 1..20');
+    const inv = inventory(root, { bounded: true, maximumFacts: IMPACT_LIMITS.facts });
+    const analysis = analyzeDependencyImpact(root, inv.facts);
+    const affected = inv.facts.map(row => ({
+      fact_id: row.key ?? row.location, location: row.location,
+      sources: row.sources, verified: row.revision,
+      trust: row.state, ...(analysis.byFact.get(row.location) ?? {
+        issues: [{ code: 'dependency-coverage-incomplete', source: '', dependency: 'not-scanned' }],
+        complete: false,
+      }),
+    })).filter(x => x.issues.length || x.trust !== 'confirmed');
+    const incomplete = inv.incomplete || inv.invalid.length > 0 ||
+      inv.unsupported.length > 0 ||
+      analysis.statistics.truncated || analysis.statistics.reportedScopeIncomplete ||
+      affected.some(x => x.issues.some(i => i.code === 'dependency-coverage-incomplete'));
+    const report = {
+      status: incomplete ? 'incomplete' : affected.length ? 'review' : 'clear-within-scanned-scope',
+      results: affected.slice(0, count),
+      stats: {
+        ...analysis.statistics, invalid_facts: inv.invalid.length,
+        unsupported_notes: inv.unsupported.length, inventory_incomplete: inv.incomplete,
+        matched_review_facts: affected.length, returned: Math.min(affected.length, count),
+        output_truncated: affected.length > count,
+      },
+      changed_paths: analysis.changedPaths.slice(0, 12),
+      note: 'Read-only, opted-in JS/TS reverse impact scoped to source-backed facts. Incomplete coverage requires review; no semantic validation or automatic memory edit.',
+    };
+    const text = emitLimited(report, cap(root, opts));
+    if (opts.json) process.stdout.write(text);
+    else {
+      const parsed = JSON.parse(text);
+      process.stdout.write('DEPENDENCY IMPACT: ' + parsed.status + '; review=' +
+        parsed.stats.matched_review_facts + '; scanned=' +
+        parsed.stats.analyzedFacts + '\n' +
+        parsed.results.map(x => '- ' + x.location + ': ' +
+          x.issues.map(i => i.code + ' ' + (i.chain?.join(' -> ') ?? i.dependency)).join('; ')
+        ).join('\n') + '\n');
+    }
+    return report.status === 'clear-within-scanned-scope' ? 0 : 1;
+  }
+
   if (command === 'health') { const r = health(root, opts); process.stdout.write(r.text); return r.code; }
   if (command === 'doctor') { const r = doctor(root, opts); process.stdout.write(r.text); return r.code; }
   if (['migration-plan', 'migration-apply', 'migration-restore-preview', 'migration-restore-apply'].includes(command)) {

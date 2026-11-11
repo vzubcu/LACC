@@ -20,7 +20,7 @@ historical implementation plans are not a current feature backlog.
 implementations that still need acceptance/regression testing.
 Feature PRs target develop and are not advertised as released.
 See [development and promotion process](docs/DEVELOPMENT_WORKFLOW.md).
-[RD-1 graph contract](docs/architecture/dependency-graph-contract.md) describes the language-neutral dependency edge and adapter interfaces, authored on develop with tests pending. The existing `--deps` JS/TS scanner remains experimental; RD-2 will connect it to the new graph.
+[RD-1 graph contract](docs/architecture/dependency-graph-contract.md) defines language-neutral dependency edges/adapters; [RD-2 reverse impact](docs/architecture/reverse-dependency-memory.md) adds an **opt-in**, unvalidated JS/TS static-import inverse traversal on develop (`dependency-impact`, `search --deps`, `session-check --deps`). Non-JS languages and unresolved imports remain review-required, never silently verified.
 [Reverse dependency engine design](docs/architecture/reverse-dependency-memory.md) explains the proposed cross-language adapter model and change-driven memory invalidation (design only, not shipped).
 [Memory conflict reporting design](docs/architecture/memory-conflict-reporting.md) specifies how agents should explain source/memory discrepancies, with no claim of universal automatic notifications.
 
