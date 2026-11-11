@@ -41,7 +41,8 @@ function setup(t) {
   const initialized = execute(process.execPath, [cli, 'init', dir, '--agent', 'codex'], dir);
   assert.equal(initialized.status, 0, initialized.stderr);
   fs.writeFileSync(path.join(dir, 'memory/topics/architecture.md'),
-    '# Architecture\n- Auth enabled | source: §src/auth.ts§ | verified: §' + head + '§\n'.replaceAll('§', String.fromCharCode(96)));
+    ('# Architecture\n- Auth enabled | source: §src/auth.ts§ | verified: §' + head + '§\n')
+      .replaceAll('§', String.fromCharCode(96)));
   return dir;
 }
 test('session-check is read-only and flags UNSYNCED checkpoint', t => {
