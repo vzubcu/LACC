@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { parseNodeTestSummary } from './consolidated_reporter.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const flags = process.argv.slice(2);
@@ -61,14 +62,6 @@ function pythonCandidate() {
   }
   return null;
 }
-function tapSummary(output) {
-  const get = label => {
-    const m = output.match(new RegExp('^# ' + label + ' (\\d+)\\s*$', 'm'));
-    return m ? Number(m[1]) : null;
-  };
-  return { tests: get('tests'), passed: get('pass'),
-    failed: get('fail'), skipped: get('skipped') ?? get('skip') };
-}
 function pythonUnitSummary(output) {
   const count = output.match(/Ran (\d+) tests? in [\d.]+s/);
   const skipped = output.match(/skipped=(\d+)/);
@@ -119,21 +112,27 @@ function run() {
     const started = Date.now();
     const res = exec(bin, args, timeout);
     const combined = res.stdout + '\n' + res.stderr;
-    const tap = label.endsWith('.mjs') ? tapSummary(combined) : null;
+    const tap = label.endsWith('.mjs') ? parseNodeTestSummary(combined) : null;
     const pyUnit = label === 'python-unittest' ? pythonUnitSummary(combined) : null;
     const status = res.error || res.code !== 0 ? 'FAIL'
-      : tap && (tap.tests === null || tap.failed !== 0 || tap.skipped !== 0) ? 'INCOMPLETE'
+      : tap && (!tap.complete || tap.failed !== 0 || tap.skipped !== 0 || tap.todo !== 0) ? 'INCOMPLETE'
       : pyUnit && (pyUnit.tests === null || pyUnit.tests < 1 || pyUnit.skipped !== 0)
         ? 'INCOMPLETE' : 'PASS';
+    const reason = res.error ?? (res.code !== 0 ? 'nonzero-exit' :
+      tap?.incomplete_reason ?? (pyUnit?.skipped ? 'python-unittest-skipped' :
+        status === 'INCOMPLETE' ? 'incomplete-python-summary' : null));
     fs.writeFileSync(path.join(output, label.replace(/[^a-z0-9_.-]/gi, '_') + '.log'),
       '$ ' + [bin, ...args].join(' ') + '\n' + res.stdout + '\n' + res.stderr, { mode: 0o600 });
     baseline.suite_results.push({
       suite: label, status, exit_code: res.code, signal: res.signal,
-      error: res.error, duration_ms: Date.now() - started, ...tap, ...pyUnit,
+      error: res.error, status_reason: reason, duration_ms: Date.now() - started,
+      ...tap, ...pyUnit,
     });
-    process.stdout.write(label + ': ' + status + ' (exit=' + res.code + ')\n');
+    process.stdout.write(label + ': ' + status + ' (exit=' + res.code +
+      (reason ? ', reason=' + reason : '') + ')\n');
   }
-  for (const file of suites) executeSuite(file, process.execPath, ['--test', 'tests/' + file]);
+  for (const file of suites) executeSuite(file, process.execPath,
+    ['--test', '--test-reporter=tap', 'tests/' + file]);
   if (flags.includes('--node-only')) baseline.suite_results.push({
     suite: 'test_node_python_parity.mjs', status: 'UNVERIFIED',
     reason: 'explicit node-only run',
