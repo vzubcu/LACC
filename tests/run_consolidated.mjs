@@ -100,7 +100,8 @@ function run() {
     release_eligible: false,
   };
   const suites = fs.readdirSync(path.join(root, 'tests'))
-    .filter(name => /^test_[a-z0-9_-]+\.mjs$/i.test(name))
+    .filter(name => /^test_[a-z0-9_-]+\.mjs$/i.test(name) &&
+      !(flags.includes('--node-only') && name === 'test_node_python_parity.mjs'))
     .sort((a, b) => a.localeCompare(b, 'en'));
   if (!suites.length) {
     console.error('No Node test suites found. Aborting without a PASS claim.');
@@ -123,6 +124,10 @@ function run() {
     process.stdout.write(label + ': ' + status + ' (exit=' + res.code + ')\n');
   }
   for (const file of suites) executeSuite(file, process.execPath, ['--test', 'tests/' + file]);
+  if (flags.includes('--node-only')) baseline.suite_results.push({
+    suite: 'test_node_python_parity.mjs', status: 'UNVERIFIED',
+    reason: 'explicit node-only run',
+  });
   if (py) executeSuite('python-unittest', py.bin,
     [...py.prefix, '-m', 'unittest', 'discover', '-s', 'tests', '-v']);
   else baseline.suite_results.push({
