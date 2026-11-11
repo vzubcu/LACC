@@ -17,6 +17,7 @@ import { dependencyGraphContract, createDependencyAdapterRegistry } from './lacc
 import { normalizeMemoryFindings, FINDING_SCHEMA } from './lacc-findings.mjs';
 import { disclosureContract, DISCLOSURE_AGENT_RULES } from './lacc-disclosure.mjs';
 import { buildDisclosureSummary, markDisclosureSeen } from './lacc-disclosure-ux.mjs';
+import { buildAnswerDisclosure, auditSuppliedAnswer } from './lacc-answer-disclosure.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const skill = path.resolve(here, '..');
@@ -40,7 +41,7 @@ function options(argv) {
     if (arg.startsWith('--')) {
       const key = arg.slice(2);
       if (['json', 'include-review', 'strict', 'stamp', 'apply', 'deps', 'reviewed', 'explain', 'detail', 'semantic', 'cache'].includes(key)) opts[key] = true;
-      else if (['query', 'agent', 'limit', 'max-bytes', 'topic', 'expect', 'snapshot', 'task', 'actor', 'message', 'expect-head', 'id', 'file', 'content-file', 'plan'].includes(key)) {
+      else if (['query', 'agent', 'limit', 'max-bytes', 'topic', 'expect', 'snapshot', 'task', 'actor', 'message', 'expect-head', 'id', 'file', 'content-file', 'plan', 'claim', 'response-file'].includes(key)) {
         if (!argv[i + 1] || argv[i + 1].startsWith('--')) throw Error('missing value for ' + arg);
         if (key === 'topic') (opts.topic ??= []).push(argv[++i]);
         else opts[key] = argv[++i];
@@ -61,7 +62,7 @@ function runtimeStatus() {
     platform: process.platform, node: process.version,
     git: probe('git', ['--version']), python: probe('python', ['--version']) ?? probe('python3', ['--version']),
     bash: probe('bash', ['--version']),
-    commands: { init: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true, 'dependency-impact': true, 'explain-findings': true, 'disclosure-contract': true, 'disclosure-summary': true, 'disclosure-mark-seen': true, 'semantic-hints': true, 'parse-cache': true },
+    commands: { init: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true, 'dependency-impact': true, 'explain-findings': true, 'disclosure-contract': true, 'disclosure-summary': true, 'disclosure-mark-seen': true, 'answer-disclosure': true, 'semantic-hints': true, 'parse-cache': true },
     strict_git_evidence: Boolean(probe('git', ['--version'])),
     python_maintenance: 'optional separate Python tool; not implemented in Node',
     mode: 'node',
@@ -282,7 +283,7 @@ function sync(root, opts) {
   const review = !valid || committed.length || clean.length;
   return { text: output + (review ? 'REVIEW: inspect source changes\n' : 'NO SOURCE DRIFT; not semantic proof\n'), code: strict && review ? 1 : 0 };
 }
-function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover, dependency-contract, dependency-impact, disclosure-contract, disclosure-summary, disclosure-mark-seen\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --explain (normalized, agent-only); --detail (disclosure summary); --deps (experimental); --semantic (literal JS/TS alias hints); --cache (private parse-token writes); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --task ID; --expect-head SHA; --reviewed\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
+function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover, dependency-contract, dependency-impact, disclosure-contract, disclosure-summary, disclosure-mark-seen, answer-disclosure\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --explain (normalized, agent-only); --detail (disclosure summary); --deps (experimental); --semantic (literal JS/TS alias hints); --cache (private parse-token writes); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --task ID; --expect-head SHA; --reviewed; --claim TEXT; --response-file PATH (answer-disclosure only)\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
 export function main(argv = process.argv.slice(2)) {
   const [command = 'help', ...args] = argv;
   if (['help', '--help', '-h'].includes(command)) { process.stdout.write(help()); return 0; }
@@ -291,7 +292,7 @@ export function main(argv = process.argv.slice(2)) {
   if (opts._.length > 1) throw Error('only one project_dir is allowed');
   if ((opts.semantic || opts.cache) &&
       !['search','session-check','dependency-impact',
-        'disclosure-summary','disclosure-mark-seen'].includes(command))
+        'disclosure-summary','disclosure-mark-seen','answer-disclosure'].includes(command))
     throw Error('--semantic and --cache require a dependency analysis command');
   if ((opts.semantic || opts.cache) && command!=='dependency-impact' && !opts.deps)
     throw Error('--semantic and --cache require explicit --deps');
@@ -352,6 +353,30 @@ export function main(argv = process.argv.slice(2)) {
     }
     return parsed.status === 'healthy' && !parsed.scan_incomplete &&
       !parsed.diagnostics_truncated && !parsed.output_truncated ? 0 : 1;
+  }
+  if (command === 'answer-disclosure') {
+    if (!opts.query) throw Error('answer-disclosure requires --query');
+    if (opts['include-review']) throw Error('answer-disclosure never returns raw review facts');
+    const maxBytes = cap(root, opts);
+    // Reuse the EXACT existing trust-filtered search/Git verdict. A
+    // bounded diagnostic lost to search byte caps remains incomplete.
+    const searched = JSON.parse(searchMemory(root, {
+      ...opts, json: true, explain: true, limit: 1,
+    }));
+    const limit = opts.limit == null ? 4 : Number(opts.limit);
+    const result = buildAnswerDisclosure(searched, {
+      claim: opts.claim ?? '', limit,
+    });
+    if (opts['response-file']) {
+      const answerPath = localPath(root, opts['response-file']);
+      const stat = fs.statSync(answerPath);
+      if (!stat.isFile() || stat.size > 65536)
+        throw Error('response-file must be a regular file of at most 65536 bytes');
+      result.supplied_response_audit = auditSuppliedAnswer(
+        result, readUtf8(answerPath));
+    }
+    process.stdout.write(emitLimited(result, maxBytes));
+    return result.supplied_response_audit?.status === 'canonical-warning-missing' ? 1 : 0;
   }
   if (command === 'read') { process.stdout.write(readMemory(root, opts)); return 0; }
   if (command === 'search') { process.stdout.write(searchMemory(root, opts)); return 0; }

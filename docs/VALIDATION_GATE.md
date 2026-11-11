@@ -44,6 +44,7 @@ node --test tests/test_memory_evidence_chains.mjs
 node --test tests/test_agent_disclosure_protocol.mjs
 node --test tests/test_disclosure_ux.mjs
 node --test tests/test_rd4_semantic_cache_portability.mjs
+node --test tests/test_answer_level_disclosure.mjs
 ```
 
 Tests expected after implementation and review: Windows isolated Git PATH,
@@ -164,11 +165,11 @@ are a separate quality goal and cannot be fabricated by local helper tests.
   notification, as part of the consolidated develop validation.
 - Tests authored; **do not mark PASS before execution**.
 
-## CR-3B answer-level disclosure gate — release-blocking (PLANNED)
+## CR-3B answer-level disclosure gate — release-blocking (CODE AUTHORED, UNTESTED)
 
 **Community report:** an excluded stale fact must not silently disappear
-when the answer materially touches that fact. This gate is **not**
-implemented, and no answer-level agent test has been executed.
+when the answer materially touches that fact. The bounded CLI/agent-rule gate is
+**authored**, but its tests and real answer-level agent checks have **not** been executed.
 
 - In controlled task fixtures, retrieve relevant memory with the
   standard trust filter and `--explain` evidence. Where a relevant
@@ -197,9 +198,13 @@ implemented, and no answer-level agent test has been executed.
   on **native Windows, Linux and macOS**. An untested host/OS
   combination is **UNVERIFIED**, never implicitly PASS.
 
-**Implementation status:** planned; no runtime gate, host hook or
-universal answer interceptor is currently implemented. This
-criterion must be developed, run and evaluated before
+**Implementation status:** `answer-disclosure` advisory CLI, candidate
+warning and optional exact-text local draft audit authored on develop;
+`tests/test_answer_level_disclosure.mjs` authored but not run. No
+host event hook, actual response observation or universal answer interceptor.
+Test actual agent answers before promoting develop; do not count
+supplied-file audits as generated-host-answer evidence. This
+criterion must be executed and evaluated before
 `develop` can be promoted to `main`.
 [Detailed specification](architecture/answer-level-disclosure-gate.md).
 
