@@ -1,6 +1,6 @@
 # Memory conflict reporting and user-visible transparency
 
-**Status:** CR-1/CR-2 evidence and CR-3 agent/host disclosure guidance authored on develop (validation pending); CR-4–CR-5 remain design. **Target branch:** develop.
+**Status:** CR-1–CR-4 diagnostics, evidence, host guidance and grouped task-scoped UX authored on develop (validation pending); CR-5 remains acceptance design. **Target branch:** develop.
 **Reviewed:** 2026-11-11.
 **Roadmap milestone:** P1 — Explainable memory trust & conflict reporting.
 **Community feedback:** When remembered information and current code disagree,
@@ -57,6 +57,23 @@ marked block. No user-facing message is sent automatically.
 See [CR-3 disclosure contract](../../skills/lean-context-memory/references/disclosure.md).
 CR-4 may reduce repeated prompts; actual host integrations require
 separate evidence before claiming delivery.
+
+## CR-4 implementation boundary
+
+The opt-in, read-only `disclosure-summary --task ID` aggregates
+CR-1/2 findings from the bounded session check by changed/cited source
+with brief/detail and optional dependency modes. It preserves
+unresolved totals and incomplete/truncated status. The explicit write
+`disclosure-mark-seen --task ID --id FINDING --expect-head SHA` stores
+only task-, Git HEAD- and evidence-bound **agent-seen** bookmarks
+in a private ignored directory, with at most seven-day validity.
+No bookmark changes fact trust, suppresses warnings or establishes
+that the user saw a message. No user notification is sent.
+
+See [CR-4 disclosure UX](../../skills/lean-context-memory/references/disclosure-ux.md).
+It does not replace verified host-level delivery receipts, source
+revalidation, nor real token/cost measurement; the same Git fact
+evaluator remains authoritative for finding generation.
 
 ## Decision policy (source priority is not a semantic oracle)
 
@@ -202,9 +219,9 @@ This conflict-reporting layer owns its presentation and trust vocabulary.
 Both should share one provenance evaluator. Do not build CR by making
 the language-specific adapters responsible for UI notifications.
 
-**Current milestone:** CR-1/CR-2/CR-3 code and regression fixtures
-are in develop, **not tested**. CR-4 deduplication and CR-5
-cross-host acceptance remain separate tasks. Keep stable main unchanged until the
+**Current milestone:** CR-1–CR-4 code and regression fixtures are
+in develop, **not tested**. CR-5 cross-host/cross-platform acceptance
+and verified delivery integrations remain separate work. Keep stable main unchanged until the
 complete develop gate passes.
 
 **Explicitly unimplemented:** semantic conflict proof, universal

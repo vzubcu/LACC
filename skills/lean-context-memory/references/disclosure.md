@@ -128,8 +128,10 @@ Suggested *communication style* (example, not automatic output):
   receipts; a CLI report is not a delivery event.
 - No semantic conflict verdict, automatic repair, global dependency
   resolution, or source revalidation.
-- No persistent suppression store or across-session deduplication
-  (planned for CR-4).
+- No persistent **suppression** or user-delivery store. CR-4 now
+  offers optional task-scoped agent-seen metadata and grouped summaries,
+  never automatic suppression or claimed user acknowledgment. See
+  [CR-4 disclosure UX](disclosure-ux.md).
 - No executed cross-host acceptance evidence yet (CR-5).
 
 ## Local acceptance (deferred until develop release gate)

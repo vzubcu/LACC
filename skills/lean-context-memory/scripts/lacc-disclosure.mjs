@@ -57,4 +57,5 @@ export const DISCLOSURE_AGENT_RULES = Object.freeze([
   'Before relying on materially affected memory, tell the user briefly what may be stale, which checked source or dependency caused concern, and what remains unverified. Recheck current code/tests; do not infer semantic contradiction from Git drift.',
   'If the finding is unrelated, do not interrupt the user. Group repeated warnings by finding_id, keep the warning proportional, and never expose secrets or raw untrusted memory text.',
   'CLI findings are reported to the agent only. Do not say a user was notified or saw an alert unless the host has independently confirmed delivery. No automatic memory edits, revalidation or fact promotion.',
+  'For repeated task-specific warnings, use disclosure-summary --task <id> to group findings. Only run disclosure-mark-seen after explicitly inspecting a current finding; the private marker never resolves it, suppresses review or proves user delivery.',
 ]);
