@@ -44,7 +44,7 @@ function getRegistry() {
 }
 export function registeredImpactAdapters() { return getRegistry().describe(); }
 
-export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LIMITS.facts } = {}) {
+export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LIMITS.facts, explain = false } = {}) {
   if (!Array.isArray(inputFacts) || !Number.isSafeInteger(maxFacts) ||
       maxFacts < 1 || maxFacts > IMPACT_LIMITS.facts)
     throw Error('invalid impact fact limit');
@@ -219,10 +219,11 @@ export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LI
   // Now change the direction: changed file -> every dependent -> cited fact.
   // This also considers old-only import edges (deletions/renames).
   for (const change of changed) {
-    const queue = [{ source: change.path, chain: [change.path], adapters: [] }];
+    const queue = [{ source: change.path, chain: [change.path], adapters: [],
+      evidence_edges: [] }];
     const visited = new Set();
     while (queue.length) {
-      const { source, chain, adapters } = queue.shift();
+      const { source, chain, adapters, evidence_edges } = queue.shift();
       if (visited.has(source)) continue;
       visited.add(source);
       for (const fact of index.factsCiting({ source, revision: change.revision })) {
@@ -230,7 +231,8 @@ export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LI
           chain.length > 1 ? 'dependency-changed' : 'direct-source-changed',
           source, change.path, { chain, reason: change.reason,
             ...(adapters.length ? { adapter: adapters[adapters.length-1],
-              adapters } : {}) });
+              adapters } : {}),
+            ...(explain && evidence_edges.length ? { evidence_edges } : {}) });
       }
       if (chain.length > IMPACT_LIMITS.depth) continue;
       for (const edge of index.dependentsOf({
@@ -239,7 +241,13 @@ export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LI
         const parent = edge.from.id;
         if (!visited.has(parent))
           queue.push({ source: parent, chain: [...chain, parent],
-            adapters: [...adapters, edge.adapter] });
+            adapters: [...adapters, edge.adapter],
+            evidence_edges: explain ? [...evidence_edges, {
+              from: edge.from.id, to: edge.to.id,
+              kind: edge.kind, language: edge.language, adapter: edge.adapter,
+              adapter_version: edge.adapterVersion, confidence: edge.confidence,
+              revision: edge.revision, evidence_source: edge.evidence.source,
+            }] : [] });
       }
     }
   }

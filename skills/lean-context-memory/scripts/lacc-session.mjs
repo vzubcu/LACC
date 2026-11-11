@@ -79,7 +79,7 @@ export function sessionCheck(root, { json = false, maxBytes = 8192, deps = false
           location: row.location, revision: row.revision, sources: row.sources } } : null);
   }
   if (deps) {
-    const extra = analyzeDependencyImpact(root, facts).byFact;
+    const extra = analyzeDependencyImpact(root, facts, { explain }).byFact;
     for (const row of facts) {
       for (const issue of extra.get(row.location)?.issues ?? [])
         add(issue.code, row.location + ': ' + issue.source + ' -> ' + issue.dependency,

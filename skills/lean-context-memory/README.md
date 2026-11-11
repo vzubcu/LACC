@@ -63,6 +63,24 @@ node <skill_dir>/scripts/lacc.mjs session-check . --json
 Do not treat `status: review` or `incomplete` as a semantic failure
 of every claim; inspect evidence manually. No memory is auto-corrected.
 
+## Develop preview: evidence-backed explanations (CR-2)
+
+Opt in to detailed Git/static dependency provenance via
+`--deps --explain --json`. The additive `diagnostics[].evidence.trace`
+records the checked fact Git baseline, changed file and reason,
+dependency → dependent edges (adapter, version, relationship,
+language, confidence and revision), and cited-source → memory fact.
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs dependency-impact . --explain --json
+node <skill_dir>/scripts/lacc.mjs search . --query "auth policy" --deps --explain --json
+```
+
+Unsupported or inconsistent edges become `partial`, not guessed.
+This is static file-level evidence, not semantic contradiction proof or
+a user notification. See [evidence chain reference](references/evidence-chains.md).
+Tests are authored but not executed yet.
+
 ## Develop preview: explainable memory diagnostics (CR-1)
 
 The Node CLI can opt in to normalized, bounded evidence explanations
