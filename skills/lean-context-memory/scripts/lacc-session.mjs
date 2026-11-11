@@ -3,13 +3,14 @@
 import fs from 'node:fs';
 import { conflicts, emitLimited, git, gitText, inventory, LIMITS, localPath, utf8, verifySources } from './lacc-core.mjs';
 import { analyzeDependencyImpact } from './lacc-impact.mjs';
+import { normalizeMemoryFindings } from './lacc-findings.mjs';
 
 const HOT = [
   ['MEMORY_INDEX.md', LIMITS.indexLines, LIMITS.indexBytes],
   ['ACTIVE_STATE.md', LIMITS.stateLines, LIMITS.stateBytes],
 ];
 
-export function sessionCheck(root, { json = false, maxBytes = 8192, deps = false } = {}) {
+export function sessionCheck(root, { json = false, maxBytes = 8192, deps = false, explain = false } = {}) {
   const inv = inventory(root, { bounded: true, maximumFacts: 1000 });
   const VERIFY_CAP = 64;
   const facts = inv.facts.slice(0, VERIFY_CAP);
@@ -18,7 +19,7 @@ export function sessionCheck(root, { json = false, maxBytes = 8192, deps = false
     ...inv.invalid.map(x => ({ code: 'invalid-fact', location: x.location })),
     ...inv.unsupported.map(x => ({ code: 'invalid-fact-format', location: x.location })),
   ];
-  const add = (code, location) => findings.push({ code, location });
+  const add = (code, location, details = null) => findings.push(details ? { code, location, ...details } : { code, location });
 
   for (const [name, maxLines, maxSize] of HOT) {
     const relative = 'memory/' + name;
@@ -73,13 +74,18 @@ export function sessionCheck(root, { json = false, maxBytes = 8192, deps = false
   for (const row of facts) {
     if (row.state !== 'confirmed') add('pending-review', row.location);
     for (const issue of checked.get(row.location) ?? [])
-      add(issue.code, row.location + (issue.source ? ' ' + issue.source : ''));
+      add(issue.code, row.location + (issue.source ? ' ' + issue.source : ''),
+        explain ? { source: issue.source, fact: { key: row.key ?? null,
+          location: row.location, revision: row.revision, sources: row.sources } } : null);
   }
   if (deps) {
     const extra = analyzeDependencyImpact(root, facts).byFact;
     for (const row of facts) {
       for (const issue of extra.get(row.location)?.issues ?? [])
-        add(issue.code, row.location + ': ' + issue.source + ' -> ' + issue.dependency);
+        add(issue.code, row.location + ': ' + issue.source + ' -> ' + issue.dependency,
+          explain ? { source: issue.source, dependency: issue.dependency,
+            chain: issue.chain, fact: { key: row.key ?? null,
+              location: row.location, revision: row.revision, sources: row.sources } } : null);
     }
   }
   if (incomplete) add('scan-incomplete', 'Not every fact was verified');
@@ -98,6 +104,9 @@ export function sessionCheck(root, { json = false, maxBytes = 8192, deps = false
     items: findings.slice(0, 30),
     output_truncated: findings.length > 30,
     note: deps ? 'Experimental revision-scoped JS/TS reverse impact enabled. Unresolved graph requires review; no semantic guarantee.' : 'Only directly cited sources were verified; indirect imports not checked. Invoke at session start.',
+    ...(explain ? normalizeMemoryFindings(findings, {
+      facts: new Map(facts.map(row => [row.location, row])),
+    }) : {}),
   };
   const output = emitLimited(report, maxBytes);
   if (json) return { text: output, code: findings.length ? 1 : 0 };

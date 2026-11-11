@@ -33,11 +33,14 @@ branch, reapplied via merged PR #26.
 | PR #25 | Memory-code discrepancy explanations and CR-1..CR-5 reporting roadmap | **Design merged in develop** |
 | RD-1 | Versioned graph/adapter and source-to-fact index contract, portable Node implementation, tests authored | **Implementation on develop, validation pending; no graph scanning yet** |
 | RD-2 | Static JS/TS historical/current import edges connected to revision-scoped reverse index; opt-in change-to-fact impact output and existing retrieval/health commands | **Implementation on develop, validation pending; scoped, not a cross-language semantic index** |
+| CR-1 | Common bounded `--explain --json` findings for search, health, doctor, session-check and dependency-impact | **Implementation on develop, validation pending; outputs are agent-only, not user notifications** |
 
-**Implementation sequence:** RD-1 contract (authored) → RD-2 reverse impact (authored) → CR-1 consistent evidence reporting → RD-3 adapters
-(.NET/PHP/Python) → RD-4 optional semantic enrichment/cache → RD-5
-cross-language acceptance. CR-1 can proceed alongside RD-2, but must
-reuse the existing source Git evaluator.
+**Implementation sequence:** RD-1 contract (authored) → RD-2 JS/TS reverse
+impact (authored) → CR-1 common findings (authored) → **RD-3 cross-language
+adapters** (.NET/PHP/Python) → CR-2/CR-3 evidence explanations and
+host/user disclosure → RD-4 semantic enrichment/cache and CR-4 UX
+→ RD-5/CR-5 acceptance. Develop remains unvalidated by the consolidated
+release gate.
 
 **Validation boundary:** all newly written RD-1 tests and current develop
 acceptance tests remain to be executed in the future consolidated phase.
@@ -83,7 +86,7 @@ The roadmap tracks **slices of behavior**, not whole feature names. Labels:
 | Indirect dependencies | RD-1 graph contract plus RD-2 bounded JS/TS reverse traversal and optional `dependency-impact` / `search --deps` / `session-check --deps` authored in develop | Executed tests and broad reverse coverage; RD-3 non-JS adapters, RD-4 semantics/cache and RD-5 acceptance | **Opt-in RD-2 code integrated; validation pending** |
 | Multi-agent memory | Shared facts, develop handoffs, single-file canonical CAS and journaled multi-file operations | Non-cooperating writers, fault-injected recovery and semantic conflict resolution | **Cooperative code merged to develop; general concurrency not proven** |
 | Measurement | Context-pressure tools, usage importers and synthetic A/B method | Matched real-agent measurements of full token cost and task quality | **Instrumentation exists; savings unmeasured** |
-| Conflict transparency | Direct Git/source and keyed-conflict findings available in CLI | Unified finding/report schema, agent disclosure and verified per-host delivery (CR-1..CR-5) | **Partial diagnostics; reporting planned** |
+| Conflict transparency | Opt-in CR-1 `--explain --json` produces consistent bounded diagnostics, with source/revision context when available and no extra Git checks | CR-2 richer evidence, CR-3 user-facing disclosures, CR-4 persisted dedup/UX, CR-5 acceptance | **CR-1 implemented on develop; tests not executed; no automatic notification** |
 | Multi-skill platform | Installable catalog and lean-context-memory v3.2 skill | Independent CS-Cart/.NET/security/GDPR skills, integration suites and reviewed improvements | **Catalog implemented; domain skills planned** |
 
 **Evidence reviewed:** `skills/lean-context-memory/SKILL.md`, `scripts/lacc.mjs`,
@@ -174,7 +177,7 @@ promotes migrated unverified notes; healthy status is earned, never forced by de
 before trust; a missing runtime/Git or skipped scan never reports a verified pass;
 read-only commands preserve all project files.
 
-### P1 — Explainable memory trust, conflict reporting & user transparency (new; design only)
+### P1 — Explainable memory trust, conflict reporting & user transparency (CR-1 authored; remaining items planned)
 
 **Community feedback (Exori AI):** "When the memory says one thing and the
 current code says another, which wins, and does the agent tell you it noticed?"
@@ -190,10 +193,14 @@ Never silently rewrite memory, invent provenance or claim a false conflict.
   facts by default, \`health\` and \`doctor\` report evidence drift, and
   develop \`session-check\` surfaces review candidates. These commands
   do **not** guarantee user-visible notification across all agent hosts.
-- **CR-1 — unified findings:** one stable, bounded schema across \`search\`,
-  \`health\`, \`doctor\`, \`session-check\`: fact identity, kind/severity,
-  evidence path/commit, trust, scan coverage, redacted reason and action.
-  Extend the existing evaluator instead of duplicating Git logic.
+- **CR-1 — unified findings (implemented in develop, validation
+  pending):** optional `--explain --json` on `search`, `health`,
+  `doctor`, `session-check` and `dependency-impact` adds a stable,
+  bounded `diagnostics[]` schema with kind/severity, evidence path,
+  fact revision when available, trust, scoped coverage, a redacted
+  reason and review action. Uses existing Git/impact findings, not a
+  second source verification engine. Legacy output is unchanged
+  without `--explain`; findings do not auto-notify a user.
 - **CR-2 — source-to-fact evidence chains:** once RD-1/RD-2 exists,
   include \`changed dependency -> imported module -> cited fact\` with
   resolver provenance and explicit incomplete language coverage.
@@ -215,8 +222,10 @@ whether it actually showed the user a warning. No auto-promotion or
 auto-reverification. Universal platform popups are not promised.
 
 **Design:** [Memory conflict reporting and transparency](docs/architecture/memory-conflict-reporting.md).
-**Status:** CR-1..CR-5 planned only; existing diagnostics are partial,
-not a unified end-user notification implementation.
+**Status:** CR-1 code merged into develop with written, **unexecuted**
+regression tests; CR-2..CR-5 remain planned. The CLI reports to the
+agent only. No semantic contradiction proof or automatic user notification.
+**Contract:** [CLI normalized memory findings](skills/lean-context-memory/references/findings.md).
 
 ### P1 — Dependency-aware memory staleness (candidate v3.5)
 
@@ -390,12 +399,13 @@ create circular dependencies or unverifiable “self-improvement.”
 ## Working order and status rules
 
 **Recommended next delivery (2026-11-11):** RD-1 and RD-2
-source-backed JS/TS reverse-impact code are authored and integrated
-into develop, **not validated**. Next implement **CR-1 — unified
-explainable conflict findings** in an independent PR; then RD-3
-adapters for .NET, PHP/Composer and Python, followed by RD-4/5.
-Keep opt-in dependency checks and do not merge develop into main
-until the consolidated Windows/Linux/Python/agent-host acceptance gate.
+dependency work and CR-1 explainable diagnostics are integrated in
+develop, **not validated**. The next separate implementation is
+**RD-3 — portable C#/.NET, PHP/Composer and Python adapters** on the
+common graph contract, preserving honest unknown/dynamic coverage;
+then complete CR-2/CR-3 explanation and host disclosure tasks.
+No develop → main merge before consolidated Windows/Linux/Python
+and agent-host acceptance.
 
 Use the per-slice status definitions in the implementation audit above:
 **implemented**, **locally validated**, **pilot reported**, **partial**, **planned**,

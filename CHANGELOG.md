@@ -1,5 +1,27 @@
 # Changes
 
+## Develop (validation pending) — CR-1 unified memory findings
+
+- Add `lacc-findings.mjs`, a dependency-free, read-only diagnostic
+  normalization layer with deterministic deduplicated IDs, finite
+  output budgets, scoped evidence, cause/action mappings and basic
+  redaction. Unknown findings remain review-required.
+- Add opt-in `--explain --json` diagnostics to `search`, `health`,
+  `doctor`, `session-check` and `dependency-impact`; preserve
+  legacy/default JSON and trusted-recall filtering without the flag.
+  Results include withheld relevant matched facts as explanations,
+  not trusted search matches.
+- Reuse existing Git evidence and RD-2 impact results. When available,
+  provide source/revision/dependency-chain context; do not run another
+  Git validation or claim semantic contradiction.
+- Mark outputs `agent-output-only`; no host notification, memory edit,
+  semantic revalidation or auto-promotion.
+- Author regression cases for direct/indirect drift, checkpoint,
+  consistent health/doctor IDs, privacy, byte limits and read-only
+  behavior. **Tests deliberately not executed** in develop.
+- No new native packages, GitHub Actions/hosted runners or main merge.
+
+
 ## Develop (validation pending) — RD-2 JS/TS reverse dependency impact
 
 - Unify the JS/TS static import extractor with the RD-1 revision-scoped

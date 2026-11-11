@@ -22,7 +22,7 @@ Feature PRs target develop and are not advertised as released.
 See [development and promotion process](docs/DEVELOPMENT_WORKFLOW.md).
 [RD-1 graph contract](docs/architecture/dependency-graph-contract.md) defines language-neutral dependency edges/adapters; [RD-2 reverse impact](docs/architecture/reverse-dependency-memory.md) adds an **opt-in**, unvalidated JS/TS static-import inverse traversal on develop (`dependency-impact`, `search --deps`, `session-check --deps`). Non-JS languages and unresolved imports remain review-required, never silently verified.
 [Reverse dependency engine design](docs/architecture/reverse-dependency-memory.md) explains the proposed cross-language adapter model and change-driven memory invalidation (design only, not shipped).
-[Memory conflict reporting design](docs/architecture/memory-conflict-reporting.md) specifies how agents should explain source/memory discrepancies, with no claim of universal automatic notifications.
+[Memory conflict reporting design](docs/architecture/memory-conflict-reporting.md) now has a **CR-1 diagnostic schema implementation on develop**: use `--explain --json` with memory commands. It is not a semantic conflict detector or a guaranteed end-user notification; CR-2–CR-5 remain planned. See the [CLI findings contract](skills/lean-context-memory/references/findings.md).
 
 [Consolidated local validation gate](docs/VALIDATION_GATE.md) lists what must
 pass before any develop-to-main promotion; the full gate is **not complete**.

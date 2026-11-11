@@ -79,6 +79,7 @@ AST extraction, or benchmark imports; use existing helpers when available.
 - For ranked source-backed fact recall and decision/lesson conventions, read [retrieval](references/retrieval.md).
 - For **experimental RD-2 reverse impact**, use `dependency-impact . --json`, or `search . --query "task" --deps --include-review --json` when explicitly requested. The JS/TS-only static scan reports changed dependency -> cited source -> fact chains; incomplete import coverage requires review. Never assume other languages were analyzed.
 - For key-based conflict triage and advisory self-healing, read [memory doctor](references/self-healing.md).
+- For CR-1 read-only, normalized reasons when a memory claim is withheld, append `--explain --json` to `search`, `health`, `doctor` or `session-check` and consult [memory findings](references/findings.md). `--explain` does not mean the user saw a notification or that Git byte drift proved a semantic conflict.
 - For concurrent task handoffs, use [multi-agent](references/multi-agent.md); all handoff messages are unverified proposals, never auto-promoted into source-backed facts.
 - For reviewed concurrent canonical file updates, use `canonical-preview` and `canonical-apply` with an exact `--expect` digest and `--reviewed`; inspect current Git sources first. This is single-file CAS, not multi-file transactions.
 - For bounded search, signature extraction and private log handling, read [exploration](references/exploration.md).

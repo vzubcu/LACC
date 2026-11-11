@@ -14,6 +14,7 @@ import { handoffPublish, handoffList, handoffRead } from './lacc-handoff.mjs';
 import { canonicalPreview, canonicalApply } from './lacc-cas.mjs';
 import { transactionPreview, transactionApply, transactionInspect, transactionRecover } from './lacc-transaction.mjs';
 import { dependencyGraphContract, createDependencyAdapterRegistry } from './lacc-graph-contract.mjs';
+import { normalizeMemoryFindings, FINDING_SCHEMA } from './lacc-findings.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const skill = path.resolve(here, '..');
@@ -36,7 +37,7 @@ function options(argv) {
     const arg = argv[i];
     if (arg.startsWith('--')) {
       const key = arg.slice(2);
-      if (['json', 'include-review', 'strict', 'stamp', 'apply', 'deps', 'reviewed'].includes(key)) opts[key] = true;
+      if (['json', 'include-review', 'strict', 'stamp', 'apply', 'deps', 'reviewed', 'explain'].includes(key)) opts[key] = true;
       else if (['query', 'agent', 'limit', 'max-bytes', 'topic', 'expect', 'snapshot', 'task', 'actor', 'message', 'expect-head', 'id', 'file', 'content-file', 'plan'].includes(key)) {
         if (!argv[i + 1] || argv[i + 1].startsWith('--')) throw Error('missing value for ' + arg);
         if (key === 'topic') (opts.topic ??= []).push(argv[++i]);
@@ -58,7 +59,7 @@ function runtimeStatus() {
     platform: process.platform, node: process.version,
     git: probe('git', ['--version']), python: probe('python', ['--version']) ?? probe('python3', ['--version']),
     bash: probe('bash', ['--version']),
-    commands: { init: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true, 'dependency-impact': true },
+    commands: { init: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true, 'dependency-impact': true, 'explain-findings': true },
     strict_git_evidence: Boolean(probe('git', ['--version'])),
     python_maintenance: 'optional separate Python tool; not implemented in Node',
     mode: 'node',
@@ -163,11 +164,19 @@ function searchMemory(root, opts) {
   const states = verifySources(root, candidates);
   const dependencies = opts.deps ? analyzeDependencyImpact(root, candidates).byFact : new Map();
   const selected = [];
+  const diagnosticIssues = [];
   for (const row of candidates) {
     const problems = states.get(row.location) ?? [];
     const freshness = problems[0]?.code ?? 'source-unchanged';
     const dep = dependencies.get(row.location);
     const dependency_issues = dep?.issues ?? [];
+    if (opts.explain) {
+      for (const item of problems) diagnosticIssues.push({ ...item, location: row.location });
+      for (const item of dependency_issues) diagnosticIssues.push({ ...item, location: row.location });
+      if (row.potential_conflict) diagnosticIssues.push({ code: 'potential-conflict', location: row.location });
+      if (row.state !== 'confirmed') diagnosticIssues.push({ code: 'pending-review', location: row.location });
+      if (row.conflict_check_incomplete) diagnosticIssues.push({ code: 'scan-incomplete', location: row.location });
+    }
     const review_required = row.state !== 'confirmed' || freshness !== 'source-unchanged' || row.potential_conflict || row.conflict_check_incomplete || dependency_issues.length > 0;
     if (!review_required || opts['include-review'])
       selected.push({ ...row, freshness, review_required,
@@ -178,6 +187,9 @@ function searchMemory(root, opts) {
     query, status: (all.incomplete || limited ? 'incomplete' : 'complete'), results: selected.slice(0, limit),
     stats: { matched: matches.length, invalid_facts: all.invalid.length, skipped_untrusted: candidates.length - selected.length, scan_incomplete: all.incomplete, verification_limited: limited, returned: Math.min(selected.length, limit), output_truncated: selected.length > limit },
     note: opts.deps ? 'Experimental bounded JS/TS dependency scan, not semantic proof. Unresolved imports require review.' : 'Only explicitly cited Git sources are checked; indirect dependencies not verified by default.',
+    ...(opts.explain ? normalizeMemoryFindings([
+      ...diagnosticIssues, ...(all.incomplete || limited ? [{ code: 'scan-incomplete', location: 'memory/topics' }] : []),
+    ], { facts: new Map(candidates.map(row => [row.location, row])) }) : {}),
   };
   let output = emitLimited(result, cap(root, opts));
   const decoded = JSON.parse(output);
@@ -197,18 +209,24 @@ function searchMemory(root, opts) {
   return header + rows.join('') + footer;
 }
 function health(root, opts) {
-  const result = checkMemory(root);
-  const out = opts.json ? JSON.stringify(result) + '\n' : `${result.status.toUpperCase()}: ${result.findings_total} findings; ${result.topics} topics\n` + result.findings.slice(0, 18).map(x => `- ${x.code}: ${x.location}`).join('\n') + '\n';
+  const result = checkMemory(root, { sourceDetails: Boolean(opts.explain) });
+  const report = opts.explain
+    ? { ...result, ...normalizeMemoryFindings(result.findings) } : result;
+  const out = opts.json
+    ? (opts.explain ? emitLimited(report, cap(root, opts)) : JSON.stringify(report) + '\n')
+    : `${result.status.toUpperCase()}: ${result.findings_total} findings; ${result.topics} topics\n` +
+      result.findings.slice(0, 18).map(x => `- ${x.code}: ${x.location}`).join('\n') +
+      (opts.explain ? '[Use --json for normalized explanations; agent output only.]\n' : '\n');
   return { text: out, code: result.status === 'healthy' ? 0 : 1 };
 }
 function doctor(root, opts) {
-  const health = checkMemory(root), max = cap(root, opts);
+  const health = checkMemory(root, { sourceDetails: Boolean(opts.explain) }), max = cap(root, opts);
   const limit = opts.limit == null ? 20 : Number(opts.limit);
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50) throw Error('--limit must be 1..50');
   const issues = health.findings.map(x => ({ code: x.code, location: x.location, action: actions[x.code] ?? 'Investigate with memory-health.py and current code before correcting facts.' }));
   const counts = {};
   for (const issue of issues) counts[issue.code] = (counts[issue.code] ?? 0) + 1;
-  const data = { status: issues.length ? 'review' : 'healthy', total_issues: issues.length, counts, items: issues.slice(0, limit), output_truncated: issues.length > limit, note: 'Read-only. No fact corrected; semantic review required.' };
+  const data = { status: issues.length ? 'review' : 'healthy', total_issues: issues.length, counts, items: issues.slice(0, limit), output_truncated: issues.length > limit, note: 'Read-only. No fact corrected; semantic review required.', ...(opts.explain ? normalizeMemoryFindings(health.findings) : {}) };
   const output = emitLimited(data, max), parsed = JSON.parse(output);
   if (opts.json) return { text: output, code: issues.length ? 1 : 0 };
   const header = parsed.status.toUpperCase() + ': ' + parsed.total_issues + ' issues\n';
@@ -261,7 +279,7 @@ function sync(root, opts) {
   const review = !valid || committed.length || clean.length;
   return { text: output + (review ? 'REVIEW: inspect source changes\n' : 'NO SOURCE DRIFT; not semantic proof\n'), code: strict && review ? 1 : 0 };
 }
-function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover, dependency-contract, dependency-impact\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --deps (experimental); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --reviewed\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
+function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover, dependency-contract, dependency-impact\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --explain (normalized, agent-only); --deps (experimental); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --reviewed\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
 export function main(argv = process.argv.slice(2)) {
   const [command = 'help', ...args] = argv;
   if (['help', '--help', '-h'].includes(command)) { process.stdout.write(help()); return 0; }
@@ -313,6 +331,10 @@ export function main(argv = process.argv.slice(2)) {
       },
       changed_paths: analysis.changedPaths.slice(0, 12),
       note: 'Read-only, opted-in JS/TS reverse impact scoped to source-backed facts. Incomplete coverage requires review; no semantic validation or automatic memory edit.',
+      ...(opts.explain ? normalizeMemoryFindings([
+        ...affected.flatMap(row => row.issues.map(issue => ({ ...issue, location: row.location }))),
+        ...(incomplete ? [{ code: 'scan-incomplete', location: 'memory/topics' }] : []),
+      ], { facts: new Map(inv.facts.map(row => [row.location, row])) }) : {}),
     };
     const text = emitLimited(report, cap(root, opts));
     if (opts.json) process.stdout.write(text);
@@ -379,7 +401,7 @@ export function main(argv = process.argv.slice(2)) {
     process.stdout.write(r.text); return r.code;
   }
   if (command === 'session-check') {
-    const r = sessionCheck(root, { json: Boolean(opts.json), maxBytes: cap(root, opts), deps: Boolean(opts.deps) });
+    const r = sessionCheck(root, { json: Boolean(opts.json), maxBytes: cap(root, opts), deps: Boolean(opts.deps), explain: Boolean(opts.explain) });
     process.stdout.write(r.text);
     return r.code;
   }
