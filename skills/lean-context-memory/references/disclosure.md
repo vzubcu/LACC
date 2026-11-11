@@ -146,3 +146,29 @@ Use an isolated test repository; never assume host-specific UI
 delivery from local CLI tests. See
 [CR-1 findings](findings.md) and
 [CR-2 evidence chains](evidence-chains.md).
+
+## CR-3B — agent answer-level disclosure (develop only; tests unexecuted)
+
+Before a material answer about a prior project-memory claim, run:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs answer-disclosure . --query "login policy" --json
+```
+
+The CLI reuses trust-filtered search to emit bounded, safe, query-matched
+excluded-fact candidates and a suggested warning; optional `--deps` and
+`--claim` provide bounded extra relevance hints. Agents must decide actual
+materiality and include a relevant warning **in the final answer**, not
+just in a log, while checking current code/tests. No raw note content is
+required. An unrelated finding should not generate a distracting alert.
+
+Optional `--response-file` checks whether the exact canonical warning
+appears in an explicitly supplied local draft. That check is **not** proof
+of what a host generated or delivered. All CLI results retain
+`warning_in_agent_response: "not-observed"` and
+`host_delivery_observed: "not-observed"` until independent host evidence
+is collected. Missing/truncated Git evidence never certifies a clean scan.
+Rerun `init` after updating to refresh marked agent instructions.
+
+See the [CR-3B answer-level design and acceptance contract](
+../../../../docs/architecture/answer-level-disclosure-gate.md).
