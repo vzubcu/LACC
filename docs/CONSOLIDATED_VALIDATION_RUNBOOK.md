@@ -33,7 +33,7 @@ To inspect a failed suite in PowerShell, use the directory printed by
 the runner (replace with the actual path from your run):
 
 ```powershell
-$reportDir = "C:\\Users\\victor\\AppData\\Local\\Temp\\lacc-validation-EXAMPLE"
+$reportDir = Join-Path $env:TEMP "lacc-validation-EXAMPLE"
 Get-Content (Join-Path $reportDir "report.json") -Raw
 Get-Content (Join-Path $reportDir "test_dependency_graph_contract.mjs.log") -Tail 100
 ```
