@@ -113,10 +113,26 @@ For indirect findings, `verification_scope` identifies the adapter
 `experimental-php-static` or `experimental-python-static`) when
 available. It is not proof of semantic or complete project analysis.
 
-## What is explicitly not implemented (CR-2–CR-5)
+## CR-2 — provenance chain trace (develop only; not validated)
 
-- No full language-neutral dependency evidence chains, semantic LSP
-  proof or verified current behavior comparison (CR-2).
+With opt-in `--explain --json`, source-drift and indirect-dependency
+findings can include `diagnostics[].evidence.trace`. The bounded trace
+contains checked `baseline_commit`, `changed_file`,
+`change_reason`, validated `hops[]` (relation, adapter/version,
+language, confidence, Git revision), plus `fact_link`.
+If source/edge evidence is missing or inconsistent, the trace is
+`partial` with a limitation rather than an invented path.
+
+The formatter does not execute Git commands, examine source text or
+claim the user saw this output. `current_commit` remains null unless
+trusted upstream evidence actually exists. Finding IDs remain stable,
+and expanded per-hop metadata is collected only under `--explain`.
+See [CR-2 evidence chains](evidence-chains.md).
+
+## What is explicitly not implemented (CR-3–CR-5)
+
+- No arbitrary-symbol dependency proof, semantic LSP/compiler
+  comparison or independently validated runtime behavior (RD-4).
 - No guaranteed user-facing notifications, host hooks, popup, email
   or confirmation that a specific user saw a warning (CR-3).
 - No durable cross-session warning acknowledgment/deduplication store

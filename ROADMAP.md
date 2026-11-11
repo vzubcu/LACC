@@ -35,13 +35,14 @@ branch, reapplied via merged PR #26.
 | RD-2 | Static JS/TS historical/current import edges connected to revision-scoped reverse index; opt-in change-to-fact impact output and existing retrieval/health commands | **Implementation on develop, validation pending; scoped, not a cross-language semantic index** |
 | CR-1 | Common bounded `--explain --json` findings for search, health, doctor, session-check and dependency-impact | **Implementation on develop, validation pending; outputs are agent-only, not user notifications** |
 | RD-3 | Optional static C#/.NET project/manifest, PHP literal include/Composer, and Python local-import adapters connected to RD-1/RD-2 graph | **Code in develop, validation pending; symbol/runtime resolution incomplete** |
+| CR-2 | Git revision, adapter/version, relation type and source-to-fact links carried through per-hop evidence traces | **Code authored in develop; validation pending; semantic verification not claimed** |
 
-**Implementation sequence:** RD-1 contract (authored) → RD-2 JS/TS reverse
-impact (authored) → CR-1 common findings (authored) → RD-3 bounded
-cross-language static adapters (authored) → **CR-2 evidence-chain
-explanations / CR-3 host disclosure** → RD-4 richer semantic indexing
-and CR-4 UX → RD-5/CR-5 cross-platform acceptance.
-Develop code is not certified until the consolidated release gate.
+**Implementation sequence:** RD-1 graph (authored) → RD-2 JS/TS reverse
+impact (authored) → CR-1 findings (authored) → RD-3 .NET/PHP/Python static
+adapters (authored) → CR-2 evidence-chain explanations (authored) →
+**CR-3 host/user disclosure** → RD-4 optional semantic indexes,
+CR-4 UX/deduplication → RD-5/CR-5 cross-platform acceptance.
+Develop code is unvalidated until the consolidated release gate.
 
 **Validation boundary:** all newly written RD-1 tests and current develop
 acceptance tests remain to be executed in the future consolidated phase.
@@ -87,7 +88,7 @@ The roadmap tracks **slices of behavior**, not whole feature names. Labels:
 | Indirect dependencies | RD-1 common graph, RD-2 JS/TS reverse impact, RD-3 .NET/PHP/Python static adapters (opt-in) in develop | Execute acceptance tests, semantic/symbol resolution, unsupported-language policy, cache and benchmarking | **Develop code integrated; validation pending, incomplete coverage disclosed** |
 | Multi-agent memory | Shared facts, develop handoffs, single-file canonical CAS and journaled multi-file operations | Non-cooperating writers, fault-injected recovery and semantic conflict resolution | **Cooperative code merged to develop; general concurrency not proven** |
 | Measurement | Context-pressure tools, usage importers and synthetic A/B method | Matched real-agent measurements of full token cost and task quality | **Instrumentation exists; savings unmeasured** |
-| Conflict transparency | Opt-in CR-1 `--explain --json` produces consistent bounded diagnostics, with source/revision context when available and no extra Git checks | CR-2 richer evidence, CR-3 user-facing disclosures, CR-4 persisted dedup/UX, CR-5 acceptance | **CR-1 implemented on develop; tests not executed; no automatic notification** |
+| Conflict transparency | CR-1 normalized findings and CR-2 Git/static adapter evidence chains, opt-in `--explain --json` | CR-3 host disclosure, CR-4 persistent UX/deduplication and CR-5 acceptance | **CR-1/CR-2 authored in develop; validation pending, no user notification** |
 | Multi-skill platform | Installable catalog and lean-context-memory v3.2 skill | Independent CS-Cart/.NET/security/GDPR skills, integration suites and reviewed improvements | **Catalog implemented; domain skills planned** |
 
 **Evidence reviewed:** `skills/lean-context-memory/SKILL.md`, `scripts/lacc.mjs`,
@@ -202,9 +203,14 @@ Never silently rewrite memory, invent provenance or claim a false conflict.
   reason and review action. Uses existing Git/impact findings, not a
   second source verification engine. Legacy output is unchanged
   without `--explain`; findings do not auto-notify a user.
-- **CR-2 — source-to-fact evidence chains:** once RD-1/RD-2 exists,
-  include \`changed dependency -> imported module -> cited fact\` with
-  resolver provenance and explicit incomplete language coverage.
+- **CR-2 — source-to-fact evidence chains (authored in develop,
+  validation pending):** `lacc-evidence-chain.mjs` uses exact RD-1/2/3
+  file-level edges and the existing Git source verifier. An opt-in
+  `--explain --json` trace supplies each dependency → importer hop's
+  adapter/version, edge kind/confidence, verified Git baseline and
+  changed-file reason, ending at the cited memory fact. Missing or
+  inconsistent evidence becomes `partial`, not a fabricated link.
+  It does not infer current HEAD, semantic contradiction or user delivery.
 - **CR-3 — agent disclosure:** update native bridges/guidance to tell
   users about *material and relevant* memory-code inconsistencies
   before relying on historical facts. A CLI diagnostic means
@@ -223,10 +229,12 @@ whether it actually showed the user a warning. No auto-promotion or
 auto-reverification. Universal platform popups are not promised.
 
 **Design:** [Memory conflict reporting and transparency](docs/architecture/memory-conflict-reporting.md).
-**Status:** CR-1 code merged into develop with written, **unexecuted**
-regression tests; CR-2..CR-5 remain planned. The CLI reports to the
-agent only. No semantic contradiction proof or automatic user notification.
-**Contract:** [CLI normalized memory findings](skills/lean-context-memory/references/findings.md).
+**Status:** CR-1 and CR-2 code authored in develop with
+**unexecuted** regression tests. CR-3–CR-5 remain planned.
+The CLI reports to agents only; no semantic contradiction proof
+or user notification is claimed.
+**Contracts:** [normalized findings](skills/lean-context-memory/references/findings.md)
+and [evidence chains](skills/lean-context-memory/references/evidence-chains.md).
 
 ### P1 — Dependency-aware memory staleness (candidate v3.5)
 
@@ -403,14 +411,13 @@ create circular dependencies or unverifiable “self-improvement.”
 
 ## Working order and status rules
 
-**Recommended next delivery (2026-11-11):** RD-3 static adapters
-are now authored in develop alongside RD-1/RD-2 and CR-1,
-**not validated**. Continue in separate PRs with **CR-2 evidence-chain
-explanations**, then CR-3 host/user disclosure protocols, RD-4 optional
-semantic enrichment and CR-4 UX, and finally RD-5/CR-5 acceptance.
-Preserve honest partial-coverage outcomes for unsupported languages
-and dynamic dependencies; do not merge develop into main before the
-consolidated tests and security review.
+**Recommended next delivery (2026-11-11):** CR-2 evidence-chain code
+is authored in develop alongside RD-1/2/3 and CR-1, all
+**unvalidated**. The next separate implementation is
+**CR-3 — agent/host disclosure contract** with honest host-specific
+capability and notification state; then CR-4 UX, RD-4 semantic
+enrichment and consolidated RD-5/CR-5 tests before develop → main.
+No GitHub Actions or hosted CI.
 
 Use the per-slice status definitions in the implementation audit above:
 **implemented**, **locally validated**, **pilot reported**, **partial**, **planned**,

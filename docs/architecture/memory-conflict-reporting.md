@@ -1,6 +1,6 @@
 # Memory conflict reporting and user-visible transparency
 
-**Status:** CR-1 diagnostic normalization authored on develop (validation pending); CR-2–CR-5 remain design. **Target branch:** develop.
+**Status:** CR-1/CR-2 findings and evidence-chain traces authored on develop (validation pending); CR-3–CR-5 remain design. **Target branch:** develop.
 **Reviewed:** 2026-11-11.
 **Roadmap milestone:** P1 — Explainable memory trust & conflict reporting.
 **Community feedback:** When remembered information and current code disagree,
@@ -25,6 +25,20 @@ RD-3 now supplies optional, heuristic `.NET`, PHP/Composer and Python
 static dependency edges in addition to JS/TS; their unresolved
 compiler/framework/runtime semantics are expressly marked incomplete.
 Written tests await the consolidated develop acceptance gate.
+
+## CR-2 implementation boundary
+
+The opt-in `--explain --json` result now includes
+`evidence.trace` for affected sources/dependencies. It carries the
+checked fact Git baseline, the reason from the existing source
+verifier and exact RD-1 edge provenance for each static dependency
+hop (adapter, version, relationship, language, confidence, revision).
+It terminates at the cited-source → memory-fact link. Inconsistent or
+unavailable evidence becomes `partial` instead of being inferred.
+
+See the [actual evidence chain contract](../../skills/lean-context-memory/references/evidence-chains.md).
+No additional Git verification or user-delivery guarantee is
+introduced. The sample design JSON below predates this live trace.
 
 ## Decision policy (source priority is not a semantic oracle)
 
@@ -170,10 +184,9 @@ This conflict-reporting layer owns its presentation and trust vocabulary.
 Both should share one provenance evaluator. Do not build CR by making
 the language-specific adapters responsible for UI notifications.
 
-**Current milestone:** CR-1 is authored in develop with regression
-fixtures, **not yet tested**. CR-2 source-to-fact explanation upgrades,
-CR-3 host/user disclosure, CR-4 cross-session deduplication and CR-5
-acceptance remain separate tasks. Keep stable main unchanged until the
+**Current milestone:** CR-1/CR-2 code and regression fixtures are
+in develop, **not yet tested**. CR-3 host/user disclosure, CR-4
+cross-session deduplication and CR-5 acceptance remain separate tasks. Keep stable main unchanged until the
 complete develop gate passes.
 
 **Explicitly unimplemented:** semantic conflict proof, universal

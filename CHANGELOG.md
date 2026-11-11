@@ -1,5 +1,23 @@
 # Changes
 
+## Develop (validation pending) — CR-2 provenance-backed evidence chains
+
+- Add a pure `lacc-evidence-chain.mjs` for direct Git drift and
+  per-hop static reverse dependency explanations.
+- Preserve existing RD-1/2/3 edge relation, adapter/version, language,
+  confidence, checked Git revision and source-to-fact link with
+  opt-in `--deps --explain --json`; no additional Git queries.
+- Check each hop against the changed dependency, source citation and
+  recorded verified revision. Missing/forged/unsafe evidence is
+  `partial`, never invented. Current HEAD remains null without
+  actual verifier evidence; semantic behavior is not evaluated.
+- Keep existing finding IDs and normal outputs without `--explain`.
+- Add regression fixtures for JS/TS, .NET, PHP, Python, tampered
+  paths/revisions, session/search integration and memory read-only
+  operation. **Tests intentionally not executed** until validation.
+- No new dependencies, .github edits, Actions or main merge.
+
+
 ## Develop (validation pending) — RD-3 cross-language static adapters
 
 - Add portable `dotnet-static@1`, `php-static@1` and

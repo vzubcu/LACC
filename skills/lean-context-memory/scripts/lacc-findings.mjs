@@ -1,6 +1,7 @@
 // CR-1: evidence-only, bounded common diagnostic format for existing LACC tools.
 // It never evaluates code semantics, verifies sources, edits memory or sends notices.
 import { createHash } from 'node:crypto';
+import { explainMemoryEvidence } from './lacc-evidence-chain.mjs';
 
 export const FINDING_SCHEMA = 1;
 const MAX = Object.freeze({ diagnostics: 40, input: 2000, sources: 8, chain: 8, fieldBytes: 240 });
@@ -71,6 +72,10 @@ export function memoryFinding(issue, { fact = null, scope = 'direct-git-provenan
   const revision = checkedCommit(fact?.revision);
   const detail = kind === 'coverage-incomplete' ? [code] : [];
   if (kind === 'coverage-incomplete' && dependency) detail.push(dependency);
+  const trace = explainMemoryEvidence(issue, {
+    kind, location, source, dependency, chain: dependency_chain,
+    citedSources: cited_sources, revision,
+  });
   const identity = {
     code, location, revision, source, dependency, dependency_chain,
   };
@@ -84,6 +89,9 @@ export function memoryFinding(issue, { fact = null, scope = 'direct-git-provenan
       cited_sources, changed_paths,
       current_commit: null, // existing verifier does not supply HEAD on this path
       dependency_chain,
+      ...(trace.status !== 'unavailable' ||
+          ['source-drift', 'indirect-dependency-drift','evidence-unavailable','coverage-incomplete'].includes(kind)
+        ? { trace } : {}),
       verification_scope: kind === 'indirect-dependency-drift' ||
         code === 'dependency-coverage-incomplete'
         ? (['dotnet-static','php-static','python-static'].includes(issue.adapter)

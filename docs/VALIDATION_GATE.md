@@ -40,6 +40,7 @@ node --test tests/test_dependency_graph_contract.mjs
 node --test tests/test_reverse_dependency_impact.mjs
 node --test tests/test_memory_conflict_findings.mjs
 node --test tests/test_cross_language_dependency_impact.mjs
+node --test tests/test_memory_evidence_chains.mjs
 ```
 
 Tests expected after implementation and review: Windows isolated Git PATH,
@@ -139,3 +140,18 @@ are a separate quality goal and cannot be fabricated by local helper tests.
 - Test Windows path separators, symlink/traversal, large manifests,
   Git commit/index/worktree drift, deleted imports and no script execution.
 - Tests are **authored, not executed** until consolidated develop validation.
+
+## CR-2 evidence-chain acceptance (NOT EXECUTED)
+
+- A changed JS/TS dependency must expose dependency → importing file
+  hops, adapter/version, relation type, checked Git baseline and the
+  final memory fact citation, without any additional Git lookup.
+- .NET ProjectReference, PHP include and Python import paths expose
+  the matching adapter or declare missing/dynamic coverage.
+- Forged, reordered, unsafe or missing hop data and wrong revisions
+  result in `partial`, not manufactured evidence or a false HEAD.
+- Without `--explain`, dependency-impact stays backward compatible;
+  normal finding IDs do not change, output remains size-bounded.
+- Check Windows/Linux, privacy, no memory mutation and no false user
+  notification, as part of the consolidated develop validation.
+- Tests authored; **do not mark PASS before execution**.

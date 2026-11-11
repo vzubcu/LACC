@@ -162,7 +162,7 @@ function searchMemory(root, opts) {
   const limited = matches.length > LIMITS.candidateCount;
   const candidates = matches.slice(0, LIMITS.candidateCount);
   const states = verifySources(root, candidates);
-  const dependencies = opts.deps ? analyzeDependencyImpact(root, candidates).byFact : new Map();
+  const dependencies = opts.deps ? analyzeDependencyImpact(root, candidates, { explain: Boolean(opts.explain) }).byFact : new Map();
   const selected = [];
   const diagnosticIssues = [];
   for (const row of candidates) {
@@ -307,7 +307,7 @@ export function main(argv = process.argv.slice(2)) {
     if (!Number.isSafeInteger(count) || count < 1 || count > 20)
       throw Error('--limit must be 1..20');
     const inv = inventory(root, { bounded: true, maximumFacts: IMPACT_LIMITS.facts });
-    const analysis = analyzeDependencyImpact(root, inv.facts);
+    const analysis = analyzeDependencyImpact(root, inv.facts, { explain: Boolean(opts.explain) });
     const affected = inv.facts.map(row => ({
       fact_id: row.key ?? row.location, location: row.location,
       sources: row.sources, verified: row.revision,
