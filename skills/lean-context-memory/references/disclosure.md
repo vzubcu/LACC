@@ -171,4 +171,4 @@ is collected. Missing/truncated Git evidence never certifies a clean scan.
 Rerun `init` after updating to refresh marked agent instructions.
 
 See the [CR-3B answer-level design and acceptance contract](
-../../../../docs/architecture/answer-level-disclosure-gate.md).
+../../../docs/architecture/answer-level-disclosure-gate.md).
