@@ -43,6 +43,7 @@ node --test tests/test_cross_language_dependency_impact.mjs
 node --test tests/test_memory_evidence_chains.mjs
 node --test tests/test_agent_disclosure_protocol.mjs
 node --test tests/test_disclosure_ux.mjs
+node --test tests/test_rd4_semantic_cache_portability.mjs
 ```
 
 Tests expected after implementation and review: Windows isolated Git PATH,
@@ -177,6 +178,47 @@ are a separate quality goal and cannot be fabricated by local helper tests.
   a generated bridge is **not** proof a host actually obeyed it.
 - All assertions are authored, **not run** before consolidated develop
   acceptance. No hosted GitHub Actions.
+
+## Platform matrix (release-blocking for macOS support)
+
+The same commit of develop must be checked with **native Node.js 22+
+and Git on all three operating-system families**, not only a Linux
+container emulating a different platform:
+
+| Platform | Minimum evidence | Status |
+|---|---|---|
+| Windows 11 PowerShell (NTFS) | All Node suites + Git index/staging, symlink and native path tests | NOT RUN for current develop |
+| Linux (ext4 or equivalent) | All Node suites + privacy/symlink and source drift tests | NOT RUN for current develop |
+| **macOS** (Apple Silicon preferred; Intel if available) | All Node suites + native Git, APFS casing/Unicode, symlinks, paths and RD-4 cache tests | **NOT RUN — mandatory before main merge** |
+
+Record OS version, CPU architecture (`process.arch`), filesystem
+case sensitivity, Node and Git versions, exact develop SHA, test
+exits/skips and `--cache` effects. On macOS use native Terminal /
+zsh only to invoke Node and Git, not Linux-specific CLI flags or WSL.
+Do not claim macOS validated until those tests have actually run
+on a real macOS host.
+
+## RD-4 alias hint and parse-cache acceptance (NOT EXECUTED)
+
+- With `--deps --semantic`, resolve one exact literal JS/TS alias
+  from tsconfig/jsconfig to a checked file. An edit to its target OR
+  config must flag the cited source/fact. Reject extends, globs,
+  dynamic package resolution and invalid/unsafe config as incomplete.
+- With `--cache`, write only private, ignored parser tokens. Run
+  again and check content/version-keyed entries are independently
+  re-parsed. Corrupt/forged cache files cannot create false
+  verified edges. Canonical memory facts and Git verification
+  must never come from a cache.
+- Without explicit options, default result shapes/read-only
+  behavior remain unchanged. Validate flag misuse and symlinks,
+  Unicode/case-sensitive filesystems, nested manifests,
+  index-only/assume-unchanged changes and historical/deleted paths.
+- Compare actual elapsed time and complete input/output tokens
+  with caching on/off for the same project/task. Parser stats or
+  byte counts are **not** proof of token/latency savings.
+- Node tests authored, **NOT RUN**. No GitHub Actions or hosted
+  runners used; release still blocked until macOS/Windows/Linux
+  and host-level acceptance are complete.
 
 ## CR-4 task-scoped disclosure UX (NOT EXECUTED)
 

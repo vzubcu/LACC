@@ -10,7 +10,7 @@ const HOT = [
   ['ACTIVE_STATE.md', LIMITS.stateLines, LIMITS.stateBytes],
 ];
 
-export function sessionCheck(root, { json = false, maxBytes = 8192, deps = false, explain = false } = {}) {
+export function sessionCheck(root, { json = false, maxBytes = 8192, deps = false, explain = false, semantic = false, cache = false } = {}) {
   const inv = inventory(root, { bounded: true, maximumFacts: 1000 });
   const VERIFY_CAP = 64;
   const facts = inv.facts.slice(0, VERIFY_CAP);
@@ -79,7 +79,7 @@ export function sessionCheck(root, { json = false, maxBytes = 8192, deps = false
           location: row.location, revision: row.revision, sources: row.sources } } : null);
   }
   if (deps) {
-    const extra = analyzeDependencyImpact(root, facts, { explain }).byFact;
+    const extra = analyzeDependencyImpact(root, facts, { explain, semantic, cache }).byFact;
     for (const row of facts) {
       for (const issue of extra.get(row.location)?.issues ?? [])
         add(issue.code, row.location + ': ' + issue.source + ' -> ' + issue.dependency,

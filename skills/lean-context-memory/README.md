@@ -63,6 +63,24 @@ node <skill_dir>/scripts/lacc.mjs session-check . --json
 Do not treat `status: review` or `incomplete` as a semantic failure
 of every claim; inspect evidence manually. No memory is auto-corrected.
 
+## Develop preview: JS/TS alias hints & safe parse cache (RD-4)
+
+Opt in only when relevant to a task:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs dependency-impact . --semantic --explain --json
+node <skill_dir>/scripts/lacc.mjs search . --query "auth" --deps --semantic --cache --json
+node <skill_dir>/scripts/lacc.mjs session-check . --deps --cache --json
+```
+
+`--semantic` resolves only exact literal paths in tsconfig/jsconfig,
+not arbitrary compiler symbols. `--cache` is an explicit private
+write of content-addressed parser tokens; disk hits are independently
+re-parsed before affecting graph edges. Git evidence is always checked,
+and the cache cannot validate a memory claim. All new behavior is
+unexecuted and unvalidated, including **native macOS** support.
+Use [RD-4 semantic/cache reference](references/semantic-cache.md).
+
 ## Develop preview: task-scoped grouped disclosure UX (CR-4)
 
 Instead of repeating the same Git warning in every agent session,

@@ -41,7 +41,7 @@ export function extractJsTsImports(bytes) {
   return { imports: [...imports].sort(), unknown };
 }
 
-export function createJsTsScanner(root, revision) {
+export function createJsTsScanner(root, revision, { parseCache = null, semantic = false } = {}) {
   const cache = new Map();
   let historicalLookups = 0;
   const MAX_HISTORICAL_LOOKUPS = 256;
@@ -88,13 +88,56 @@ export function createJsTsScanner(root, revision) {
     }
     return { unresolved: 'unresolved-import:' + spec };
   };
+  function resolveAlias(from,spec,version) {
+    const unknown=[];
+    let directory=path.posix.dirname(from), config=null;
+    for(let tries=0;tries<12;tries++){
+      for(const name of ['tsconfig.json','jsconfig.json']){
+        const candidate=directory==='.'?name:directory+'/'+name;
+        try { if(read(candidate,version)) {config=candidate;break;} }
+        catch {unknown.push('alias-config-unreadable');}
+      }
+      if(config || directory==='.')break;
+      directory=path.posix.dirname(directory);
+    }
+    if(!config)return {unknown:['alias-config-not-found']};
+    let options;
+    try {
+      const data=JSON.parse(new TextDecoder('utf8',{fatal:true}).decode(read(config,version)));
+      if(!data || typeof data!=='object' || Array.isArray(data))throw Error('invalid config');
+      options=data.compilerOptions;
+      if(data.extends)unknown.push('tsconfig-extends-not-evaluated');
+    }catch {return {config,unknown:['alias-config-invalid']};}
+    if(!options || typeof options!=='object' || Array.isArray(options)||
+        !options.paths || typeof options.paths!=='object' ||
+        Array.isArray(options.paths))return {config,unknown:['alias-paths-not-configured',...unknown]};
+    const targets=options.paths[spec];
+    if(!Array.isArray(targets) || targets.length!==1 ||
+        typeof targets[0]!=='string' || /[*?{}$%]/.test(spec+targets[0]))
+      return {config,unknown:['alias-nonliteral-or-ambiguous',...unknown]};
+    const baseUrl=options.baseUrl ?? '.';
+    if(typeof baseUrl!=='string'||/[*?{}$%]/.test(baseUrl))
+      return {config,unknown:['alias-baseurl-unresolved',...unknown]};
+    const rootDir=path.posix.dirname(config);
+    const target=path.posix.normalize(path.posix.join(rootDir,baseUrl,targets[0]));
+    if(target==='..'||target.startsWith('../')||target.startsWith('/')||
+       target==='memory'||target.startsWith('memory/'))
+      return {config,unknown:['alias-target-unsafe',...unknown]};
+    const relative=path.posix.relative(path.posix.dirname(from),target);
+    const specifier=relative.startsWith('.')?relative:'./'+relative;
+    const dep=resolve(from,specifier,version);
+    if(dep.path)return {config,dep:dep.path,unknown};
+    return {config,unknown:['alias-target-unresolved',...unknown]};
+  }
   return {
     descriptor: JS_TS_SCANNER,
     scan(source) {
       if (!jsTsLanguage(source)) return {
         edges: [], unknown: ['unsupported-language'], bytes: 0,
       };
-      const edges = new Set(), unknown = [];
+      const edges = new Map(), unknown = [];
+      const insert=(path,kind='import',confidence='heuristic')=>
+        edges.set(kind+'\0'+path,{path,kind,confidence});
       let count = 0;
       for (const version of ['old', 'current']) {
         let bytes;
@@ -107,16 +150,26 @@ export function createJsTsScanner(root, revision) {
         }
         count += bytes.length;
         let parsed;
-        try { parsed = extractJsTsImports(bytes); }
+        try { parsed = parseCache
+          ? parseCache.parse(JS_TS_SCANNER.id,JS_TS_SCANNER.version,bytes,
+            () => extractJsTsImports(bytes))
+          : extractJsTsImports(bytes); }
         catch { unknown.push(version + ':invalid-utf8'); continue; }
         if (parsed.unknown.length) unknown.push(version + ':dynamic-or-unresolved-syntax');
         for (const spec of parsed.imports) {
+          if (!spec.startsWith('./') && !spec.startsWith('../') && semantic) {
+            const alias = resolveAlias(source,spec,version);
+            if(alias.config)insert(alias.config,'configuration');
+            if(alias.dep)insert(alias.dep);
+            for(const reason of alias.unknown)unknown.push(version+':'+reason);
+            continue;
+          }
           const dep = resolve(source, spec, version);
-          if (dep.path) edges.add(dep.path);
+          if (dep.path) insert(dep.path);
           else unknown.push(version + ':' + dep.unresolved);
         }
       }
-      return { edges: [...edges].sort(), unknown: [...new Set(unknown)].sort(), bytes: count };
+      return { edges: [...edges.values()].sort((a,b)=>a.path.localeCompare(b.path)||a.kind.localeCompare(b.kind)), unknown: [...new Set(unknown)].sort(), bytes: count };
     },
   };
 }
