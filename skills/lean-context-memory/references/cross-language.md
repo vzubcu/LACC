@@ -68,6 +68,18 @@ bounded static relative imports. Dynamic imports, tsconfig aliases,
 package dependencies and transitive framework behavior remain review
 candidates.
 
+## RD-4 optional extension (develop, not validated)
+
+`--semantic` can enrich JS/TS edges from an **exact literal**
+tsconfig/jsconfig alias mapping; the changed configuration itself
+becomes part of the bounded reverse graph. Complex paths, extends,
+globs and package resolution stay incomplete, and compiler/symbol
+resolution for .NET, PHP/Composer and Python remains unimplemented.
+`--cache` only stores private content-addressed JS/TS parse
+tokens with independent reparse-on-disk-hit; no resolved graph
+or Git trust decision is cached. Details and macOS acceptance:
+[RD-4 semantic/cache](semantic-cache.md).
+
 ## Evidence and trust behavior
 
 Adapter edges are normalized to RD-1's contract with file paths,

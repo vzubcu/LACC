@@ -38,13 +38,16 @@ branch, reapplied via merged PR #26.
 | CR-2 | Git revision, adapter/version, relation type and source-to-fact links carried through per-hop evidence traces | **Code authored in develop; validation pending; semantic verification not claimed** |
 | CR-3 | Host-neutral disclosure contract, Codex/Claude/Gemini/Roo marked instruction bridges, additive agent-only guidance for `--explain --json` | **Authored in develop; validation pending; no host delivery confirmation** |
 | CR-4 | Task-scoped bounded disclosure summaries, brief/detail groups, new-vs-agent-seen counts and opt-in private seven-day Git/evidence-bound seen markers | **Code authored in develop; validation pending; no automatic suppression, semantic repair or user delivery proof** |
+| RD-4 (initial scope) | Opt-in exact JS/TS tsconfig/jsconfig alias hints and private content-addressed parser-token cache with disk revalidation; common Git source verifier remains authoritative | **Code authored on develop, macOS/Windows/Linux validation pending; full semantic symbols and graph caching not implemented** |
 
 **Implementation sequence:** RD-1 graph → RD-2 JS/TS reverse impact →
 CR-1 findings → RD-3 .NET/PHP/Python static adapters → CR-2 evidence
-chains → CR-3 disclosure guidance → CR-4 scoped grouped UX and opt-in
-agent-seen markers (**all authored in develop; validation pending**) →
-**RD-4 optional semantic indexing/cache** → RD-5/CR-5 cross-platform
-acceptance. Host-confirmed notification remains unimplemented.
+chains → CR-3 disclosure guidance → CR-4 task-scoped UX →
+RD-4 **initial opt-in literal JS/TS aliases and validated parser-token
+cache** (all code authored in develop, **not tested**) →
+**RD-5/CR-5 cross-platform acceptance**, then future optional
+compiler/LSP semantic resolvers with independent review.
+Windows, Linux **and native macOS** are required; no assumed host delivery.
 Develop is unvalidated until the consolidated release gate.
 
 **Validation boundary:** all newly written RD-1 tests and current develop
@@ -88,7 +91,7 @@ The roadmap tracks **slices of behavior**, not whole feature names. Labels:
 | Cross-platform Node core | Bundled Node CLI, Windows isolated-PATH tests and optional Python-parity fixtures; PR #23 reported 34 Windows Node PASS / 1 parity SKIP on its older head | Fixes from PR #23 merged via PR #26; finish current develop regression, Python/Linux parity, installer and host tests | **Implemented in develop; Windows Node validation reported; full P0 pending** |
 | Existing-memory cleanup | Develop includes health/doctor, migration audit, digest-bound backups, inspect, journaled migration/restore and recovery | Validate crash/concurrent-writer behavior and manual provenance review; no full automatic legacy semantic migration | **Develop code integrated, validation pending; semantic auto-migration absent** |
 | Session freshness | sync, search, health and bounded session-check on develop; agent instruction bridges | Validate all supported hosts and incomplete scans; no universal automatic hook | **Develop implementation; host automation and end-to-end acceptance pending** |
-| Indirect dependencies | RD-1 common graph, RD-2 JS/TS reverse impact, RD-3 .NET/PHP/Python static adapters (opt-in) in develop | Execute acceptance tests, semantic/symbol resolution, unsupported-language policy, cache and benchmarking | **Develop code integrated; validation pending, incomplete coverage disclosed** |
+| Indirect dependencies | RD-1/2 reverse graph, RD-3 .NET/PHP/Python adapters, initial RD-4 opt-in JS/TS literal alias hints and private parse-token cache | Full symbol resolution and graph caching, benchmarking, security review and real macOS/Windows/Linux acceptance | **Develop authored, no consolidated tests executed; unknown coverage remains review-required** |
 | Multi-agent memory | Shared facts, develop handoffs, single-file canonical CAS and journaled multi-file operations | Non-cooperating writers, fault-injected recovery and semantic conflict resolution | **Cooperative code merged to develop; general concurrency not proven** |
 | Measurement | Context-pressure tools, usage importers and synthetic A/B method | Matched real-agent measurements of full token cost and task quality | **Instrumentation exists; savings unmeasured** |
 | Conflict transparency | CR-1 diagnostics, CR-2 per-hop provenance, CR-3 host instruction guidance, CR-4 task-scoped grouping and explicit private agent-seen markers (without suppression) | CR-5 cross-host acceptance and actual observed-delivery integrations remain unimplemented | **CR-1..4 authored in develop; tests unexecuted; no user notification proof** |
@@ -344,11 +347,21 @@ network service, or Python/Bash dependency. Keep the Node+Git core portable.
   report partial coverage where compiler symbols, PSR-4/CS-Cart hooks,
   runtime import resolution and build/package logic cannot be checked.
   JVM/Go/Rust and optional LSP/Roslyn/Tree-sitter remain future adapters.
-- **RD-4 — optional richer parsing:** evaluate Tree-sitter, language
-  servers and SCIP indexes for syntax/symbol accuracy, but never require
-  them or start unapproved external processes/downloads. Add a safe,
-  versioned, content-addressed derived cache outside trusted memory.
-- **RD-5 — measured acceptance:** Windows/Linux tests, mixed-language
+- **RD-4 — initial opt-in semantic hints and parse cache (authored
+  on develop, validation pending):** `--semantic` resolves only literal
+  JS/TS `tsconfig.json`/`jsconfig.json` alias mappings (one exact
+  key/target), retaining historical/current config edges; patterns,
+  extends, dynamic resolution and all cross-language compiler symbols
+  remain explicitly incomplete. `--cache` is an **explicit private
+  write** into `memory/analysis-cache/`: content-keyed/versioned
+  JS/TS parser tokens only. Disk entries are independently re-parsed
+  before they can affect dependency edges; no trusted memory, Git
+  source status, resolved graph or semantic verdict is cached.
+  Same-process memoization exists, but no cross-run savings claim.
+  Tree-sitter, language servers, SCIP, Roslyn and advanced manifest
+  semantics remain optional future extensions requiring independent
+  reviews; never download or execute unapproved tools.
+- **RD-5 — measured acceptance:** Windows/Linux/**native macOS** tests, mixed-language
   fixtures, historical edges, path attacks, false positive/negative rates,
   scan limits, latency and total context-token overhead. Retain opt-in
   mode until validated and avoid claiming all languages fully supported.
@@ -360,11 +373,12 @@ Do not auto-rewrite, revalidate or promote memory facts.
 
 **Design:** [Language-neutral reverse dependency engine](docs/architecture/reverse-dependency-memory.md).
 **RD-1 contract:** [Graph/adapter index contract](docs/architecture/dependency-graph-contract.md).
-**Status:** RD-1/RD-2 and RD-3 static .NET, PHP/Composer and
-Python adapter code authored on develop, **tests unexecuted**. The graph
-only covers bounded dependencies reachable from cited files; symbol-level
-resolution, full framework/runtime behavior (RD-4), and comprehensive
-cross-platform validation (RD-5) are not implemented.
+**Status:** RD-1/2/3 plus initial RD-4 optional JS/TS alias
+hints and validated parse-token cache authored on develop,
+**tests unexecuted**. The graph only covers bounded dependencies from
+cited files; full symbol-level/compiler/framework behavior and
+cross-platform acceptance are **not implemented/validated**.
+**RD-4 reference:** [Portable semantic hints and cache](skills/lean-context-memory/references/semantic-cache.md).
 
 **Acceptance:** a changed imported dependency reaches an unchanged
 cited source and its fact; mixed C#/.NET, PHP, Python and JS fixtures
@@ -435,13 +449,14 @@ create circular dependencies or unverifiable “self-improvement.”
 
 ## Working order and status rules
 
-**Recommended next delivery (2026-11-11):** CR-4 grouped
-disclosure UX and optional agent-seen markers are authored in develop,
-with **tests unexecuted**. The next feature is **RD-4 — optional
-semantic enrichment and bounded caching**, strictly opt-in and with
-no unverified symbol links; CR-5/RD-5 comprehensive Windows/Linux,
-security, privacy, host and token-cost A/B validation follows before
-develop → main. No GitHub Actions or hosted CI.
+**Recommended next delivery (2026-11-11):** RD-4's initial
+literal alias hints and conservative parser cache are authored in
+develop, **tests unexecuted**. The next stage is **RD-5/CR-5 —
+consolidated security, privacy, functionality and benchmark acceptance
+on real Windows, Linux AND macOS**, plus host behavior for Codex,
+Claude, Gemini and Roo. Do not promote develop to main until tests
+are actually run and blocking failures resolved; no GitHub Actions
+or hosted CI. Full compiler/LSP semantics remain separately scoped.
 
 Use the per-slice status definitions in the implementation audit above:
 **implemented**, **locally validated**, **pilot reported**, **partial**, **planned**,

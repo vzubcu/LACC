@@ -4,6 +4,7 @@ import { buildDependencyIndex, createDependencyAdapterRegistry } from './lacc-gr
 import { createJsTsScanner, jsTsLanguage, JS_TS_SCANNER } from './lacc-dependencies.mjs';
 import { createCrossLanguageScanner, languageForSource, CROSS_ADAPTERS } from './lacc-cross-adapters.mjs';
 import { git, gitText, verifySources } from './lacc-core.mjs';
+import { createParseCache } from './lacc-parse-cache.mjs';
 
 export const IMPACT_LIMITS = Object.freeze({
   facts: 64, depth: 3, edgesPerFact: 32, bytesPerFact: 1024 * 1024,
@@ -44,7 +45,7 @@ function getRegistry() {
 }
 export function registeredImpactAdapters() { return getRegistry().describe(); }
 
-export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LIMITS.facts, explain = false } = {}) {
+export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LIMITS.facts, explain = false, semantic = false, cache = false } = {}) {
   if (!Array.isArray(inputFacts) || !Number.isSafeInteger(maxFacts) ||
       maxFacts < 1 || maxFacts > IMPACT_LIMITS.facts)
     throw Error('invalid impact fact limit');
@@ -53,6 +54,7 @@ export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LI
   const issues = new Map(facts.map(row => [factKey(row.location), []]));
   const revisions = new Map(), perRevision = new Map(), edges = [], graphFacts = [];
   const scannerCache = new Map(), scannedNodes = new Map(), reports = new Map();
+  const parseCache = createParseCache(root, { enabled: Boolean(cache) });
   let edgesTotal = 0, graphTruncated = false;
 
   for (const row of facts) {
@@ -72,7 +74,7 @@ export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LI
     const existing = perRevision.get(rev) ?? new Set();
     perRevision.set(rev, existing);
     const scanners = scannerCache.get(rev) ?? {
-      js: createJsTsScanner(root, rev), cross: createCrossLanguageScanner(root, rev),
+      js: createJsTsScanner(root, rev, { parseCache, semantic }), cross: createCrossLanguageScanner(root, rev),
     };
     scannerCache.set(rev, scanners);
     const queue = row.sources.map(source => ({ source, depth: 0 }));
@@ -253,7 +255,13 @@ export function analyzeDependencyImpact(root, inputFacts, { maxFacts = IMPACT_LI
   }
   return makeResult(facts, issues, changed, {
     ...index.statistics, reverseTraversal: true,
-    adapters: META.map(x => x.id), scope: 'bounded-static-cross-language-cited-source-closure',
+    adapters: META.map(x => x.id),
+    scope: 'bounded-static-cross-language-cited-source-closure',
+    ...(semantic ? { semanticHints: 'js-ts-literal-path-aliases-only',
+      semanticProof: false } : {}),
+    ...(cache ? { parseCache: { ...parseCache.stats,
+      scope: 'js-ts-content-keyed-parse-tokens-only',
+      trust: 'untrusted-performance-hint' } } : {}),
   });
 }
 

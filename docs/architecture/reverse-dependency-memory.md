@@ -1,6 +1,6 @@
 # Design proposal: Language-neutral reverse dependency and change-driven memory invalidation
 
-**Status:** RD-1/RD-2 and opt-in RD-3 .NET/PHP/Python static adapters authored on develop (validation pending); RD-4+ semantic analysis and full cross-language coverage remain design. **Branch:** develop. **Reviewed:** 2026-11-11.
+**Status:** RD-1/2/3 plus RD-4 initial opt-in JS/TS literal alias hints and private validated parser cache authored on develop (validation pending). Full compiler/LSP semantic resolution and cross-language graph caching remain design. **Branch:** develop. **Reviewed:** 2026-11-11.
 **Parent milestone:** ROADMAP.md — P1 Dependency-aware memory staleness.
 **Trigger:** community feedback: if a cited source imports another changed module, a
 source-only Git check can return a misleading "source unchanged"; reverse walk from
@@ -15,9 +15,11 @@ links. `node lacc.mjs dependency-contract` reports four opt-in static adapters:
 JS/TS, .NET manifests, PHP includes/Composer and Python local imports.
 RD-2/RD-3 use the bounded *cited-source subgraph* to trace changed
 dependencies back to facts, exposing missing coverage explicitly.
-Persistent caches, repository-wide reverse indexes, MSBuild/Roslyn,
+RD-4 now has only a private JS/TS parse-token cache with disk reparse
+and literal JS/TS tsconfig alias hints. Persistent **resolved graph**
+caches, repository-wide reverse indexes, MSBuild/Roslyn,
 Composer/autoload and Python runtime semantic resolution remain future
-RD-4/refinement work. This is **not** a complete dependency detector.
+work. No cache can bypass Git source evidence. This is **not** a complete dependency detector.
 
 ## Scope and core invariants
 

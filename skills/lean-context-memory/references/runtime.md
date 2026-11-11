@@ -50,6 +50,26 @@ node --test tests/test_node_runtime.mjs
 
 Node tests create isolated temporary Git repositories and do not require Bash or Python. Windows and Linux parity should be validated on a real Windows workstation and at least one Linux runtime. No GitHub Actions workflows or runners are added. See also the existing Python suite for regression parity. Results from helper tests cannot establish token savings.
 
+## Develop preview: RD-4 optional JS/TS alias and private parser cache
+
+Native Node.js 22+ + Git is the intended environment on **Windows,
+Linux and macOS** (Apple Silicon/Intel); no WSL, Docker, Bash,
+Python, .NET, PHP or LSP is required.
+
+```bash
+node <skill_dir>/scripts/lacc.mjs dependency-impact . --semantic --json
+node <skill_dir>/scripts/lacc.mjs dependency-impact . --cache --json
+```
+
+`--semantic` uses exact literal tsconfig/jsconfig JS/TS aliases
+only. `--cache` **writes private parser-token metadata**, not memory
+or trusted Git evidence. On-disk hints are always re-parsed before
+they can influence a dependency edge; current Git verification is
+never cached. No host-specific binaries, measured speedup or semantic
+proof are claimed. Tests **must be executed on real macOS**, Windows
+and Linux before release; do not infer macOS support from Linux alone.
+See [semantic/cache reference](semantic-cache.md).
+
 ## Develop preview: CR-4 task-scoped disclosure summaries
 
 The optional `disclosure-summary . --task <id> --json` command

@@ -1,5 +1,26 @@
 # Changes
 
+## Develop (validation pending) — RD-4 optional JS/TS alias hints & safe parser cache
+
+- Add opt-in `--semantic` for **exact literal** tsconfig/jsconfig
+  alias mappings in JS/TS: union historical/current local file edges
+  and include changed config in reverse impact. Globs, extends,
+  compiler symbols and dynamic packages remain incomplete.
+- Add opt-in `--cache` for a private, content-addressed/versioned
+  JS/TS **parse-token-only** store; always reparse disk entries before
+  they influence source/dependency evidence. Memoize within a process.
+  No trusted memory, Git freshness, resolved edges or semantic result
+  is ever cached. No cross-run performance gain claimed.
+- Wire switches through dependency-impact, search --deps,
+  session-check --deps and task disclosure commands. Without flags,
+  existing recall and output are unchanged.
+- Author corruption/tampering, cache lifecycle, changed tsconfig,
+  aliases, option misuse and native Windows/Linux/**macOS** fixtures;
+  **tests NOT executed** per implementation-first policy.
+- Use Node.js builtins and Git only; no WSL, Docker, tree-sitter, LSP,
+  compiler, external packages or GitHub Actions. Main unchanged.
+
+
 ## Develop (validation pending) — CR-4 grouped disclosure UX
 
 - Add opt-in, read-only `disclosure-summary --task ID --json` with
