@@ -37,6 +37,7 @@ branch, reapplied via merged PR #26.
 | RD-3 | Optional static C#/.NET project/manifest, PHP literal include/Composer, and Python local-import adapters connected to RD-1/RD-2 graph | **Code in develop, validation pending; symbol/runtime resolution incomplete** |
 | CR-2 | Git revision, adapter/version, relation type and source-to-fact links carried through per-hop evidence traces | **Code authored in develop; validation pending; semantic verification not claimed** |
 | CR-3 | Host-neutral disclosure contract, Codex/Claude/Gemini/Roo marked instruction bridges, additive agent-only guidance for `--explain --json` | **Authored in develop; validation pending; no host delivery confirmation** |
+| CR-3B — Answer-Level Disclosure Gate | Require relevant excluded/review memory facts to be acknowledged in the **agent's answer**, not merely in CLI health output; host-specific acceptance with honest delivery semantics | **Planned only; not implemented, not validated; required before promoting develop to main** |
 | CR-4 | Task-scoped bounded disclosure summaries, brief/detail groups, new-vs-agent-seen counts and opt-in private seven-day Git/evidence-bound seen markers | **Code authored in develop; validation pending; no automatic suppression, semantic repair or user delivery proof** |
 | RD-4 (initial scope) | Opt-in exact JS/TS tsconfig/jsconfig alias hints and private content-addressed parser-token cache with disk revalidation; common Git source verifier remains authoritative | **Code authored on develop, macOS/Windows/Linux validation pending; full semantic symbols and graph caching not implemented** |
 
@@ -45,6 +46,7 @@ CR-1 findings → RD-3 .NET/PHP/Python static adapters → CR-2 evidence
 chains → CR-3 disclosure guidance → CR-4 task-scoped UX →
 RD-4 **initial opt-in literal JS/TS aliases and validated parser-token
 cache** (all code authored in develop, **not tested**) →
+**CR-3B Answer-Level Disclosure Gate (planned)** →
 **RD-5/CR-5 cross-platform acceptance**, then future optional
 compiler/LSP semantic resolvers with independent review.
 Windows, Linux **and native macOS** are required; no assumed host delivery.
@@ -228,6 +230,36 @@ Never silently rewrite memory, invent provenance or claim a false conflict.
   observe actual user delivery, record host receipts or guarantee host
   compliance; output always says `not-observed`. Re-run `init` to
   refresh existing installed instruction bridges.
+- **CR-3B — Answer-Level Disclosure Gate (NEW; planned, NOT
+  implemented):** community follow-up: *if an answer touches a fact
+  that was excluded from trusted retrieval, disclose that exclusion in
+  the answer itself—not only in a health check*. Before composing a
+  material answer, the agent must correlate the current task and
+  proposed claims with withheld/review-required **matched** memory
+  facts (using source references and stable IDs, never full raw notes).
+  When materially relevant, include a concise, user-facing disclosure
+  in that same answer: which remembered claim/source may be outdated,
+  the verified Git/coverage reason, what remains unknown, and the
+  next evidence-check step. Continue with currently verified code
+  evidence when available; do not silently trust or auto-rewrite memory.
+  Unrelated findings must not spam the answer, and no source byte
+  change alone may be called a proven semantic conflict. Incomplete
+  searches, truncated diagnostics or an unavailable source must be
+  reported as uncertainty rather than a false clean result.
+  **Implementation options:** a bounded answer-context candidate
+  contract followed by a host-specific pre-response rule/hook if
+  supported; do not claim a generic output interceptor works across
+  Codex/Claude/Gemini/Roo. An instruction or emitted diagnostic is
+  not proof that the user saw it.
+  **Release gate:** test positive (direct and indirect source drift,
+  withheld relevant result), negative (unrelated finding), incomplete
+  coverage, sensitive text, no Git, byte budgets and response-draft
+  relevance. Capture the **actual generated answer** in each host;
+  require the warning to be present in the answer when relevant
+  (not only in logs/JSON), while accurately recording whether host
+  display/delivery was actually observed. Repeat across native
+  Windows, Linux and macOS; no PASS without executed tests.
+  [Specification](docs/architecture/answer-level-disclosure-gate.md).
 - **CR-4 — task-scoped explanation UX and deduplication (authored in
   develop, validation pending):** `lacc-disclosure-ux.mjs` adds
   read-only `disclosure-summary --task <id> [--deps] [--detail] --json`,
@@ -245,16 +277,25 @@ Never silently rewrite memory, invent provenance or claim a false conflict.
 - **CR-5 — adversarial acceptance:** distinguish Git byte drift from
   confirmed semantic conflict; changed direct/dependency sources,
   missing evidence/unknown language, contradictory facts, large/incomplete
-  scans, no host notification, sensitive output and Windows/Linux paths.
+  scans, no false host notification, sensitive output, **answer-level
+  disclosure** for materially relevant withheld facts, and real
+  Windows/Linux/**macOS** host response tests. CR-3B is a release-blocking
+  prerequisite, not merely an optional health-check assertion.
 
-**Acceptance:** an integrated agent can explain why a fact is withheld,
-what current source evidence was checked, what remains unknown and
-whether it actually showed the user a warning. No auto-promotion or
-auto-reverification. Universal platform popups are not promised.
+**Acceptance:** an integrated agent's **actual final answer** must
+explain when materially relevant memory was withheld, what source
+evidence was checked, what remains unknown and what verification
+is next. A health-check finding alone does not satisfy acceptance.
+Unrelated facts should not generate unsolicited noise. Distinguish
+"warning generated", "agent response contains warning" and
+"host-confirmed user delivery" without inventing the final state.
+No auto-promotion or auto-reverification; universal platform popups
+are not promised.
 
 **Design:** [Memory conflict reporting and transparency](docs/architecture/memory-conflict-reporting.md).
 **Status:** CR-1–CR-4 code authored in develop with **no
-consolidated tests executed**. CR-5 acceptance remains planned.
+consolidated tests executed**. **CR-3B answer-level gate is newly
+planned and unimplemented**; CR-5 acceptance remains planned.
 LACC can group and mark agent-seen findings; it cannot verify that
 a user saw a notice, that a claim was semantically corrected, or
 that a host loaded its rules. No automatic message or memory repair.
@@ -451,10 +492,12 @@ create circular dependencies or unverifiable “self-improvement.”
 
 **Recommended next delivery (2026-11-11):** RD-4's initial
 literal alias hints and conservative parser cache are authored in
-develop, **tests unexecuted**. The next stage is **RD-5/CR-5 —
-consolidated security, privacy, functionality and benchmark acceptance
-on real Windows, Linux AND macOS**, plus host behavior for Codex,
-Claude, Gemini and Roo. Do not promote develop to main until tests
+develop, **tests unexecuted**. The next implementation gate is **CR-3B — Answer-Level Disclosure**
+to prevent relevant excluded facts from going silently unmentioned
+in actual responses. Then **RD-5/CR-5** consolidates security,
+privacy, functionality, token benchmarks and executed native Windows,
+Linux AND macOS host-response acceptance for Codex, Claude, Gemini
+and Roo. Do not promote develop to main until tests
 are actually run and blocking failures resolved; no GitHub Actions
 or hosted CI. Full compiler/LSP semantics remain separately scoped.
 

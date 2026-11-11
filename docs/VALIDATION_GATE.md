@@ -108,6 +108,11 @@ A promotion PR from develop to main requires:
 3. Review of privacy/security regressions and unresolved TODOs.
 4. Updated SKILL.md/README and clear runtime/feature availability status.
 5. Owner approval, no force-push on main and a planned rollback reference.
+6. **CR-3B Answer-Level Disclosure Gate:** actual generated answers
+   disclose task-relevant excluded memory, with host/OS evidence.
+   Passing CLI checks alone is insufficient; missing host support
+   remains explicitly unverified and must be resolved before claiming
+   full cross-host release compatibility.
 
 No automatic tag/version or release announcement follows merely from
 merging the implementations into develop. Real-model A/B token measurements
@@ -158,6 +163,45 @@ are a separate quality goal and cannot be fabricated by local helper tests.
 - Check Windows/Linux, privacy, no memory mutation and no false user
   notification, as part of the consolidated develop validation.
 - Tests authored; **do not mark PASS before execution**.
+
+## CR-3B answer-level disclosure gate — release-blocking (PLANNED)
+
+**Community report:** an excluded stale fact must not silently disappear
+when the answer materially touches that fact. This gate is **not**
+implemented, and no answer-level agent test has been executed.
+
+- In controlled task fixtures, retrieve relevant memory with the
+  standard trust filter and `--explain` evidence. Where a relevant
+  matched fact is withheld, the agent's **actual final answer**
+  must mention the exclusion, cite safe checked source/dependency
+  evidence, explain uncertainty and identify the needed verification.
+- Negative control: unrelated withheld facts should not generate
+  extraneous warnings. Group repeated findings; avoid leaking
+  sensitive note text, adversarial prompts or full raw diagnostics.
+- Direct source changed and indirect imported dependency changed
+  must both trigger correct answer-level review when task relevant.
+  Byte drift must not be described as proof of semantic conflict.
+- Missing Git, unavailable commit, unsupported language, truncated
+  scan and ambiguous relevance remain uncertain; no false
+  `all-clear` or invented delivery confirmation.
+- **Acceptance evidence:** record the real generated answer and
+  check it for meaningful, accurate disclosure. A PASS from
+  `health`/`doctor`, a JSON diagnostic or an instruction bridge
+  alone does **not** pass this gate. Missing a relevant warning
+  in a generated answer is a **release-blocking FAIL**.
+- Distinguish `diagnostics_generated`, `warning_in_agent_response`
+  and `host_delivery_observed` in test logs. The latter may be
+  `not-observed`; do not claim the user saw a message without
+  authenticated host evidence.
+- Repeat with real Codex/Claude/Gemini/Roo responses where supported,
+  on **native Windows, Linux and macOS**. An untested host/OS
+  combination is **UNVERIFIED**, never implicitly PASS.
+
+**Implementation status:** planned; no runtime gate, host hook or
+universal answer interceptor is currently implemented. This
+criterion must be developed, run and evaluated before
+`develop` can be promoted to `main`.
+[Detailed specification](architecture/answer-level-disclosure-gate.md).
 
 ## CR-3 host disclosure protocol (NOT EXECUTED)
 
