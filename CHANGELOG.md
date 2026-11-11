@@ -1,5 +1,20 @@
 # Changes
 
+## Develop — Windows validation reporter and graph-contract test correction
+
+- Explicitly request Node TAP output and normalize TAP/spec test totals
+  including Windows CRLF and ANSI; report reasons for omitted,
+  inconsistent and missing summaries rather than treating exit=0 as
+  automatically complete or incorrectly labeling a valid spec output.
+- Add parser regression fixtures for both formats and fail-closed cases.
+  Locally exercised four isolated reporter cases on Linux Node 22
+  (4/4 PASS); full develop suites and Windows rerun not yet verified.
+- Align the graph-contract test with the existing CLI's
+  `no semantic guarantee` wording. No graph logic changed.
+- Other Windows suites exiting 1 remain open pending original failure
+  logs. No hosted CI or main promotion.
+
+
 ## Develop (validation pending) — RD-5/CR-5 native local acceptance tooling
 
 - Author dependency-free `tests/run_consolidated.mjs` for local native

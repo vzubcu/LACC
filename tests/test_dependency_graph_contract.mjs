@@ -151,5 +151,5 @@ test('CLI reports contract-only state without claiming adapters or reverse scan'
   for (const id of ['js-ts-static','dotnet-static','php-static','python-static'])
     assert.ok(info.registeredAdapters.some(adapter => adapter.id === id));
   assert.equal(info.universalCoverageVerified, undefined);
-  assert.match(info.note, /not semantic correctness/i);
+  assert.match(info.note, /no semantic guarantee|not semantic correctness/i);
 });

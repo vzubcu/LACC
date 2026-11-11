@@ -23,6 +23,26 @@ git --version
 node tests/run_consolidated.mjs
 ```
 
+For Node 22+ on Windows, the runner now explicitly requests
+`--test-reporter=tap` and recognizes both TAP and spec summaries.
+An exit status of 0 is **not sufficient** for PASS: missing/corrupt
+summary, skipped/todo tests or zero tests are INCOMPLETE with
+`status_reason` in `report.json`.
+
+To inspect a failed suite in PowerShell, use the directory printed by
+the runner (replace with the actual path from your run):
+
+```powershell
+$reportDir = Join-Path $env:TEMP "lacc-validation-EXAMPLE"
+Get-Content (Join-Path $reportDir "report.json") -Raw
+Get-Content (Join-Path $reportDir "test_dependency_graph_contract.mjs.log") -Tail 100
+```
+
+For sharing with a maintainer, review/redact private paths and text first.
+Attach `report.json` and the **failed-suite** logs; summaries alone
+cannot distinguish source regression from Git/Python/Windows fixture
+configuration. The runner does not upload diagnostics.
+
 The runner executes all discovered `tests/test_*.mjs` suites separately
 with timeouts, then Python unit tests if Python 3.9+ is available.
 It **does not** install Python, Git, npm packages or agent CLIs.
