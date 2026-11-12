@@ -14,9 +14,15 @@
   No Bash/WSL/Python needed; missing Node/npm prerequisites are UNVERIFIED.
 - Add `--bash-free` partial consolidated mode and `node_core_status`
   evidence without relaxing the complete release gate.
-- Add security and installer preflight regression suites. All code/tests
-  **authored, not validated on three native OSes**. No hosted Actions,
-  external tools installed or `main` merge.
+- Add security, installer preflight and native-path source contract tests.
+  The default Node `capabilities` command no longer executes even a
+  Bash capability probe.
+- Add conservative `aggregate_bash_free.mjs` requiring matching SHA
+  native Windows/Linux/macOS Node+installer evidence **and** independent
+  Linux/macOS legacy Bash results; never claim actual agent answer
+  delivery or final release.
+- All code/tests **authored, not validated on three native OSes**.
+  No hosted Actions, external tools installed or `main` merge.
 
 
 ## Stacked feature PR — BF-2c native bootstrap and Git drift safeguards (unreleased)
