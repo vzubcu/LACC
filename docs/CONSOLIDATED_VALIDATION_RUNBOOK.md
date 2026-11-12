@@ -92,6 +92,12 @@ Node/npm prerequisites return UNVERIFIED (exit 3), not PASS. Installer
 smoke never grants permission for unrelated network requests. Do not
 automatically install anything when the user has not opted in.
 
+To combine native Bash-free evidence with preserved POSIX legacy
+checks, follow [BF-7 acceptance](BASH_FREE_ACCEPTANCE_MATRIX.md)
+and `tests/aggregate_bash_free.mjs`. It uses five separate
+reports and does not require Bash on native Windows, but still
+refuses to certify release or user-visible agent delivery.
+
 **Legacy Python tests:** the shared test harness skips only shell
 wrappers when a bounded `bash -c` execution probe is blocked; it does
 not convert them into PASS. On Linux/macOS with usable Bash they must
