@@ -491,6 +491,38 @@ A generic catalog does not mean the future domain-specific skills are shipped.
 **Acceptance:** skills remain independently installable; shared runtime/memory does not
 create circular dependencies or unverifiable “self-improvement.”
 
+## Universal Runtime 4.0 — portable Node.js + Git (new, experimental)
+
+**Goal:** eliminate Bash/Python dependencies from the **user-facing runtime**
+without losing any existing memory, maintenance, dependency, security, metric,
+or agent-host behavior. Node.js 22+ and Git remain the intended prerequisites.
+
+- **UR-4/M0 — inventory + differential baseline (authored in separate branch,
+  tests not yet executed on the branch):** account for all five Bash scripts,
+  eleven executable Python scripts and two Python libraries. Classify all
+  overlaps as **unverified**, preserve old implementations, and run a small
+  read/health differential in a disposable Git fixture. See
+  [migration contract](docs/architecture/universal-runtime-v4.md).
+- **UR-4/M1 — core memory parity:** init, sync, read, search, health, doctor.
+  Verify Git provenance, permissions, UTF-8 budgets, retention, and no data loss.
+- **UR-4/M2 — memory maintenance:** port dedup/revalidate with explicit
+  approval and expected-digest checks; test rollback and concurrent edits.
+- **UR-4/M3 — exploration helpers:** legacy graph/signal scans, Python AST
+  signatures, context slices and context pressure. Never claim heuristic
+  regex extraction has full AST coverage.
+- **UR-4/M4 — accounting:** reported usage ingestion, provider final-response
+  normalization, context/session totals, cohort/token savings. No fabricated
+  measurements.
+- **UR-4/M5 — cutover:** migrate the legacy test suite and installer smoke,
+  run native Windows/Linux/macOS, preserve host CR-5 answer acceptance;
+  remove Python/Bash scripts **only after** all parity and privacy gates pass,
+  rollback is rehearsed and owner approves.
+
+**Isolation:** UR-4 is not part of draft PR #40. Neither `develop` nor
+`main` may be promoted solely on M0 inventory or partial differential
+evidence. Python/Bash are allowed as *temporary test oracles* during
+migration; they are not the intended production prerequisites.
+
 ## Working order and status rules
 
 **Recommended next delivery (2026-11-11):** RD-4 and CR-3B advisory
