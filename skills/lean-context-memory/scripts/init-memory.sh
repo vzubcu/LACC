@@ -46,7 +46,7 @@ health_command = markdown_code("node " + node_cli + " health . --json")
 common = f"""{start}
 ## Project memory (lean-context-memory v3.2)
 - Use `memory/` as the shared fact store; load {skill_reference} for memory maintenance.
-- At session start use the bundled Node CLI when Node.js and Git are available. Run {sync_command} to inspect source drift; read checkpoint/index once, then relevant topics. If Node is unavailable, use only supported native tools and disclose the missing verification; legacy Python helpers are optional.
+- At session start use the bundled Node CLI when Node.js and Git are available; run {sync_command}; inspect source drift, read checkpoint/index once, then relevant topics. If Node is unavailable, use only supported native tools and disclose the missing verification; legacy Python helpers are optional.
 - For task-specific memory recall prefer the Node read-only search command; Python memory-search.py is a legacy fallback. Verify source-backed results against relevant code before acting.
 - Keep source paths and checked commits on durable facts; keep hypotheses in ACTIVE_STATE.md.
 - Before handoff update affected facts and run {health_command}; stamp only after reviewed evidence and relevant tests pass.
