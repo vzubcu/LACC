@@ -72,8 +72,11 @@ behavioral comparison passes. Do not remove them yet.
    Bash**; absent Python, fallback is clearly marked heuristic and
    `--require-ast` fails closed. These are not compiler/LSP symbols
    and not semantic proof. Unit tests authored; native OS parity pending.
-4. **BF-2c**: reconcile Node init/sync with legacy safety guarantees,
-   including advisory/strict/stamp and all agent templates.
+4. **BF-2c** (stacked feature PR): harden Node init preflight,
+   preserve user fact files and generated instructions, and parse NUL Git
+   rename/dirty evidence with bounded display. Legacy Bash sync/bootstrap
+   are preserved and require independent behavioral parity checks; no
+   single OS test proves security parity on all three platforms.
 5. **BF-3–BF-6**: change agent bridges, introduce independent native
    integration tests, migrate installer smoke, and perform adversarial
    security regression without erasing historical POSIX tests.

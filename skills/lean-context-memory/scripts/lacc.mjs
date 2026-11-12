@@ -21,6 +21,7 @@ import { buildAnswerDisclosure, auditSuppliedAnswer } from './lacc-answer-disclo
 import { sliceContext } from './ctx-slice.mjs';
 import { referenceScan } from './reference-scan.mjs';
 import { signatures } from './signatures.mjs';
+import { parsePorcelainZ, parseDiffNameStatusZ, changesOutsideMemory, formatGitChanges } from './lacc-git-parity.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const skill = path.resolve(here, '..');
@@ -111,7 +112,10 @@ function init(root, opts) {
   const output = [];
   const manifest = localPath(root, 'memory/.bootstrap.json');
   const generated = fs.existsSync(manifest) ? JSON.parse(readUtf8(manifest)) : {};
-  if (!generated || typeof generated !== 'object' || Array.isArray(generated)) throw Error('invalid bootstrap manifest');
+  if (!generated || typeof generated !== 'object' || Array.isArray(generated) ||
+      Object.entries(generated).some(([key, value]) =>
+        typeof key !== 'string' || typeof value !== 'string'))
+    throw Error('invalid bootstrap manifest');
   const next = { ...generated };
   for (const [dest, block] of selected) {
     const target = localPath(root, dest);
@@ -123,13 +127,30 @@ function init(root, opts) {
     else delete next[dest];
     output.push([target, updated]);
   }
-  const templates = templatePaths.map(rel => [localPath(root, 'memory/' + rel), path.join(skill, 'templates', ...rel.split('/'))]);
-  // All paths were checked before any writes; preserve existing project facts.
-  for (const [dest, template] of templates) if (!fs.existsSync(dest)) { fs.mkdirSync(path.dirname(dest), { recursive: true }); fs.copyFileSync(template, dest); }
-  for (const [dest, value] of output) if (!fs.existsSync(dest) || readUtf8(dest) !== value) safeWrite(dest, value);
+  const templates = templatePaths.map(rel =>
+    [localPath(root, 'memory/' + rel), path.join(skill, 'templates', ...rel.split('/'))]);
+  // Preflight ALL destinations before creating ANY template, instruction,
+  // or manifest file. Existing user memory is never silently replaced.
+  for (const [dest, template] of templates) {
+    if (!fs.statSync(template).isFile()) throw Error('missing skill template: ' + template);
+    if (fs.existsSync(dest) && !fs.statSync(dest).isFile())
+      throw Error('memory template destination is not a regular file: ' + dest);
+  }
+  for (const [dest] of output) if (fs.existsSync(dest) && !fs.statSync(dest).isFile())
+    throw Error('instruction destination is not a regular file: ' + dest);
+  if (fs.existsSync(manifest) && !fs.statSync(manifest).isFile())
+    throw Error('bootstrap manifest destination is not a regular file');
+  const missing = templates.filter(([dest]) => !fs.existsSync(dest));
   const manifestData = JSON.stringify(next, null, 2) + '\n';
+  for (const [dest, template] of missing) {
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(template, dest);
+  }
+  for (const [dest, value] of output)
+    if (!fs.existsSync(dest) || readUtf8(dest) !== value) safeWrite(dest, value);
   if (!fs.existsSync(manifest) || readUtf8(manifest) !== manifestData) safeWrite(manifest, manifestData);
-  return { status: 'initialized', agent, created_templates: templates.filter(([dest]) => fs.existsSync(dest)).length, maintained_paths: [...selected.keys()] };
+  return { status: 'initialized', agent, created_templates: missing.length,
+    maintained_paths: [...selected.keys()] };
 }
 function readMemory(root, opts) {
   const max = cap(root, opts), topic = opts.topic ?? [];
@@ -248,6 +269,8 @@ function doctor(root, opts) {
 }
 function sync(root, opts) {
   const file = localPath(root, 'memory/ACTIVE_STATE.md');
+  if (!fs.existsSync(file) || !fs.statSync(file).isFile())
+    throw Error('missing or unsafe ACTIVE_STATE.md; run init first');
   const state = readUtf8(file);
   const match = [...state.matchAll(/^- \*\*Last Synced Commit\*\*: `([^`]+)`[ \t]*$/gm)];
   const strict = Boolean(opts.strict || opts.stamp);
@@ -258,19 +281,31 @@ function sync(root, opts) {
   const valid = /^[a-f\d]{7,40}$/i.test(previous) && git(root, ['rev-parse', '--verify', previous + '^{commit}']).ok;
   const dirty = git(root, ['status', '--porcelain=v1', '-z', '--untracked-files=all']);
   if (!dirty.ok) throw Error('git status failed');
-  const status = dirty.stdout.toString('utf8').split('\0').filter(Boolean).filter(x => !x.slice(3).startsWith('memory/'));
+  // Git -z rename/copy records include two paths; never treat the second
+  // token as a separate file or silently lose source provenance.
+  const status = changesOutsideMemory(parsePorcelainZ(dirty.stdout));
   const manifest = localPath(root, 'memory/.bootstrap.json');
-  const generated = fs.existsSync(manifest) ? JSON.parse(readUtf8(manifest)) : {};
+  let generated = {};
+  if (fs.existsSync(manifest)) {
+    try {
+      const value = JSON.parse(readUtf8(manifest));
+      if (value && typeof value === 'object' && !Array.isArray(value) &&
+          Object.values(value).every(x => typeof x === 'string')) generated = value;
+    } catch { /* invalid ownership metadata never suppresses dirty files */ }
+  }
+  const whitelist = new Set([
+    'AGENTS.md','CLAUDE.md','GEMINI.md','.roo/rules/lean-context-memory.md',
+  ]);
   const clean = status.filter(row => {
-    const name = row.slice(3);
-    if (!row.startsWith('?? ') || !['AGENTS.md','CLAUDE.md','GEMINI.md','.roo/rules/lean-context-memory.md'].includes(name)) return true;
-    try { return sha(fs.readFileSync(localPath(root, name))) !== generated[name]; }
+    if (row.status !== '??' || !whitelist.has(row.path)) return true;
+    try { return sha(fs.readFileSync(localPath(root, row.path))) !== generated[row.path]; }
     catch { return true; }
   });
-  const diff = valid ? git(root, ['diff', '--name-only', '-z', previous, current]) : null;
+  const diff = valid ? git(root, ['diff', '--name-status', '-z', previous, current]) : null;
   if (valid && !diff.ok) throw Error('Git diff failed');
-  const committed = diff ? diff.stdout.toString('utf8').split('\0').filter(x => x && !x.startsWith('memory/')) : [];
-  let output = `Committed drift: ${committed.length} paths\nWorking-tree drift: ${clean.length} paths\n`;
+  const committed = diff ? changesOutsideMemory(parseDiffNameStatusZ(diff.stdout)) : [];
+  let output = formatGitChanges(committed, 'Committed drift') +
+    formatGitChanges(clean, 'Working-tree drift');
   if (!valid) output += 'REVIEW: checkpoint unavailable or unverified\n';
   if (opts.stamp && ((!valid && previous !== 'UNSYNCED') || clean.length)) return { text: output + 'REVIEW: cannot stamp dirty sources or an unavailable prior commit\n', code: 1 };
   if (strict) {
