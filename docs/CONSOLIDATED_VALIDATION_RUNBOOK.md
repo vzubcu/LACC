@@ -23,6 +23,42 @@ git --version
 node tests/run_consolidated.mjs
 ```
 
+### Shell prerequisites and Windows Bash restrictions
+
+The runner performs a bounded execution probe using
+`bash -c 'printf LACC_BASH_OK'` and records `bash_prerequisite` as
+`AVAILABLE` or `BLOCKED` in the private JSON report. Merely finding
+`bash.exe` on Windows is **not** enough: the WSL launcher can return
+`Bash/E_ACCESSDENIED` without executing a shell script.
+
+Python shell-dependent tests **still run** under normal consolidation.
+Actual failures remain FAIL; the Bash probe does not turn them into
+PASS, SKIP, or certified platform coverage. The installer smoke
+(`--installer`) is *not attempted* when Python 3.9+, executable Bash,
+or Node.js 22.20+ is unavailable; it is reported UNVERIFIED with
+the missing prerequisites, and the overall suite is incomplete.
+The probe neither installs shells nor bypasses host security policies.
+
+Run the full Python tests natively on Linux and macOS, not merely on
+Windows with `bash` inaccessible:
+
+```sh
+bash -c 'printf LACC_BASH_OK'
+python3 -m unittest discover -s tests -v
+node tests/run_consolidated.mjs
+```
+
+After the prerequisites pass, installer smoke remains separately
+opt-in and may use a pinned `npx skills@1.7.4` download. Record
+actual output and inspect the temporary logs; do not claim a PASS
+from a skipped or unavailable shell.
+
+The shell-quoting regression in `tests/test_memory_tools.py`
+retains embedded double quotes, single quotes, command substitution
+and backticks on POSIX hosts. On Windows, where `"` is not a legal
+filename character, only that filename element is adapted.
+The original POSIX injection test **must** run on native Linux/macOS.
+
 For Node 22+ on Windows, the runner now explicitly requests
 `--test-reporter=tap` and recognizes both TAP and spec summaries.
 An exit status of 0 is **not sufficient** for PASS: missing/corrupt

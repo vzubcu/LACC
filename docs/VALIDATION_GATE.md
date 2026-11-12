@@ -6,6 +6,19 @@ the former PR #23 head. Fixes were incorporated via PR #26, and RD-1
 changes were added later. **No complete validation of current develop has
 been run.** Do not advertise develop as the stable release.
 
+**Draft PR #40 status (Windows evidence for earlier commit `c5c434f`,
+not current `develop` and not the amended PR head):** user-provided
+native Windows run recorded 19/19 Node suites PASS, Node/Python parity
+PASS, and 135 discovered Python tests with 37 failures, zero errors
+and two skips; all 37 failures were attributed to unavailable
+`bash.exe` (WSL `Bash/E_ACCESSDENIED`). The attached sanitized evidence
+contained summaries rather than independently reviewable per-test
+tracebacks. The amended draft preserves the original POSIX injection
+fixture and adds a Bash-execution prerequisite probe with isolated
+tests; **Windows results must be rerun on the amended SHA** and
+Linux/macOS and installer acceptance remain unverified. No FAIL has
+been transformed into a PASS by skipping Bash-dependent tests.
+
 **Hard constraints:** local execution, no hosted GitHub Actions, no
 auto-merges into main, preserve user memory and private handoffs.
 

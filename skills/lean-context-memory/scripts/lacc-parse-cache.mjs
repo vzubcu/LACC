@@ -9,6 +9,7 @@ const FOLDER='memory/analysis-cache';
 const MAX_ENTRY=16*1024;
 const MAX_INPUT=128*1024;
 const IDENT=/^[a-z][a-z0-9._-]{0,63}$/;
+const VERSION=/^[a-z0-9][a-z0-9._-]{0,63}$/;
 const hash=b=>createHash('sha256').update(b).digest('hex');
 function shape(v){
   return v && typeof v==='object' && !Array.isArray(v) &&
@@ -21,7 +22,7 @@ function shape(v){
     Object.keys(v).sort().join(',')==='imports,unknown';
 }
 function keyFor(parser,version,bytes){
-  if(!IDENT.test(parser)||!IDENT.test(version))throw Error('invalid parser cache contract');
+  if(!IDENT.test(parser)||!VERSION.test(version))throw Error('invalid parser cache contract');
   if(!Buffer.isBuffer(bytes)||bytes.length>MAX_INPUT)
     throw Error('invalid parser cache input');
   return hash(Buffer.from('RD4\0'+parser+'\0'+version+'\0'+hash(bytes)));
