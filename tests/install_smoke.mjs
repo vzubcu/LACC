@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// BF-5 opt-in installer smoke: no Bash/WSL/Python or shell:true.
+// BF-5 opt-in installer smoke: no Bash/WSL/Python or command-shell execution.
 // Uses pinned skills@1.7.4 in an isolated, disposable project only.
 import fs from 'node:fs';
 import os from 'node:os';
