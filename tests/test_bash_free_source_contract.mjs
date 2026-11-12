@@ -29,6 +29,8 @@ test('bundled CLI provides Native BF commands from one portable entrypoint', () 
   const cli = fs.readFileSync(path.join(root, sources[0]), 'utf8');
   for (const command of ['ctx-slice','reference-scan','signatures','sync','init'])
     assert.ok(cli.includes(command), 'missing native command ' + command);
+  assert.doesNotMatch(cli, /probe\(['"]bash['"]/,
+    'native capabilities must not launch Bash to detect it');
 });
 test('historical Bash scripts are retained until actual parity acceptance', () => {
   for (const name of ['ctx-slice.sh','dep-graph.sh','ast-skeleton.sh',
