@@ -126,7 +126,26 @@ instead of pretending to have exact syntax coverage.
 Advanced Python/Bash helpers for reviewed revalidation, persisted
 compaction and provider usage import remain available. Legacy shell
 wrappers and original POSIX security tests are **not** removed. The historical
-Bash wrapper for context slicing remains optional for compatibility. When Node and Python are both absent, agents
+Bash wrapper for context slicing remains optional for compatibility.
+
+**Experimental BF-3..BF-6 tooling** (not yet released from `main`):
+
+```powershell
+# Native exploration with no Bash or mandatory Python
+node <skill_dir>/scripts/lacc.mjs reference-scan src/checkout.ts --signal checkout.ready
+node <skill_dir>/scripts/lacc.mjs signatures src/checkout.ts
+
+# Partial Node-only acceptance, with optional Python parity
+node tests/run_consolidated.mjs --bash-free
+
+# Only when approved to use the network: isolated pinned installer
+node tests/install_smoke.mjs --copy-only
+```
+
+The full legacy Python/Bash integration suites remain separately
+required where POSIX Bash exists. The new Bash-free runner does **not**
+promote those skipped/unrun tests to PASS and cannot certify a release.
+See the [native OS and host acceptance matrix](docs/BASH_FREE_ACCEPTANCE_MATRIX.md). When Node and Python are both absent, agents
 can follow a limited manual memory workflow through native file/Git tools
 and must state which guarantees are unavailable.
 
