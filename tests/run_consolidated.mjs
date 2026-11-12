@@ -50,9 +50,11 @@ function fsCaseSensitive() {
   }
 }
 function pythonCandidate() {
-  const commands = process.platform === 'win32'
-    ? [['py', ['-3']], ['python', []], ['python3', []]]
-    : [['python3', []], ['python', []]];
+  const commands = process.env.LACC_PYTHON
+    ? [[process.env.LACC_PYTHON, []]]
+    : process.platform === 'win32'
+      ? [['py', ['-3']], ['python', []], ['python3', []]]
+      : [['python3', []], ['python', []]];
   for (const [bin, prefix] of commands) {
     const version = commandVersion(bin, [...prefix, '--version']);
     const match = version?.match(/Python (\d+)\.(\d+)/);
