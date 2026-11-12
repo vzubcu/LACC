@@ -8,6 +8,8 @@ import sys
 import tempfile
 import unittest
 
+from legacy_bash_support import require_legacy_bash
+
 
 TOOLS = Path(__file__).resolve().parents[1] / "skills/lean-context-memory/scripts"
 
@@ -39,6 +41,8 @@ class ProjectCase(unittest.TestCase):
         return subprocess.run(["git", "-C", str(self.root), *args], text=True, capture_output=True, check=True)
 
     def run_tool(self, name, *args):
+        if name.endswith(".sh"):
+            require_legacy_bash(self)
         interpreter = sys.executable if name.endswith(".py") else "bash"
         return subprocess.run([interpreter, str(TOOLS / name), *args], cwd=self.root,
                               text=True, capture_output=True)
@@ -280,8 +284,11 @@ class DependencyTests(ProjectCase):
 
 class BootstrapTests(ProjectCase):
     def test_generated_helper_commands_quote_literal_installation_paths(self):
+        require_legacy_bash(self)
         with tempfile.TemporaryDirectory() as install_dir:
-            for name in ["skill$UNSET_TEST_VARIABLE", "skill 'single' \"double\" $(touch INJECTED) `tick`"]:
+            # Preserve POSIX double-quote injection coverage, but not in NTFS names.
+            complex_name = "skill 'single' " + ('"double" ' if os.name != "nt" else "") + "$(touch INJECTED) `tick`"
+            for name in ["skill$UNSET_TEST_VARIABLE", complex_name]:
                 with self.subTest(name=name):
                     install = Path(install_dir) / name
                     shutil.copytree(TOOLS, install / "scripts")
