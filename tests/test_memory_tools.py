@@ -44,13 +44,17 @@ class ProjectCase(unittest.TestCase):
                               text=True, capture_output=True)
 
     def snapshot(self):
-        return {str(p.relative_to(self.root)): p.read_bytes() for p in (self.root / "memory").rglob("*") if p.is_file()}
+        return {p.relative_to(self.root).as_posix(): p.read_bytes()
+                for p in (self.root / "memory").rglob("*") if p.is_file()}
 
     def health(self):
         return self.run_tool("memory-health.py", str(self.root))
 
 
 class MemoryHealthTests(ProjectCase):
+    def test_snapshot_keys_are_stable_across_host_path_separators(self):
+        self.assertIn("memory/topics/architecture.md", self.snapshot())
+
     def test_confirmed_unchanged_source_is_healthy_without_writing_memory(self):
         before = self.snapshot()
         result = self.health()
@@ -281,7 +285,9 @@ class DependencyTests(ProjectCase):
 class BootstrapTests(ProjectCase):
     def test_generated_helper_commands_quote_literal_installation_paths(self):
         with tempfile.TemporaryDirectory() as install_dir:
-            for name in ["skill$UNSET_TEST_VARIABLE", "skill 'single' \"double\" $(touch INJECTED) `tick`"]:
+            # Keep shell metacharacters that are valid in Windows filenames;
+            # double quotes are reserved by Windows and cannot be used here.
+            for name in ["skill$UNSET_TEST_VARIABLE", "skill 'single' $UNSET_TEST_VARIABLE $(touch INJECTED) `tick`"]:
                 with self.subTest(name=name):
                     install = Path(install_dir) / name
                     shutil.copytree(TOOLS, install / "scripts")
