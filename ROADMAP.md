@@ -10,6 +10,16 @@ Version labels below are *tentative*; priorities and acceptance criteria matter 
 
 ## BF — Bash-Free Runtime 4.0 (experimental)
 
+**Reconciled candidate:** the dedicated
+`integration/bash-free-v4-windows-stabilization-20261113` branch
+combines the historical draft PR #40 Windows source corrections
+and stacked BF feature PRs #42–#45. It has **not been executed as
+a combined native matrix**. The user-reported 19/19 Node PASS on an
+earlier PR #40 SHA is historical, not proof for this candidate.
+Linux/macOS, Node 22.20+ installer, native Windows rerun and real
+agent-host acceptance remain mandatory before promotion.
+
+
 [Audit, parity contract and staged acceptance](docs/BASH_FREE_RUNTIME_MIGRATION.md).
 
 - **BF-1 — Bash entrypoint audit:** map the five legacy `.sh` scripts,
