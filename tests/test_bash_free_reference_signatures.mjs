@@ -115,14 +115,34 @@ test('missing files, unsafe targets and invalid limits fail closed', t => {
 });
 test('a symlinked source is rejected instead of scanned', t => {
   const root = fixture(t);
-  try { fs.symlinkSync(path.join(root, 'src/producer.ts'),
-    path.join(root, 'source-link.ts')); }
-  catch (e) {
-    if (['EPERM','EACCES','ENOTSUP'].includes(e.code)) return t.skip('symlink privilege unavailable');
-    throw e;
+  let candidate = 'source-link.ts';
+  try {
+    fs.symlinkSync(path.join(root, 'src/producer.ts'),
+      path.join(root, candidate), 'file');
+  } catch (e) {
+    // Windows commonly prohibits *file* symlinks without Developer Mode,
+    // while directory junctions are available to ordinary processes.
+    // Keep the security assertion by using a junction rather than
+    // skipping the test solely because a file symlink was denied.
+    if (process.platform !== 'win32' ||
+        !['EPERM', 'EACCES', 'ENOTSUP', 'EINVAL'].includes(e.code)) {
+      if (['EPERM', 'EACCES', 'ENOTSUP'].includes(e.code))
+        return t.skip('symlink privilege unavailable');
+      throw e;
+    }
+    try {
+      fs.symlinkSync(path.join(root, 'src'),
+        path.join(root, 'linked-source-dir'), 'junction');
+      candidate = 'linked-source-dir/producer.ts';
+    } catch (junctionError) {
+      if (['EPERM', 'EACCES', 'ENOTSUP', 'EINVAL'].includes(junctionError.code))
+        return t.skip('Windows symlink and junction creation unavailable');
+      throw junctionError;
+    }
   }
-  const result = run(root, 'reference-scan', 'source-link.ts');
+  const result = run(root, 'reference-scan', candidate);
   assert.equal(result.status, 2, result.stderr);
+  assert.equal(result.stdout, '', 'unsafe linked files must never produce excerpts');
 });
 test('native heuristic signatures preserve class/function lines without decorators', t => {
   const root = fixture(t);
