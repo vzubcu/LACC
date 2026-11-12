@@ -49,6 +49,25 @@ function fsCaseSensitive() {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 }
+function bashPrerequisite() {
+  // Probe execution, not presence on PATH: Windows WSL launchers may exist
+  // but refuse execution (Bash/E_ACCESSDENIED). No shell is used by spawnSync.
+  const result = exec('bash', ['-c', 'printf LACC_BASH_OK'], 6000);
+  return {
+    status: !result.error && result.code === 0 && result.stdout === 'LACC_BASH_OK'
+      ? 'AVAILABLE' : 'BLOCKED',
+    error_code: result.error ?? null,
+    exit_code: result.code,
+    reason: result.error || result.code !== 0 || result.stdout !== 'LACC_BASH_OK'
+      ? 'bash-execution-unavailable' : null,
+  };
+}
+function installerNodeSupported(version) {
+  const parts = /^v(\d+)\.(\d+)\.(\d+)$/.exec(version ?? '');
+  if (!parts) return false;
+  const major = Number(parts[1]), minor = Number(parts[2]);
+  return major > 22 || (major === 22 && minor >= 20);
+}
 function pythonCandidate() {
   const commands = process.env.LACC_PYTHON
     ? [[process.env.LACC_PYTHON, []]]
@@ -83,12 +102,14 @@ function run() {
   const output = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-validation-'));
   const node = commandVersion(process.execPath, ['--version']);
   const py = flags.includes('--node-only') ? null : pythonCandidate();
+  const bash = bashPrerequisite();
   const baseline = {
     schema: 1, scope: 'one-local-native-host',
     head, branch: git('rev-parse', '--abbrev-ref', 'HEAD'),
     platform: process.platform, arch: process.arch, os_release: os.release(),
     node, git: commandVersion('git', ['--version']),
     python: py?.version ?? null,
+    bash_prerequisite: bash,
     filesystem_case_sensitive: fsCaseSensitive(),
     repo_status_before: 'clean',
     started_at: new Date().toISOString(),
@@ -146,10 +167,22 @@ function run() {
     reason: flags.includes('--node-only') ? 'explicit node-only run' : 'Python 3.9+ not found',
   });
   if (flags.includes('--installer')) {
-    if (py) {
+    if (!py || bash.status !== 'AVAILABLE' || !installerNodeSupported(node)) {
+      const reasons = [
+        !py ? 'Python 3.9+ unavailable' : null,
+        bash.status !== 'AVAILABLE' ? 'Bash execution blocked/unavailable' : null,
+        !installerNodeSupported(node) ? 'Node 22.20+ required' : null,
+      ].filter(Boolean);
+      baseline.installer_check = 'UNVERIFIED: ' + reasons.join('; ');
+      baseline.suite_results.push({
+        suite: 'installer-smoke', status: 'UNVERIFIED',
+        reason: baseline.installer_check,
+      });
+      process.stdout.write('installer-smoke: UNVERIFIED (' + reasons.join('; ') + ')\n');
+    } else {
       executeSuite('installer-smoke', py.bin, [...py.prefix, 'tests/install_smoke.py'], 300000);
       baseline.installer_check = baseline.suite_results.at(-1).status;
-    } else baseline.installer_check = 'UNVERIFIED: Python 3.9+ missing';
+    }
   }
   baseline.repo_status_after = git('status', '--porcelain=v1', '--untracked-files=all')
     ? 'DIRTY_AFTER_TESTS' : 'clean';
