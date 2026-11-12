@@ -16,6 +16,7 @@ const OUTBOUND = /\b(?:import|require|include)\b|\bfrom\s+\S+\s+import\b|["']\.{
 const QUOTES = /["']([^"']+)["']/g;
 const REDACT = /\b(?:password|secret|token|api[_-]?key|private[_-]?key)\s*[:=]/i;
 const utf8 = v => Buffer.byteLength(v, 'utf8');
+const safeDisplay = text => text.replace(/[\x00-\x1f\x7f-\x9f]/g, '?');
 const posix = p => p.split(path.sep).join('/');
 const escapeRE = s => s.replace(/[\^$.*+?()[\]{}|\\]/g, '\\$&');
 const within = (root, target) => {
@@ -196,8 +197,8 @@ export function referenceScan(argv, { cwd = process.cwd(),
           if (REDACT.test(lines[i])) { redacted++; continue; }
           total++;
           matches.push({ ...matched, name, number: i + 1,
-            display: matched.kind + ' ' + name.replaceAll('\n', '\\n') +
-              ':' + (i + 1) + ': ' + lines[i].trim() });
+            display: matched.kind + ' ' + safeDisplay(name) +
+              ':' + (i + 1) + ': ' + safeDisplay(lines[i].trim()) });
           matches.sort((a, b) => a.rank - b.rank ||
             a.name.localeCompare(b.name, 'en') || a.number - b.number);
           if (matches.length > opts.limit) matches.pop();
