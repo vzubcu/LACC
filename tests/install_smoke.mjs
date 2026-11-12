@@ -50,8 +50,9 @@ function relativeFiles(dir) {
   function visit(sub) {
     for (const item of fs.readdirSync(path.join(dir, sub), { withFileTypes: true })) {
       const rel = path.join(sub, item.name);
+      if (item.isSymbolicLink()) throw Error('refusing symlinked file in skill payload: ' + rel);
       if (item.isDirectory()) visit(rel);
-      else if (item.isFile() || item.isSymbolicLink()) found.push(rel);
+      else if (item.isFile()) found.push(rel);
     }
   }
   visit('');
@@ -90,6 +91,11 @@ function verifyRuntime(installed, cwd) {
     check(fs.existsSync(path.join(root, '.roo/rules/lean-context-memory.md')),
       'Roo bridge missing');
     run('read', process.execPath, [cli, 'read', root], root, 15000);
+    const health = run('health', process.execPath, [cli, 'health', root, '--json'],
+      root, 15000);
+    const verdict = JSON.parse(health.stdout);
+    check(['healthy', 'review'].includes(verdict.status),
+      'health must return a meaningful, non-fabricated verdict');
     run('context slice', process.execPath, [cli, 'ctx-slice', state, '10'], root, 15000);
     run('signature help', process.execPath, [cli, 'signatures', '--help'], root);
     run('reference help', process.execPath, [cli, 'reference-scan', '--help'], root);
