@@ -101,8 +101,11 @@ function inventoryGit(root) {
 }
 function inventoryWalk(root, max) {
   const stack = [root], files = [];
-  let incomplete = false;
+  let incomplete = false, visitedDirectories = 0;
+  // A project can contain many empty directories; cap traversal too.
+  const directoryBudget = Math.min(80000, max * 4 + 256);
   while (stack.length && files.length <= max) {
+    if (++visitedDirectories > directoryBudget) { incomplete = true; break; }
     const dir = stack.pop();
     let entries;
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
