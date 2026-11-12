@@ -147,7 +147,33 @@ results via \`tests/aggregate_consolidated.mjs\` only after mapping legacy
 skip policy and installed runtime evidence. Existing RD-5/CR-5
 aggregation never independently proves host delivery.
 
-## 6. Release/deprecation decision
+## 6. Aggregate the five native evidence reports
+
+For BF-7 specifically, the original RD-5 aggregator is kept unchanged.
+The Bash-free aggregator requires three core+installer reports (one per
+native OS), plus two full Python/Bash legacy reports (native Linux and
+macOS). All five must use the **same exact Git SHA** and branch. This
+avoids requiring POSIX Bash on Windows while preserving legacy parity
+requirements on platforms that actually support it:
+
+```sh
+node tests/aggregate_bash_free.mjs \
+  --windows ./validation/windows-core.json \
+  --linux ./validation/linux-core.json \
+  --macos ./validation/macos-core.json \
+  --linux-legacy ./validation/linux-full.json \
+  --macos-legacy ./validation/macos-full.json
+```
+
+Copy only reviewed/redacted report JSON files from the local per-host
+validation folder. The aggregator rejects symlinks, oversized/malformed
+files, mismatched commits/branches, skipped Node tests, missing
+installers and skipped POSIX Python tests. Even if the five reports
+say PASS, the output is only
+`REPORTED_PASS_PENDING_INDEPENDENT_REVIEW`; its release gate remains
+`NOT_PASSED` until independent host-answer checks and owner approval.
+
+## 7. Release/deprecation decision
 
 **Do not delete the five shell wrappers or declare the 4.0 migration
 released** before:
