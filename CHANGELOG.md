@@ -1,5 +1,24 @@
 # Changes
 
+## Stacked feature PR — BF-2b reference candidates and signatures (unreleased)
+
+- Add `reference-scan.mjs` for bounded, ranked import/symbol/literal
+  event evidence, Git-aware candidate inventory with filesystem fallback,
+  private-file exclusions and honest incomplete-coverage output.
+- Add `signatures.mjs` for dependency-free declaration heuristics,
+  using the bundled Python `signatures.py` through isolated subprocess
+  arguments when genuine Python AST is available; `--require-ast`
+  refuses to downgrade to a heuristic silently.
+- Expose both through `lacc.mjs`, with a native regression suite for
+  root/nested imports, path safety, private files, byte budgets,
+  platform-specific optional Python AST and missing parser fallback.
+- No Bash invoked by these Node helpers. Python is **optional for exact
+  AST**, and compiler-level semantic resolution is not claimed.
+- **Authored, not fully executed:** native Windows/Linux/macOS acceptance
+  and comparison against legacy helpers remain open. This is stacked
+  on BF-2a, not merged into `develop` or `main`.
+
+
 ## Feature PR — BF-1 audit and BF-2a native context slicer (unreleased)
 
 - Inventory all five Bash wrappers and separate semantic/AST,
