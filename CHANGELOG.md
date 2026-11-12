@@ -1,5 +1,22 @@
 # Changes
 
+## Integration candidate — PR #40 Windows fixes + BF-1..BF-7 (unreleased)
+
+- Reconcile the historical Windows PR #40 source fixes: normalized
+  findings ordering, parser cache tokens, session evidence edges,
+  Python stdout bytes, and corrected validation assertions.
+- Preserve BF-1..BF-7 Bash-free Node runtime, test harness, isolated
+  installer and native matrix. Bash is NOT a dependency of the
+  Node core or BF installer; the old Bash-execution probe is no
+  longer run from the new Node-first runner.
+- Retain the historical Bash prerequisite classifier as an isolated
+  optional legacy test contract. On blocked Windows the legacy tests
+  are SKIPPED/UNVERIFIED, not falsely PASS.
+- This integration branch is an **authored test candidate**, not an
+  executed cross-OS validation or a merged release. `develop` and
+  `main` remain unmodified.
+
+
 ## Stacked feature PR — BF-3 to BF-6, native Bash-free acceptance tooling (unreleased)
 
 - The legacy initializer now generates Node-first sync/health commands,
