@@ -1,0 +1,171 @@
+{
+  "schema": 1,
+  "milestone": "Universal Runtime 4.0",
+  "baseline_commit": "cc4bc0bca2bea2e3cbc56a29a6101337f9e585b3",
+  "migration_state": "INVENTORY_ONLY",
+  "policy": "No deletion or replacement of a legacy path before executed parity, security, and cross-OS acceptance",
+  "legacy": [
+    {
+      "path": "skills/lean-context-memory/scripts/ast-skeleton.sh",
+      "runtime": "bash",
+      "role": "wrapper",
+      "migration": "missing",
+      "node_command": null,
+      "risk": "high",
+      "contract": "AST/signature extraction wrapper; Python AST is not covered by a Node parser"
+    },
+    {
+      "path": "skills/lean-context-memory/scripts/ctx-slice.sh",
+      "runtime": "bash",
+      "role": "wrapper",
+      "migration": "missing",
+      "node_command": null,
+      "risk": "medium",
+      "contract": "Bounded stdin/file slicing, retention, cleanup and binary output"
+    },
+    {
+      "path": "skills/lean-context-memory/scripts/dep-graph.sh",
+      "runtime": "bash",
+      "role": "wrapper",
+      "migration": "missing",
+      "node_command": null,
+      "risk": "high",
+      "contract": "Legacy literal signal/symbol references; Node dependency-impact has different semantics"
+    },
+    {
+      "path": "skills/lean-context-memory/scripts/init-memory.sh",
+      "runtime": "bash",
+      "role": "wrapper",
+      "migration": "candidate-unverified",
+      "node_command": "init",
+      "risk": "high",
+      "contract": "Legacy bootstrap/native bridges; preserve existing user instructions"
+    },
+    {
+      "path": "skills/lean-context-memory/scripts/sync-memory.sh",
+      "runtime": "bash",
+      "role": "wrapper",
+      "migration": "candidate-unverified",
+      "node_command": "sync",
+      "risk": "high",
+      "contract": "Checkpoint stamping, dirty Git exclusions and advisory drift"
+    },
+    {
+      "path": "skills/lean-context-memory/scripts/context-pressure.py",
+      "runtime": "python",
+      "role": "tool",
+      "migration": "missing",
+      "node_command": null,
+      "risk": "medium",
+      "contract": "Codex trace ingestion and context pressure thresholds"
+    },
+    {
+      "path": "skills/lean-context-memory/scripts/ctx_slice.py",
+      "runtime": "python",
+      "role": "tool",
+      "migration": "missing",
+      "node_command": null,
+      "risk": "medium",
+      "contract": "Stdin streaming, bounded head/tail and private temporary files"
+    },
+    {
+      "path": "skills/lean-context-memory/scripts/dep_graph.py",
+      "runtime": "python",
+      "role": "tool",
+      "migration": "missing",
+      "node_command": null,
+      "risk": "high",
+      "contract": "Static reference candidate inventory, exclusions and scan budgets"
+    },
+    {
+      "path": "skills/lean-context-memory/scripts/memory-doctor.py",
+      "runtime": "python",
+      "role": "tool",
+      "migration": "candidate-unverified",
+      "node_command": "doctor",
+      "risk": "high",
+      "contract": "Read-only diagnostics, classification and output budgets"
+    },
+    {
+      "path": "skills/lean-context-memory/scripts/memory-health.py",
+      "runtime": "python",
+      "role": "tool",
+      "migration": "candidate-unverified",
+      "node_command": "health",
+      "risk": "high",
+      "contract": "Source-backed structural health and correct exit semantics"
+    },
+    {
+      "path": "skills/lean-context-memory/scripts/memory-maintain.py",
+      "runtime": "python",
+      "role": "tool",
+      "migration": "missing",
+      "node_command": null,
+      "risk": "critical",
+      "contract": "Compact/revalidate preview, digest CAS, --reviewed and --apply writes"
+    },
+    {
+      "path": "skills/lean-context-memory/scripts/memory-read.py",
+      "runtime": "python",
+      "role": "tool",
+      "migration": "candidate-unverified",
+      "node_command": "read",
+      "risk": "medium",
+      "contract": "Bounded UTF-8 topic loading, truncation and no raw sensitive data leaks"
+    },
+    {
+      "path": "skills/lean-context-memory/scripts/memory-search.py",
+      "runtime": "python",
+      "role": "tool",
+      "migration": "candidate-unverified",
+      "node_command": "search",
+      "risk": "high",
+      "contract": "Trusted fact recall, ranking, reviewed vs withheld and limits"
+    },
+    {
+      "path": "skills/lean-context-memory/scripts/memory_common.py",
+      "runtime": "python",
+      "role": "library",
+      "migration": "library-review",
+      "node_command": null,
+      "risk": "critical",
+      "contract": "Shared source verification, safe paths, fact parser, Git object hashes"
+    },
+    {
+      "path": "skills/lean-context-memory/scripts/session-totals.py",
+      "runtime": "python",
+      "role": "tool",
+      "migration": "missing",
+      "node_command": null,
+      "risk": "medium",
+      "contract": "Reported token totals and matched cohort comparisons"
+    },
+    {
+      "path": "skills/lean-context-memory/scripts/signatures.py",
+      "runtime": "python",
+      "role": "tool",
+      "migration": "missing",
+      "node_command": null,
+      "risk": "high",
+      "contract": "Python ast parsing and bounded multilingual signature extraction"
+    },
+    {
+      "path": "skills/lean-context-memory/scripts/usage-report.py",
+      "runtime": "python",
+      "role": "tool",
+      "migration": "missing",
+      "node_command": null,
+      "risk": "high",
+      "contract": "Codex/API usage imports, matched token savings and cost accounting"
+    },
+    {
+      "path": "skills/lean-context-memory/scripts/usage_providers.py",
+      "runtime": "python",
+      "role": "library",
+      "migration": "library-review",
+      "node_command": null,
+      "risk": "high",
+      "contract": "Final provider response normalization across 4 API formats"
+    }
+  ]
+}
