@@ -112,7 +112,10 @@ function init(root, opts) {
   const output = [];
   const manifest = localPath(root, 'memory/.bootstrap.json');
   const generated = fs.existsSync(manifest) ? JSON.parse(readUtf8(manifest)) : {};
-  if (!generated || typeof generated !== 'object' || Array.isArray(generated)) throw Error('invalid bootstrap manifest');
+  if (!generated || typeof generated !== 'object' || Array.isArray(generated) ||
+      Object.entries(generated).some(([key, value]) =>
+        typeof key !== 'string' || typeof value !== 'string'))
+    throw Error('invalid bootstrap manifest');
   const next = { ...generated };
   for (const [dest, block] of selected) {
     const target = localPath(root, dest);
@@ -124,13 +127,30 @@ function init(root, opts) {
     else delete next[dest];
     output.push([target, updated]);
   }
-  const templates = templatePaths.map(rel => [localPath(root, 'memory/' + rel), path.join(skill, 'templates', ...rel.split('/'))]);
-  // All paths were checked before any writes; preserve existing project facts.
-  for (const [dest, template] of templates) if (!fs.existsSync(dest)) { fs.mkdirSync(path.dirname(dest), { recursive: true }); fs.copyFileSync(template, dest); }
-  for (const [dest, value] of output) if (!fs.existsSync(dest) || readUtf8(dest) !== value) safeWrite(dest, value);
+  const templates = templatePaths.map(rel =>
+    [localPath(root, 'memory/' + rel), path.join(skill, 'templates', ...rel.split('/'))]);
+  // Preflight ALL destinations before creating ANY template, instruction,
+  // or manifest file. Existing user memory is never silently replaced.
+  for (const [dest, template] of templates) {
+    if (!fs.statSync(template).isFile()) throw Error('missing skill template: ' + template);
+    if (fs.existsSync(dest) && !fs.statSync(dest).isFile())
+      throw Error('memory template destination is not a regular file: ' + dest);
+  }
+  for (const [dest] of output) if (fs.existsSync(dest) && !fs.statSync(dest).isFile())
+    throw Error('instruction destination is not a regular file: ' + dest);
+  if (fs.existsSync(manifest) && !fs.statSync(manifest).isFile())
+    throw Error('bootstrap manifest destination is not a regular file');
+  const missing = templates.filter(([dest]) => !fs.existsSync(dest));
   const manifestData = JSON.stringify(next, null, 2) + '\n';
+  for (const [dest, template] of missing) {
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(template, dest);
+  }
+  for (const [dest, value] of output)
+    if (!fs.existsSync(dest) || readUtf8(dest) !== value) safeWrite(dest, value);
   if (!fs.existsSync(manifest) || readUtf8(manifest) !== manifestData) safeWrite(manifest, manifestData);
-  return { status: 'initialized', agent, created_templates: templates.filter(([dest]) => fs.existsSync(dest)).length, maintained_paths: [...selected.keys()] };
+  return { status: 'initialized', agent, created_templates: missing.length,
+    maintained_paths: [...selected.keys()] };
 }
 function readMemory(root, opts) {
   const max = cap(root, opts), topic = opts.topic ?? [];
