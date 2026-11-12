@@ -18,6 +18,7 @@ import { normalizeMemoryFindings, FINDING_SCHEMA } from './lacc-findings.mjs';
 import { disclosureContract, DISCLOSURE_AGENT_RULES } from './lacc-disclosure.mjs';
 import { buildDisclosureSummary, markDisclosureSeen } from './lacc-disclosure-ux.mjs';
 import { buildAnswerDisclosure, auditSuppliedAnswer } from './lacc-answer-disclosure.mjs';
+import { sliceContext } from './ctx-slice.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const skill = path.resolve(here, '..');
@@ -62,7 +63,7 @@ function runtimeStatus() {
     platform: process.platform, node: process.version,
     git: probe('git', ['--version']), python: probe('python', ['--version']) ?? probe('python3', ['--version']),
     bash: probe('bash', ['--version']),
-    commands: { init: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true, 'dependency-impact': true, 'explain-findings': true, 'disclosure-contract': true, 'disclosure-summary': true, 'disclosure-mark-seen': true, 'answer-disclosure': true, 'semantic-hints': true, 'parse-cache': true },
+    commands: { init: true, 'ctx-slice': true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true, 'dependency-impact': true, 'explain-findings': true, 'disclosure-contract': true, 'disclosure-summary': true, 'disclosure-mark-seen': true, 'answer-disclosure': true, 'semantic-hints': true, 'parse-cache': true },
     strict_git_evidence: Boolean(probe('git', ['--version'])),
     python_maintenance: 'optional separate Python tool; not implemented in Node',
     mode: 'node',
@@ -283,7 +284,7 @@ function sync(root, opts) {
   const review = !valid || committed.length || clean.length;
   return { text: output + (review ? 'REVIEW: inspect source changes\n' : 'NO SOURCE DRIFT; not semantic proof\n'), code: strict && review ? 1 : 0 };
 }
-function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover, dependency-contract, dependency-impact, disclosure-contract, disclosure-summary, disclosure-mark-seen, answer-disclosure\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --explain (normalized, agent-only); --detail (disclosure summary); --deps (experimental); --semantic (literal JS/TS alias hints); --cache (private parse-token writes); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --task ID; --expect-head SHA; --reviewed; --claim TEXT; --response-file PATH (answer-disclosure only)\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
+function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, ctx-slice, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover, dependency-contract, dependency-impact, disclosure-contract, disclosure-summary, disclosure-mark-seen, answer-disclosure\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --explain (normalized, agent-only); --detail (disclosure summary); --deps (experimental); --semantic (literal JS/TS alias hints); --cache (private parse-token writes); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --task ID; --expect-head SHA; --reviewed; --claim TEXT; --response-file PATH (answer-disclosure only)\nCore Node commands require no Python, Bash, WSL, cloud SDK, or external npm packages.\nFor ctx-slice: node lacc.mjs ctx-slice [file|-] [max_lines=100] [--keep].\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
 export function main(argv = process.argv.slice(2)) {
   const [command = 'help', ...args] = argv;
   if (['help', '--help', '-h'].includes(command)) { process.stdout.write(help()); return 0; }
@@ -486,5 +487,14 @@ export function main(argv = process.argv.slice(2)) {
   if (command === 'sync') { const r = sync(root, opts); process.stdout.write(r.text); return r.code; }
   throw Error('unsupported command: ' + command);
 }
-try { process.exitCode = main(); }
-catch (error) { process.stderr.write('ERROR: ' + error.message + '\n'); process.exitCode = 2; }
+// Context slicing consumes streamed stdin and is intentionally dispatched
+// outside the project-root CLI parser; it never accesses memory or Git.
+if (['ctx-slice', 'context-slice'].includes(process.argv[2])) {
+  sliceContext(process.argv.slice(3)).then(code => { process.exitCode = code; })
+    .catch(error => {
+      process.stderr.write('ERROR: ' + error.message + '\n'); process.exitCode = 2;
+    });
+} else {
+  try { process.exitCode = main(); }
+  catch (error) { process.stderr.write('ERROR: ' + error.message + '\n'); process.exitCode = 2; }
+}

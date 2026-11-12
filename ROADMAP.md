@@ -8,6 +8,31 @@ This is the **canonical forward-looking roadmap**. `CHANGELOG.md` records shippe
 historical `docs/superpowers/plans/` describe earlier implementation plans, not the current backlog.
 Version labels below are *tentative*; priorities and acceptance criteria matter more than version numbers.
 
+## BF — Bash-Free Runtime 4.0 (experimental)
+
+[Audit, parity contract and staged acceptance](docs/BASH_FREE_RUNTIME_MIGRATION.md).
+
+- **BF-1 — Bash entrypoint audit:** map the five legacy `.sh` scripts,
+  their Python implementations, agent/installer references, safety
+  conditions and test coverage. **Authored in feature branch; not
+  merged into develop.**
+- **BF-2a — Node context slice:** streamed stdin/file with head/tail,
+  default no retention, explicit private `--keep`, bounded lines and
+  errors, native CLI exposure and Node regression suite. **Code/tests
+  authored; full cross-OS acceptance pending.**
+- **BF-2b — Native signature and reference-scan adapters:** retain
+  Python AST precision or mark heuristic coverage incomplete; do not
+  conflate the existing reverse-dependency impact command with the
+  historical general reference search.
+- **BF-2c — Init/sync behavior parity:** match all checkpoint, dirty
+  Git, bootstrap ownership, agent bridge and symlink refusal paths.
+- **BF-3–BF-6 — Agent guidance, Python/Bash-free test coverage,
+  isolated installer, privacy/security hardening.** Existing POSIX Bash
+  security fixtures must not disappear to produce green Windows tests.
+- **BF-7/8 — Same-SHA native Windows/Linux/macOS validation, host
+  responses and controlled deprecation** with a rollback plan. Until
+  then the five Bash wrappers stay available; no `main` release.
+
 ## Design constraints
 
 1. A Git-unchanged source is **evidence freshness**, not proof that the remembered claim is semantically true.

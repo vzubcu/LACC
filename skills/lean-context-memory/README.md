@@ -8,6 +8,26 @@ Python 3.9+/Bash helpers remain available for advanced maintenance and tools.
 If no Node exists, follow the limited native-agent fallback described below.
 Windows-specific Node validation is pending; Linux local smoke passed.
 
+## Experimental Bash-free context slicing (BF-2a)
+
+The feature branch adds a native streaming context slicer:
+
+```sh
+node <skill_dir>/scripts/lacc.mjs ctx-slice ./log.txt 100
+node <skill_dir>/scripts/lacc.mjs ctx-slice - 100
+node <skill_dir>/scripts/lacc.mjs ctx-slice - 100 --keep
+```
+
+No Bash or Python is needed for this command. The default consumes
+stdin without keeping a complete copy. `--keep` explicitly writes
+private stdin bytes in an OS temporary directory; it never writes to
+project `memory/`. Input lines over 1 MiB, excessive line-count
+requests and captured output over 16 MiB fail visibly. The existing
+`ctx-slice.sh` and `ctx_slice.py` remain for compatibility; Python
+AST extraction, dependency reference scanning, bootstrap/sync parity
+and legacy Bash test acceptance are still migration tasks.
+See [BF-1 audit](../../docs/BASH_FREE_RUNTIME_MIGRATION.md).
+
 ## Install and initialize
 
 ```bash

@@ -86,9 +86,32 @@ Replace `<skill_dir>` with the installed skill directory. Do **not** use
 Node commands use no third-party packages or cloud APIs. Git is required to
 confirm sources; without Git, recalled facts must remain unverified.
 
+**Bash-Free Runtime migration (BF-1/BF-2a; experimental feature PR):**
+[parity and migration audit](docs/BASH_FREE_RUNTIME_MIGRATION.md).
+The first new portable helper is context slicing:
+
+```powershell
+# Read from a file without Git Bash or Python
+node <skill_dir>/scripts/lacc.mjs ctx-slice ./debug.log 100
+
+# Stream stdin without saving full input
+Get-Content ./debug.log | node <skill_dir>/scripts/lacc.mjs ctx-slice - 100
+
+# Explicitly keep stdin only in a private temporary location
+Get-Content ./debug.log | node <skill_dir>/scripts/lacc.mjs ctx-slice - 100 --keep
+```
+
+The new command preserves the bounded head/tail workflow with 60/40
+line allocation; it limits each line to 1 MiB, captured output to 16 MiB,
+and max_lines to 10,000. Oversized input is an explicit error, not silent
+truncation. `--keep` creates a private temporary file **only on request**.
+This development command is not yet in `main`, and full Windows/macOS
+regression has not been executed.
+
 Advanced Python/Bash helpers (reviewed revalidation, persisted compaction,
-dependency graph, AST and log slicing, provider usage import) are retained
-and **not** claimed as ported. When Node and Python are both absent, agents
+legacy dependency reference scan, Python AST signatures and provider usage
+import) remain available and are **not** claimed as migrated. The historical
+Bash wrapper for context slicing remains optional for compatibility. When Node and Python are both absent, agents
 can follow a limited manual memory workflow through native file/Git tools
 and must state which guarantees are unavailable.
 
