@@ -39,7 +39,16 @@ Git-revision-aware `dependency-impact`. Python AST extraction uses the
 existing stdlib parser through a direct Python process when installed;
 Node-only fallback explicitly reports heuristic/AST-unavailable status.
 Neither path guarantees semantic/call-graph correctness.
-Bootstrap/sync parity and legacy Bash test acceptance are still pending.
+Bootstrap/sync safeguards are authored with dedicated native regression
+tests, but cross-OS and legacy parity remain unverified.
+
+The optional installer smoke is `node tests/install_smoke.mjs --copy-only`
+from the repository root; it requires Node 22.20+, pinned npx and
+approved network access, **not** Bash. The consolidated
+`node tests/run_consolidated.mjs --bash-free` mode tests the Bash-free
+core without claiming the historical Python/Bash suite passed.
+See [native acceptance matrix](../../docs/BASH_FREE_ACCEPTANCE_MATRIX.md).
+Legacy wrappers remain supported for backward compatibility.
 See [BF-1 audit](../../docs/BASH_FREE_RUNTIME_MIGRATION.md).
 
 ## Install and initialize
