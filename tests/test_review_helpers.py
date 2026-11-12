@@ -50,6 +50,7 @@ class HelperReviewTests(ProjectCase):
         result = self.run_tool('ctx-slice.sh', '-', 'bad')
         self.assertEqual(result.returncode, 2)
 
+    @unittest.skipIf(os.name == "nt", "POSIX chmod mode 0600 must be validated on Linux/macOS")
     def test_saved_stdin_slice_is_private(self):
         require_legacy_bash(self)
         with tempfile.TemporaryDirectory() as directory:
