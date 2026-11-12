@@ -63,6 +63,13 @@ native file/Git tools; **never claim unchecked facts are verified**.
    `node <skill_dir>/scripts/lacc.mjs doctor . --json` for a read-only triage plan.
    Verify current code and tests before any selected revalidation or factual rewrite.
 
+For portable, bounded debugging context (experimental BF-2a), use
+`node <skill_dir>/scripts/lacc.mjs ctx-slice <file> 100`, or
+`node <skill_dir>/scripts/lacc.mjs ctx-slice - 100` for stdin.
+Do not use `--keep` unless the user explicitly wants a retained private
+copy of stdin. It is not a trusted memory check. See
+[BF migration audit](../../docs/BASH_FREE_RUNTIME_MIGRATION.md).
+
 If Node is absent but Python/Bash are available, the existing helpers remain
 supported. Without an executable runtime, use the host's native tools to inspect
 files and Git; mark unverified evidence honestly, and do not stamp automatically.
