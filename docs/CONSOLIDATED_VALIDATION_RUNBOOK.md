@@ -23,6 +23,18 @@ git --version
 node tests/run_consolidated.mjs
 ```
 
+### PR #40 reconciliation (Bash-free integration candidate)
+
+The Windows stabilization PR #40 included an optional
+`bash_prerequisite` execution probe for its earlier Bash-based
+installer workflow. BF-5 now replaces that installer with a Node-only
+smoke test; **the integrated Node runner does not probe or launch Bash
+by default**. Its historical classifier remains in a separate
+regression module but does not make Bash a runtime prerequisite.
+Legacy Python wrappers are still tested on POSIX hosts, and a denied
+Windows Bash is explicitly unverified/skipped rather than PASS.
+See [the BF-7 five-report gate](BASH_FREE_ACCEPTANCE_MATRIX.md).
+
 For Node 22+ on Windows, the runner now explicitly requests
 `--test-reporter=tap` and recognizes both TAP and spec summaries.
 An exit status of 0 is **not sufficient** for PASS: missing/corrupt
