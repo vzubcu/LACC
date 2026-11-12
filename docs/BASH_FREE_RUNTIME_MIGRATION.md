@@ -77,13 +77,25 @@ behavioral comparison passes. Do not remove them yet.
    rename/dirty evidence with bounded display. Legacy Bash sync/bootstrap
    are preserved and require independent behavioral parity checks; no
    single OS test proves security parity on all three platforms.
-5. **BF-3–BF-6**: change agent bridges, introduce independent native
-   integration tests, migrate installer smoke, and perform adversarial
-   security regression without erasing historical POSIX tests.
-6. **BF-7–BF-8**: run all required tests on native Windows, Linux and
-   macOS against the same SHA, validate host-generated Codex/Claude/
-   Gemini/Roo responses, measure tokens, then deprecate wrappers only
-   with confirmed behavioral parity and a rollback plan.
+5. **BF-3–BF-6** (stacked feature PR): legacy initializer emits
+   Node-first instructions; original POSIX Bash tests run where Bash
+   actually executes and are SKIPPED (never PASS) where blocked;
+   separate Node suites exercise the replacement functionality;
+   opt-in pinned installer smoke uses Node only; security regression
+   covers private paths, no source execution and symlink boundaries.
+   The consolidated runner can report partial `--bash-free` Node core
+   evidence without asserting legacy parity. **Code authored; full
+   Windows/Linux/macOS validation pending.**
+6. **BF-7–BF-8**: follow the
+   [native Bash-free acceptance matrix](BASH_FREE_ACCEPTANCE_MATRIX.md)
+   on the same reviewed SHA. A conservative five-report aggregator is
+   authored: Node+installer on Windows/Linux/macOS and Bash legacy
+   suites on Linux/macOS, without Windows Bash dependency. The
+   aggregator only inventories operator-supplied JSON and never
+   attests native execution or host answer delivery. Record actual
+   Codex/Claude/Gemini/Roo responses and opt-in installer results;
+   only then consider deprecating wrappers with a rollback plan and
+   maintainer approval. Do not call an authored test a passed test.
 
 **Release gate:** Experimental until native three-OS results, complete
 legacy/new command parity, installer acceptance, privacy regressions,

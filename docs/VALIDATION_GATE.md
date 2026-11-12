@@ -84,7 +84,10 @@ a local Python-capable environment:
 python3 -m unittest discover -s tests -v
 ```
 
-The full installer smoke test needs npm/npx, Git, Python and Bash and may
+The experimental BF-5 Node-only installer smoke test needs npm/npx,
+Git and Node 22.20+, but no Python or Bash. The retained historical
+Python installer test still needs Bash and is separate. The full
+installer smoke may
 fetch an npm package. Run it only in a supported local container/VM:
 
 ```bash
@@ -241,6 +244,20 @@ criterion must be executed and evaluated before
   a generated bridge is **not** proof a host actually obeyed it.
 - All assertions are authored, **not run** before consolidated develop
   acceptance. No hosted GitHub Actions.
+
+## Bash-free migration acceptance (BF-7/BF-8; experimental)
+
+The staged BF-1..BF-6 implementation cannot be promoted solely because
+the Node command names exist. Use [BF acceptance matrix](BASH_FREE_ACCEPTANCE_MATRIX.md)
+for same-SHA native Windows/Linux/macOS results, memory preservation,
+safety/parity with old helper outputs, isolated installer and actual
+agent-generated responses. Run `node tests/run_consolidated.mjs --bash-free`
+as a **partial Node-core check**. Its report explicitly leaves legacy
+Python tests unverified; it is not a release certificate. On platforms
+where Bash is executable, run the **unmodified** legacy POSIX tests
+separately to prove historical behavior is retained. On Windows with
+`Bash/E_ACCESSDENIED`, mark them SKIPPED/UNVERIFIED, never PASS.
+No hosted Actions or `main` merge until validation and manual review.
 
 ## Platform matrix (release-blocking for macOS support)
 

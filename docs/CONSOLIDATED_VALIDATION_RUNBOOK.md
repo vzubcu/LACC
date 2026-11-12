@@ -62,17 +62,48 @@ For a deliberately **partial** Node-only check (not release acceptance):
 node tests/run_consolidated.mjs --node-only
 ```
 
-For installer smoke, opt in separately. This may use network access
-for the pinned skills installer and requires its documented Node
-version (currently 22.20+) and Python/Bash on supported platforms.
-It should be run only where its prerequisites exist:
+For **experimental BF-4 Bash-free Node core acceptance**, run:
 
 ```sh
-node tests/run_consolidated.mjs --installer
+node tests/run_consolidated.mjs --bash-free
 ```
 
-`--installer` never authorizes arbitrary other downloads. The
-existing `tests/install_smoke.py` controls its own installer flow.
+This runs the Node suites (including optional Node/Python parity), reports
+`node_core_status` separately and explicitly marks the old Python
+`unittest` integration suite UNVERIFIED. Do **not** interpret a
+`node_core_status: PASS` as release acceptance: legacy Bash tests and
+real host/OS checks are still mandatory where appropriate.
+
+For **experimental BF-5 installer smoke**, opt in separately. It may
+download the pinned `skills@1.7.4` package through npm/npx and
+requires Node 22.20+, npm/npx and approved network access; it does
+**not** require Bash, WSL or Python. It tests copy installation first,
+then symlink mode where supported, inside temporary projects:
+
+```sh
+node tests/run_consolidated.mjs --bash-free --installer
+# Or standalone:
+node tests/install_smoke.mjs --copy-only
+```
+
+The old `tests/install_smoke.py` remains historical POSIX acceptance
+and is no longer the default optional installer entry point. Missing
+Node/npm prerequisites return UNVERIFIED (exit 3), not PASS. Installer
+smoke never grants permission for unrelated network requests. Do not
+automatically install anything when the user has not opted in.
+
+To combine native Bash-free evidence with preserved POSIX legacy
+checks, follow [BF-7 acceptance](BASH_FREE_ACCEPTANCE_MATRIX.md)
+and `tests/aggregate_bash_free.mjs`. It uses five separate
+reports and does not require Bash on native Windows, but still
+refuses to certify release or user-visible agent delivery.
+
+**Legacy Python tests:** the shared test harness skips only shell
+wrappers when a bounded `bash -c` execution probe is blocked; it does
+not convert them into PASS. On Linux/macOS with usable Bash they must
+still execute and pass. On Windows without Bash, the full Python
+discovery is expected to have justified skips and cannot by itself
+satisfy the cross-runtime release gate.
 
 ## 2. Compare native OS evidence
 

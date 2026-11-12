@@ -65,7 +65,8 @@ function runtimeStatus() {
   const result = {
     platform: process.platform, node: process.version,
     git: probe('git', ['--version']), python: probe('python', ['--version']) ?? probe('python3', ['--version']),
-    bash: probe('bash', ['--version']),
+    // BF core never attempts to launch a legacy shell, even for detection.
+    bash: null,
     commands: { init: true, 'ctx-slice': true, 'reference-scan': true, signatures: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true, 'dependency-impact': true, 'explain-findings': true, 'disclosure-contract': true, 'disclosure-summary': true, 'disclosure-mark-seen': true, 'answer-disclosure': true, 'semantic-hints': true, 'parse-cache': true },
     strict_git_evidence: Boolean(probe('git', ['--version'])),
     python_maintenance: 'optional separate Python tool; not implemented in Node',

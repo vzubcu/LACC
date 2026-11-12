@@ -1,5 +1,30 @@
 # Changes
 
+## Stacked feature PR — BF-3 to BF-6, native Bash-free acceptance tooling (unreleased)
+
+- The legacy initializer now generates Node-first sync/health commands,
+  without telling agents to call Bash in their normal workflow.
+- A Python test harness probes **actual** Bash execution. Only historical
+  shell-specific assertions are skipped when Bash is unavailable;
+  they remain executable on POSIX hosts and are never marked PASS
+  when skipped. Original POSIX injection fixtures are retained.
+- Add opt-in Node-only `tests/install_smoke.mjs` for pinned installer
+  copy/link modes in isolated projects, with four native agent bridges,
+  byte-for-byte payload verification, idempotent bootstrap and health.
+  No Bash/WSL/Python needed; missing Node/npm prerequisites are UNVERIFIED.
+- Add `--bash-free` partial consolidated mode and `node_core_status`
+  evidence without relaxing the complete release gate.
+- Add security, installer preflight and native-path source contract tests.
+  The default Node `capabilities` command no longer executes even a
+  Bash capability probe.
+- Add conservative `aggregate_bash_free.mjs` requiring matching SHA
+  native Windows/Linux/macOS Node+installer evidence **and** independent
+  Linux/macOS legacy Bash results; never claim actual agent answer
+  delivery or final release.
+- All code/tests **authored, not validated on three native OSes**.
+  No hosted Actions, external tools installed or `main` merge.
+
+
 ## Stacked feature PR — BF-2c native bootstrap and Git drift safeguards (unreleased)
 
 - Preflight all memory template and agent instruction destinations before

@@ -37,12 +37,35 @@ Version labels below are *tentative*; priorities and acceptance criteria matter 
   paths and bound disclosed drift. A native regression suite is authored.
   Full comparison against legacy Python bootstrap, Windows, Linux and
   macOS execution remains to be validated.
-- **BF-3–BF-6 — Agent guidance, Python/Bash-free test coverage,
-  isolated installer, privacy/security hardening.** Existing POSIX Bash
-  security fixtures must not disappear to produce green Windows tests.
+- **BF-3 — Agent guidance:** existing legacy Bash initializer
+  now generates Node-first sync and health commands, even when launched
+  from Bash. The Node-native initializer remains the default.
+  Authored in stacked feature branch, awaiting native OS tests.
+- **BF-4 — Test migration:** a bounded execution probe classifies legacy
+  Bash tests as SKIP only when the shell truly cannot execute; original
+  POSIX assertions remain required on Linux/macOS. Separate native Node
+  tests exercise the actual Bash-free commands. The consolidated runner
+  has a clearly partial `--bash-free` scope and preserves UNVERIFIED
+  Python legacy acceptance. Authored, not yet executed end-to-end.
+- **BF-5 — Installer:** opt-in `tests/install_smoke.mjs` invokes pinned
+  `skills@1.7.4` through Node/npm with argument arrays, local temporary
+  projects, copy/link verification and real native bridges; no Bash or
+  Python prerequisite. Requires separate approved-network acceptance.
+- **BF-6 — Security:** add Node regression tests for sensitive files,
+  symlink refusal, terminal control escaping, source non-execution,
+  private retention and Git/source evidence. Authored; native results
+  pending, no threat-free claim.
 - **BF-7/8 — Same-SHA native Windows/Linux/macOS validation, host
-  responses and controlled deprecation** with a rollback plan. Until
-  then the five Bash wrappers stay available; no `main` release.
+  responses and controlled deprecation** with a rollback plan. The
+  BF-7 five-report aggregator and native runbook are now **authored**:
+  it requires Node/installer core reports from Windows, Linux and
+  macOS, plus legacy Python/Bash results from Linux and macOS, without
+  demanding Bash on Windows. See the
+  [Bash-free acceptance matrix](docs/BASH_FREE_ACCEPTANCE_MATRIX.md).
+  **Actual three-OS execution, installer network verification and
+  host-generated answers remain unverified.** Until certified and
+  approved the five Bash wrappers stay available, PRs remain Draft,
+  and no `main` release is planned.
 
 ## Design constraints
 
