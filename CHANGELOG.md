@@ -1,5 +1,24 @@
 # Changes
 
+## Draft PR #40 follow-up — preserve shell security and Bash acceptance clarity
+
+- Retain the original quoted POSIX installation-path security fixture
+  on Linux/macOS. Use the NTFS-valid variant only on native Windows;
+  add a platform-independent fixture-selection regression test.
+- Detect whether `bash` can **actually execute** rather than relying
+  on a Windows PATH entry (WSL may respond `Bash/E_ACCESSDENIED`).
+  Record the probe in private RD-5 reports without changing the
+  status of Python tests that really fail.
+- Do not attempt optional installer smoke without Python 3.9+,
+  executable Bash and Node.js 22.20+; report UNVERIFIED, never PASS.
+  Add four prerequisite classifier regression tests; the isolated
+  helper cases passed on a Linux Node 22.16 environment. This is not
+  a full repository Linux validation.
+- PR remains Draft. Native Windows revalidation of this revised head,
+  Linux/macOS Bash suites, real host answers and installer smoke remain
+  outstanding. `main` is unchanged.
+
+
 ## Develop — Windows validation reporter and graph-contract test correction
 
 - Explicitly request Node TAP output and normalize TAP/spec test totals
