@@ -21,14 +21,27 @@ function npxJs() {
   const npmParent = process.env.npm_execpath
     ? path.dirname(process.env.npm_execpath) : null;
   const paths = [
+    process.env.LACC_NPX_CLI,
     path.join(bin, 'node_modules/npm/bin/npx-cli.js'),
     path.resolve(bin, '../lib/node_modules/npm/bin/npx-cli.js'),
     path.resolve(bin, '../node_modules/npm/bin/npx-cli.js'),
     npmParent && path.join(npmParent, 'npx-cli.js'),
   ].filter(Boolean);
-  return paths.find(p => {
-    try { return fs.statSync(p).isFile(); } catch { return false; }
-  }) ?? null;
+  // POSIX package managers often install npx as a symlink to npx-cli.js.
+  // Resolve the executable target, but never launch a shell shim.
+  for (const directory of (process.env.PATH ?? '').split(path.delimiter)) {
+    if (!directory) continue;
+    paths.push(path.join(directory, 'npx'));
+    paths.push(path.join(directory, 'npx-cli.js'));
+  }
+  for (const candidate of paths) {
+    try {
+      const resolved = fs.realpathSync(candidate);
+      if (path.basename(resolved) === 'npx-cli.js' &&
+          fs.statSync(resolved).isFile()) return resolved;
+    } catch { /* candidate unavailable */ }
+  }
+  return null;
 }
 function run(label, bin, args, cwd, timeout = MAX_SUBPROC) {
   const result = spawnSync(bin, args, {
