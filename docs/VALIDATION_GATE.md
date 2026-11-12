@@ -6,6 +6,17 @@ the former PR #23 head. Fixes were incorporated via PR #26, and RD-1
 changes were added later. **No complete validation of current develop has
 been run.** Do not advertise develop as the stable release.
 
+**Integration candidate (after PR #40, BF feature drafts):**
+`integration/bash-free-v4-windows-stabilization-20261113`
+includes the PR #40 source corrections and the BF-1..BF-7
+Node/installer/test work. The earlier Windows 19/19 suite report
+does **not** validate this new combined SHA. Native BF acceptance
+must use this same candidate commit across three OSes with the
+[BF-7 matrix](BASH_FREE_ACCEPTANCE_MATRIX.md), including Linux/macOS
+legacy shell parity. The Node installer intentionally no longer has
+a Bash prerequisite. Real generated host responses and a reviewed
+integration diff are required before promoting to `main`.
+
 **Hard constraints:** local execution, no hosted GitHub Actions, no
 auto-merges into main, preserve user memory and private handoffs.
 
