@@ -20,10 +20,15 @@ Version labels below are *tentative*; priorities and acceptance criteria matter 
   default no retention, explicit private `--keep`, bounded lines and
   errors, native CLI exposure and Node regression suite. **Code/tests
   authored; full cross-OS acceptance pending.**
-- **BF-2b — Native signature and reference-scan adapters:** retain
-  Python AST precision or mark heuristic coverage incomplete; do not
-  conflate the existing reverse-dependency impact command with the
-  historical general reference search.
+- **BF-2b — Native signature and reference-scan adapters:** code
+  authored in stacked feature branch: `reference-scan` provides
+  bounded ranked import/symbol/event candidates with privacy exclusions;
+  `signatures` uses the legacy Python AST parser directly when Python
+  is available (no Bash), otherwise marks its Python fallback explicitly
+  heuristic. Strict `--require-ast` refuses unsupported precision.
+  Tests authored; no full cross-OS/parity execution reported. The
+  reverse-dependency impact command is intentionally separate from
+  the historical general reference search.
 - **BF-2c — Init/sync behavior parity:** match all checkpoint, dirty
   Git, bootstrap ownership, agent bridge and symlink refusal paths.
 - **BF-3–BF-6 — Agent guidance, Python/Bash-free test coverage,
