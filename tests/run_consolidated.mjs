@@ -7,6 +7,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { parseNodeTestSummary } from './consolidated_reporter.mjs';
+import { classifyBashProbe, installerNodeSupported } from './consolidated_prerequisites.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const flags = process.argv.slice(2);
@@ -50,23 +51,9 @@ function fsCaseSensitive() {
   }
 }
 function bashPrerequisite() {
-  // Probe execution, not presence on PATH: Windows WSL launchers may exist
-  // but refuse execution (Bash/E_ACCESSDENIED). No shell is used by spawnSync.
-  const result = exec('bash', ['-c', 'printf LACC_BASH_OK'], 6000);
-  return {
-    status: !result.error && result.code === 0 && result.stdout === 'LACC_BASH_OK'
-      ? 'AVAILABLE' : 'BLOCKED',
-    error_code: result.error ?? null,
-    exit_code: result.code,
-    reason: result.error || result.code !== 0 || result.stdout !== 'LACC_BASH_OK'
-      ? 'bash-execution-unavailable' : null,
-  };
-}
-function installerNodeSupported(version) {
-  const parts = /^v(\d+)\.(\d+)\.(\d+)$/.exec(version ?? '');
-  if (!parts) return false;
-  const major = Number(parts[1]), minor = Number(parts[2]);
-  return major > 22 || (major === 22 && minor >= 20);
+  // Do not assume that a PATH entry means an executable Bash.
+  // On Windows the WSL launcher may return Bash/E_ACCESSDENIED.
+  return classifyBashProbe(exec('bash', ['-c', 'printf LACC_BASH_OK'], 6000));
 }
 function pythonCandidate() {
   const commands = process.env.LACC_PYTHON
