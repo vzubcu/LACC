@@ -405,10 +405,21 @@ network service, or Python/Bash dependency. Keep the Node+Git core portable.
   Tree-sitter, language servers, SCIP, Roslyn and advanced manifest
   semantics remain optional future extensions requiring independent
   reviews; never download or execute unapproved tools.
-- **RD-5 — measured acceptance (local runner and aggregation authored, unexecuted):** Windows/Linux/**native macOS** tests, mixed-language
+- **RD-5 — measured acceptance (Windows partial evidence, cross-platform gate open):** Windows/Linux/**native macOS** tests, mixed-language
   fixtures, historical edges, path attacks, false positive/negative rates,
   scan limits, latency and total context-token overhead. Retain opt-in
   mode until validated and avoid claiming all languages fully supported.
+
+  **2026-11-12 pilot evidence, not develop certification:** draft
+  [PR #40](https://github.com/vzubcu/LACC/pull/40) reported 19/19
+  Node suites PASS on native Windows Node 24.13.0 and 37
+  Bash-blocked Python cases (2 skips; zero errors) on its earlier
+  commit `c5c434f`. Since then, the PR has gained a conditional
+  POSIX shell-injection fixture and a conservative Bash/installer
+  prerequisite probe. The amended PR has **not** been rerun across
+  Windows/Linux/macOS. Node 22.20+, installer smoke and real
+  generated-agent-answer checks remain unverified. Keep PR draft
+  and `main` unchanged until all acceptance gates pass.
 
 **Expected semantics:** `dependency-changed` or
 `dependency-coverage-incomplete` means **review required**, not semantic
