@@ -1,5 +1,20 @@
 # Changes
 
+## Stacked feature PR — BF-2c native bootstrap and Git drift safeguards (unreleased)
+
+- Preflight all memory template and agent instruction destinations before
+  writing bootstrap state, preserve existing user facts, validate generated
+  ownership metadata and count newly created templates accurately.
+- Parse NUL-delimited porcelain and committed diff Git records including
+  renames/copies, preserve paths with spaces and tabs, separate memory-only
+  changes and disclose bounded evidence without claiming semantic freshness.
+- Add native regression scenarios for malformed Git output, dirty sources,
+  invalid instruction markers, safe idempotent bootstrap and checkpoint
+  non-mutation on refusal.
+- The original Bash/Python scripts are still intact and platform acceptance
+  is **not** claimed. BF-3..BF-8 remain gated.
+
+
 ## Stacked feature PR — BF-2b reference candidates and signatures (unreleased)
 
 - Add `reference-scan.mjs` for bounded, ranked import/symbol/literal
