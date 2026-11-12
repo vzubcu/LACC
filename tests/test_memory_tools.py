@@ -11,6 +11,33 @@ import unittest
 
 TOOLS = Path(__file__).resolve().parents[1] / "skills/lean-context-memory/scripts"
 
+def shell_quoting_fixture_names():
+    """Preserve the original POSIX injection-quoting case on supported filesystems.
+
+    Windows NTFS reserves double quotes in filenames; don't globally remove
+    this security fixture just to make Windows test discovery possible.
+    """
+    complex_name = ("skill 'single' " +
+                    ('"double" ' if os.name != "nt" else "") +
+                    "$UNSET_TEST_VARIABLE $(touch INJECTED) `tick`")
+    return ["skill$UNSET_TEST_VARIABLE", complex_name]
+
+
+class ShellFixturePortabilityTests(unittest.TestCase):
+    def test_shell_injection_fixture_preserves_platform_valid_attacks(self):
+        names = shell_quoting_fixture_names()
+        self.assertEqual(len(names), 2)
+        self.assertEqual(names[0], "skill$UNSET_TEST_VARIABLE")
+        for token in ("'single'", "$UNSET_TEST_VARIABLE", "$(touch INJECTED)", "`tick`"):
+            self.assertIn(token, names[1])
+        if os.name == "nt":
+            self.assertNotIn('"', names[1])
+            self.assertTrue(all(not any(ch in item for ch in '<>:"/\\|?*')
+                                for item in names))
+        else:
+            self.assertIn('"double"', names[1])
+
+
 
 class ProjectCase(unittest.TestCase):
     def setUp(self):
@@ -285,9 +312,9 @@ class DependencyTests(ProjectCase):
 class BootstrapTests(ProjectCase):
     def test_generated_helper_commands_quote_literal_installation_paths(self):
         with tempfile.TemporaryDirectory() as install_dir:
-            # Keep shell metacharacters that are valid in Windows filenames;
-            # double quotes are reserved by Windows and cannot be used here.
-            for name in ["skill$UNSET_TEST_VARIABLE", "skill 'single' $UNSET_TEST_VARIABLE $(touch INJECTED) `tick`"]:
+            # NTFS cannot represent embedded double quotes, but POSIX can.
+            # Keep the stronger original POSIX security case on Linux/macOS.
+            for name in shell_quoting_fixture_names():
                 with self.subTest(name=name):
                     install = Path(install_dir) / name
                     shutil.copytree(TOOLS, install / "scripts")
