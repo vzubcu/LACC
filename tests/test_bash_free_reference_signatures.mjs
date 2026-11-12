@@ -148,12 +148,26 @@ test('Python fallback never pretends to have AST coverage', t => {
 });
 test('optional genuine Python AST remains exact for nested declarations', t => {
   const root = fixture(t);
-  const py = ['python3','python'].find(bin => {
-    const r = spawnSync(bin, ['--version'], { encoding: 'utf8', windowsHide: true });
-    return r.status === 0;
-  });
-  if (!py) return t.skip('Python AST runtime unavailable; fallback tested separately');
   write(root, 'example.py', 'class Example:\n    def run(self):\n        return 1\n');
+  const candidates = process.env.LACC_PYTHON
+    ? [[process.env.LACC_PYTHON, []]]
+    : process.platform === 'win32'
+      ? [['py', ['-3']], ['python', []], ['python3', []]]
+      : [['python3', []], ['python', []]];
+  const py = candidates.find(([bin, prefix]) => {
+    const r = spawnSync(bin, [...prefix, '--version'],
+      { encoding: 'utf8', windowsHide: true, timeout: 3000 });
+    const match = (r.stdout || r.stderr || '').match(/Python (\d+)\.(\d+)/);
+    return !r.error && r.status === 0 && match &&
+      (Number(match[1]) > 3 || Number(match[1]) === 3 &&
+        Number(match[2]) >= 9);
+  });
+  if (!py) {
+    const absent = run(root, 'signatures', 'example.py', '--require-ast');
+    assert.equal(absent.status, 2, absent.stderr);
+    assert.match(absent.stderr, /AST is unavailable/);
+    return;
+  }
   const result = run(root, 'signatures', 'example.py', '--require-ast');
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Python AST definition starts/);
