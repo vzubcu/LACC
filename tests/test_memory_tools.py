@@ -297,7 +297,7 @@ class BootstrapTests(ProjectCase):
                     result = subprocess.run(["bash", str(install / "scripts/init-memory.sh"), str(self.root)],
                                             text=True, capture_output=True)
                     self.assertEqual(result.returncode, 0, result.stderr)
-                    line = next(line for line in (self.root / "AGENTS.md").read_text().splitlines() if "run " in line and "sync-memory.sh" in line)
+                    line = next(line for line in (self.root / "AGENTS.md").read_text().splitlines() if "run " in line and "lacc.mjs" in line)
                     match = re.search(r"run (`+)(.+?)\1;", line)
                     self.assertIsNotNone(match, line)
                     env = dict(os.environ)
