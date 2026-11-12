@@ -21,6 +21,7 @@ import { buildAnswerDisclosure, auditSuppliedAnswer } from './lacc-answer-disclo
 import { sliceContext } from './ctx-slice.mjs';
 import { referenceScan } from './reference-scan.mjs';
 import { signatures } from './signatures.mjs';
+import { parsePorcelainZ, parseDiffNameStatusZ, changesOutsideMemory, formatGitChanges } from './lacc-git-parity.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const skill = path.resolve(here, '..');
@@ -248,6 +249,8 @@ function doctor(root, opts) {
 }
 function sync(root, opts) {
   const file = localPath(root, 'memory/ACTIVE_STATE.md');
+  if (!fs.existsSync(file) || !fs.statSync(file).isFile())
+    throw Error('missing or unsafe ACTIVE_STATE.md; run init first');
   const state = readUtf8(file);
   const match = [...state.matchAll(/^- \*\*Last Synced Commit\*\*: `([^`]+)`[ \t]*$/gm)];
   const strict = Boolean(opts.strict || opts.stamp);
@@ -258,19 +261,31 @@ function sync(root, opts) {
   const valid = /^[a-f\d]{7,40}$/i.test(previous) && git(root, ['rev-parse', '--verify', previous + '^{commit}']).ok;
   const dirty = git(root, ['status', '--porcelain=v1', '-z', '--untracked-files=all']);
   if (!dirty.ok) throw Error('git status failed');
-  const status = dirty.stdout.toString('utf8').split('\0').filter(Boolean).filter(x => !x.slice(3).startsWith('memory/'));
+  // Git -z rename/copy records include two paths; never treat the second
+  // token as a separate file or silently lose source provenance.
+  const status = changesOutsideMemory(parsePorcelainZ(dirty.stdout));
   const manifest = localPath(root, 'memory/.bootstrap.json');
-  const generated = fs.existsSync(manifest) ? JSON.parse(readUtf8(manifest)) : {};
+  let generated = {};
+  if (fs.existsSync(manifest)) {
+    try {
+      const value = JSON.parse(readUtf8(manifest));
+      if (value && typeof value === 'object' && !Array.isArray(value) &&
+          Object.values(value).every(x => typeof x === 'string')) generated = value;
+    } catch { /* invalid ownership metadata never suppresses dirty files */ }
+  }
+  const whitelist = new Set([
+    'AGENTS.md','CLAUDE.md','GEMINI.md','.roo/rules/lean-context-memory.md',
+  ]);
   const clean = status.filter(row => {
-    const name = row.slice(3);
-    if (!row.startsWith('?? ') || !['AGENTS.md','CLAUDE.md','GEMINI.md','.roo/rules/lean-context-memory.md'].includes(name)) return true;
-    try { return sha(fs.readFileSync(localPath(root, name))) !== generated[name]; }
+    if (row.status !== '??' || !whitelist.has(row.path)) return true;
+    try { return sha(fs.readFileSync(localPath(root, row.path))) !== generated[row.path]; }
     catch { return true; }
   });
-  const diff = valid ? git(root, ['diff', '--name-only', '-z', previous, current]) : null;
+  const diff = valid ? git(root, ['diff', '--name-status', '-z', previous, current]) : null;
   if (valid && !diff.ok) throw Error('Git diff failed');
-  const committed = diff ? diff.stdout.toString('utf8').split('\0').filter(x => x && !x.startsWith('memory/')) : [];
-  let output = `Committed drift: ${committed.length} paths\nWorking-tree drift: ${clean.length} paths\n`;
+  const committed = diff ? changesOutsideMemory(parseDiffNameStatusZ(diff.stdout)) : [];
+  let output = formatGitChanges(committed, 'Committed drift') +
+    formatGitChanges(clean, 'Working-tree drift');
   if (!valid) output += 'REVIEW: checkpoint unavailable or unverified\n';
   if (opts.stamp && ((!valid && previous !== 'UNSYNCED') || clean.length)) return { text: output + 'REVIEW: cannot stamp dirty sources or an unavailable prior commit\n', code: 1 };
   if (strict) {
