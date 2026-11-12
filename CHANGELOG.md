@@ -1,5 +1,22 @@
 # Changes
 
+## Universal Runtime 4.0 — separate experimental migration foundation
+
+- Add a complete, machine-checked inventory of 18 existing runtime scripts
+  (5 Bash, 13 Python including 2 libraries) and identify six Node command
+  overlaps as **unverified candidates**, not complete replacements.
+- Add an opt-in, isolated Node/Python differential runner for existing
+  read/health behaviors, with private evidence, exit statuses and no
+  writes to the repository or release certification.
+- Add three Node inventory contract tests to prevent silent removal of
+  legacy functionality or false parity assertions.
+- Add [UR-4 migration contract](docs/architecture/universal-runtime-v4.md)
+  and M0–M5 roadmap. Legacy implementations remain fully present and
+  unchanged. Full suites and multi-OS validation are not yet executed.
+- This branch is independent from draft Windows validation PR #40 and
+  does not alter `develop` or `main`.
+
+
 ## Develop — Windows validation reporter and graph-contract test correction
 
 - Explicitly request Node TAP output and normalize TAP/spec test totals
