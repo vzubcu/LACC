@@ -10,9 +10,10 @@ import { parseNodeTestSummary } from './consolidated_reporter.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const flags = process.argv.slice(2);
-const allowed = new Set(['--node-only', '--installer']);
-if (flags.some(flag => !allowed.has(flag))) {
-  console.error('Usage: node tests/run_consolidated.mjs [--node-only] [--installer]');
+const allowed = new Set(['--node-only', '--bash-free', '--installer']);
+if (flags.some(flag => !allowed.has(flag)) ||
+    flags.includes('--node-only') && flags.includes('--bash-free')) {
+  console.error('Usage: node tests/run_consolidated.mjs [--node-only | --bash-free] [--installer]');
   process.exitCode = 2;
 } else {
   run();
@@ -141,11 +142,12 @@ function run() {
     suite: 'test_node_python_parity.mjs', status: 'UNVERIFIED',
     reason: 'explicit node-only run',
   });
-  if (py) executeSuite('python-unittest', py.bin,
+  if (py && !flags.includes('--bash-free')) executeSuite('python-unittest', py.bin,
     [...py.prefix, '-m', 'unittest', 'discover', '-s', 'tests', '-v']);
   else baseline.suite_results.push({
     suite: 'python-unittest', status: 'UNVERIFIED',
-    reason: flags.includes('--node-only') ? 'explicit node-only run' : 'Python 3.9+ not found',
+    reason: flags.includes('--bash-free') ? 'explicit Bash-free core scope; optional legacy test acceptance outstanding' :
+      flags.includes('--node-only') ? 'explicit node-only run' : 'Python 3.9+ not found',
   });
   if (flags.includes('--installer')) {
     // BF-5 opt-in smoke uses Node only: no Bash/WSL/Python prerequisite.
@@ -153,6 +155,9 @@ function run() {
     executeSuite('installer-smoke', process.execPath, ['tests/install_smoke.mjs'], 300000);
     baseline.installer_check = baseline.suite_results.at(-1).status;
   }
+  baseline.node_core_status = baseline.suite_results
+    .filter(row => row.suite.endsWith('.mjs'))
+    .every(row => row.status === 'PASS') ? 'PASS' : 'INCOMPLETE_OR_FAIL';
   baseline.repo_status_after = git('status', '--porcelain=v1', '--untracked-files=all')
     ? 'DIRTY_AFTER_TESTS' : 'clean';
   baseline.finished_at = new Date().toISOString();
@@ -174,6 +179,7 @@ function run() {
     '\n\nHost answers: UNVERIFIED. Cross-OS acceptance: UNVERIFIED. ' +
     'No claim of user delivery or token savings.\n', { mode: 0o600 });
   process.stdout.write('Local report: ' + output + '\n');
+  process.stdout.write('Bash-free Node core: ' + baseline.node_core_status + '\n');
   process.stdout.write('Local suite status: ' + baseline.local_suite_status +
     '; overall release gate: UNVERIFIED\n');
   if (baseline.local_suite_status !== 'PASS') process.exitCode = 1;
