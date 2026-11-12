@@ -1,5 +1,18 @@
 # Changes
 
+## Feature PR — BF-1 audit and BF-2a native context slicer (unreleased)
+
+- Inventory all five Bash wrappers and separate semantic/AST,
+  dependency-search and agent-init/sync parity obligations.
+- Add `ctx-slice.mjs` and `lacc.mjs ctx-slice` for streamed
+  60/40 context slicing, no implicit disk retention, explicit private
+  `--keep`, UTF-8 replacement, CRLF preservation and bounded usage.
+- Add Node regression fixtures for file/stdin/Unicode/error/retention
+  behavior; authored pending the full multi-platform acceptance.
+- Existing Python/Bash utilities retained, so this is **not** a claim
+  of complete Bash removal; no hosted Actions or `main` merge.
+
+
 ## Develop — Windows validation reporter and graph-contract test correction
 
 - Explicitly request Node TAP output and normalize TAP/spec test totals
