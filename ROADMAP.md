@@ -29,8 +29,14 @@ Version labels below are *tentative*; priorities and acceptance criteria matter 
   Tests authored; no full cross-OS/parity execution reported. The
   reverse-dependency impact command is intentionally separate from
   the historical general reference search.
-- **BF-2c — Init/sync behavior parity:** match all checkpoint, dirty
-  Git, bootstrap ownership, agent bridge and symlink refusal paths.
+- **BF-2c — Init/sync behavior parity:** new safeguards authored
+  in the stacked feature branch: preflight template/instruction destinations
+  before any bootstrap writes; preserve existing memory, correct created-file
+  accounting and ownership manifest validation; parse NUL-delimited Git
+  rename/copy evidence without losing paths, filter only explicit memory
+  paths and bound disclosed drift. A native regression suite is authored.
+  Full comparison against legacy Python bootstrap, Windows, Linux and
+  macOS execution remains to be validated.
 - **BF-3–BF-6 — Agent guidance, Python/Bash-free test coverage,
   isolated installer, privacy/security hardening.** Existing POSIX Bash
   security fixtures must not disappear to produce green Windows tests.
