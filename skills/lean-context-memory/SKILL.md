@@ -36,10 +36,15 @@ native file/Git tools; **never claim unchecked facts are verified**.
    At 70% refresh ACTIVE_STATE; at 80% checkpoint then recommend the host-native context compact;
    at 90% avoid substantial new exploration until checkpoint + compaction. Do not infer missing
    usage/window values and never invoke compaction automatically. After host compaction, reload hot memory.
-4. Before changing shared behavior, search direct references:
-   `bash <skill_dir>/scripts/dep-graph.sh src/checkout.ts publishCheckout`.
+4. Before changing shared behavior, search direct reference candidates
+   without Bash (BF-2b preview):
+   `node <skill_dir>/scripts/lacc.mjs reference-scan src/checkout.ts publishCheckout`.
    Expand using a named event/contract: append `--signal checkout.ready`.
-   Read candidate code and tests to verify coupling; inspect additional consumers when evidence requires it.
+   This is bounded lexical/static evidence, **not** a resolved call graph
+   or automatic memory verification. For declaration locations use
+   `node <skill_dir>/scripts/lacc.mjs signatures src/checkout.py`;
+   Python AST requires optional Python 3.9+ and `--require-ast` fails if
+   unavailable. Read candidate code and tests to verify coupling.
 5. Keep HOT task progress and hypotheses in `memory/ACTIVE_STATE.md`. Retain confirmed reusable
    contracts and invariants in WARM topics; record source-backed choices in `topics/decisions.md`
    and verified failure/fix/test patterns in `topics/lessons.md`. Do not auto-load a COLD archive.
@@ -73,8 +78,12 @@ copy of stdin. It is not a trusted memory check. See
 If Node is absent but Python/Bash are available, the existing helpers remain
 supported. Without an executable runtime, use the host's native tools to inspect
 files and Git; mark unverified evidence honestly, and do not stamp automatically.
-Node does not yet provide transactional revalidation/compact, dependency graph,
-AST extraction, or benchmark imports; use existing helpers when available.
+Node does not yet provide all reviewed revalidation/compaction or
+benchmark imports. It now has a general candidate reference scan, which
+is distinct from the existing optional reverse dependency impact graph.
+Exact Python AST declaration extraction remains optional and requires
+Python; Node-only results are explicitly heuristic. Legacy helpers remain
+available until parity and native OS acceptance are verified.
 
 ## Maintenance on demand
 

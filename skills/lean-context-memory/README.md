@@ -23,9 +23,23 @@ stdin without keeping a complete copy. `--keep` explicitly writes
 private stdin bytes in an OS temporary directory; it never writes to
 project `memory/`. Input lines over 1 MiB, excessive line-count
 requests and captured output over 16 MiB fail visibly. The existing
-`ctx-slice.sh` and `ctx_slice.py` remain for compatibility; Python
-AST extraction, dependency reference scanning, bootstrap/sync parity
-and legacy Bash test acceptance are still migration tasks.
+`ctx-slice.sh` and `ctx_slice.py` remain for compatibility.
+
+**BF-2b preview:**
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs reference-scan src/api.ts exportClient --signal client.connected
+node <skill_dir>/scripts/lacc.mjs signatures src/api.ts --limit 80
+node <skill_dir>/scripts/lacc.mjs signatures src/handlers.py --require-ast
+```
+
+Reference scanning never executes project scripts and excludes private
+files while disclosing incomplete coverage. It is separate from
+Git-revision-aware `dependency-impact`. Python AST extraction uses the
+existing stdlib parser through a direct Python process when installed;
+Node-only fallback explicitly reports heuristic/AST-unavailable status.
+Neither path guarantees semantic/call-graph correctness.
+Bootstrap/sync parity and legacy Bash test acceptance are still pending.
 See [BF-1 audit](../../docs/BASH_FREE_RUNTIME_MIGRATION.md).
 
 ## Install and initialize

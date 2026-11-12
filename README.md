@@ -86,7 +86,7 @@ Replace `<skill_dir>` with the installed skill directory. Do **not** use
 Node commands use no third-party packages or cloud APIs. Git is required to
 confirm sources; without Git, recalled facts must remain unverified.
 
-**Bash-Free Runtime migration (BF-1/BF-2a; experimental feature PR):**
+**Bash-Free Runtime migration (BF-1/BF-2a/BF-2b; experimental stacked PRs):**
 [parity and migration audit](docs/BASH_FREE_RUNTIME_MIGRATION.md).
 The first new portable helper is context slicing:
 
@@ -108,9 +108,24 @@ truncation. `--keep` creates a private temporary file **only on request**.
 This development command is not yet in `main`, and full Windows/macOS
 regression has not been executed.
 
-Advanced Python/Bash helpers (reviewed revalidation, persisted compaction,
-legacy dependency reference scan, Python AST signatures and provider usage
-import) remain available and are **not** claimed as migrated. The historical
+BF-2b adds two experimental commands to the same Node CLI:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs reference-scan src/checkout.ts publishCheckout --signal checkout.ready
+node <skill_dir>/scripts/lacc.mjs signatures src/checkout.py --limit 40
+node <skill_dir>/scripts/lacc.mjs signatures src/checkout.py --require-ast
+```
+
+`reference-scan` is a *heuristic, bounded candidate search*, not a resolved
+call graph and not `dependency-impact`. `signatures` runs directly in
+Node for heuristics; for Python source it optionally invokes the existing
+Python 3.9+ stdlib AST parser **without Bash** when available. If Python
+is absent, the fallback is labeled heuristic; `--require-ast` fails
+instead of pretending to have exact syntax coverage.
+
+Advanced Python/Bash helpers for reviewed revalidation, persisted
+compaction and provider usage import remain available. Legacy shell
+wrappers and original POSIX security tests are **not** removed. The historical
 Bash wrapper for context slicing remains optional for compatibility. When Node and Python are both absent, agents
 can follow a limited manual memory workflow through native file/Git tools
 and must state which guarantees are unavailable.
