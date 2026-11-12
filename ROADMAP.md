@@ -56,10 +56,16 @@ Version labels below are *tentative*; priorities and acceptance criteria matter 
   private retention and Git/source evidence. Authored; native results
   pending, no threat-free claim.
 - **BF-7/8 — Same-SHA native Windows/Linux/macOS validation, host
-  responses and controlled deprecation** with a rollback plan. See
+  responses and controlled deprecation** with a rollback plan. The
+  BF-7 five-report aggregator and native runbook are now **authored**:
+  it requires Node/installer core reports from Windows, Linux and
+  macOS, plus legacy Python/Bash results from Linux and macOS, without
+  demanding Bash on Windows. See the
   [Bash-free acceptance matrix](docs/BASH_FREE_ACCEPTANCE_MATRIX.md).
-  Until certified and approved the five Bash wrappers stay available,
-  PRs remain Draft, and no `main` release is planned.
+  **Actual three-OS execution, installer network verification and
+  host-generated answers remain unverified.** Until certified and
+  approved the five Bash wrappers stay available, PRs remain Draft,
+  and no `main` release is planned.
 
 ## Design constraints
 
