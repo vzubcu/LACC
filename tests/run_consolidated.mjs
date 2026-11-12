@@ -114,13 +114,17 @@ function run() {
     const combined = res.stdout + '\n' + res.stderr;
     const tap = label.endsWith('.mjs') ? parseNodeTestSummary(combined) : null;
     const pyUnit = label === 'python-unittest' ? pythonUnitSummary(combined) : null;
-    const status = res.error || res.code !== 0 ? 'FAIL'
+    const status = label === 'installer-smoke' && !res.error && res.code === 3
+      ? 'UNVERIFIED'
+      : res.error || res.code !== 0 ? 'FAIL'
       : tap && (!tap.complete || tap.failed !== 0 || tap.skipped !== 0 || tap.todo !== 0) ? 'INCOMPLETE'
       : pyUnit && (pyUnit.tests === null || pyUnit.tests < 1 || pyUnit.skipped !== 0)
         ? 'INCOMPLETE' : 'PASS';
-    const reason = res.error ?? (res.code !== 0 ? 'nonzero-exit' :
-      tap?.incomplete_reason ?? (pyUnit?.skipped ? 'python-unittest-skipped' :
-        status === 'INCOMPLETE' ? 'incomplete-python-summary' : null));
+    const reason = res.error ?? (status === 'UNVERIFIED'
+      ? 'optional-installer-prerequisite-unavailable'
+      : res.code !== 0 ? 'nonzero-exit' :
+        tap?.incomplete_reason ?? (pyUnit?.skipped ? 'python-unittest-skipped' :
+          status === 'INCOMPLETE' ? 'incomplete-python-summary' : null));
     fs.writeFileSync(path.join(output, label.replace(/[^a-z0-9_.-]/gi, '_') + '.log'),
       '$ ' + [bin, ...args].join(' ') + '\n' + res.stdout + '\n' + res.stderr, { mode: 0o600 });
     baseline.suite_results.push({
@@ -144,10 +148,10 @@ function run() {
     reason: flags.includes('--node-only') ? 'explicit node-only run' : 'Python 3.9+ not found',
   });
   if (flags.includes('--installer')) {
-    if (py) {
-      executeSuite('installer-smoke', py.bin, [...py.prefix, 'tests/install_smoke.py'], 300000);
-      baseline.installer_check = baseline.suite_results.at(-1).status;
-    } else baseline.installer_check = 'UNVERIFIED: Python 3.9+ missing';
+    // BF-5 opt-in smoke uses Node only: no Bash/WSL/Python prerequisite.
+    // Exit 3 means a missing installer prerequisite, never a PASS.
+    executeSuite('installer-smoke', process.execPath, ['tests/install_smoke.mjs'], 300000);
+    baseline.installer_check = baseline.suite_results.at(-1).status;
   }
   baseline.repo_status_after = git('status', '--porcelain=v1', '--untracked-files=all')
     ? 'DIRTY_AFTER_TESTS' : 'clean';
