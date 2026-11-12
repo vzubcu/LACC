@@ -37,7 +37,8 @@ function privateOutputDir() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lean-context-'));
   try {
     // Respect stricter platform-specific private ACLs where supported.
-    fs.chmodSync(dir, 0o700);
+    if (process.platform !== 'win32') fs.chmodSync(dir, 0o700);
+    // On Windows the directory inherits the current user's temp ACL.
     const file = path.join(dir, 'stdin.log');
     const fd = fs.openSync(file, 'wx', 0o600);
     return { dir, file, fd };
