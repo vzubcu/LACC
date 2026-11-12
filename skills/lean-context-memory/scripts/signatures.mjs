@@ -111,7 +111,7 @@ export function signatures(argv, { cwd = process.cwd(),
       if (py) {
         // stdlib ast.parse only; don't import or execute the inspected project.
         const script = path.join(path.dirname(fileURLToPath(import.meta.url)), 'signatures.py');
-        const result = spawnSync(py.bin, [...py.prefix, '-I', script, opts.file,
+        const result = spawnSync(py.bin, [...py.prefix, '-E', '-S', script, opts.file,
           '--limit', String(opts.limit), '--max-bytes', String(opts.maxBytes)], {
           cwd: root, encoding: 'utf8', windowsHide: true, timeout: 15000,
           maxBuffer: 2 * 1024 * 1024,
