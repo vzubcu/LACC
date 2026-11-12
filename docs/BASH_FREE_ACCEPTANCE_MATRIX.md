@@ -27,6 +27,8 @@ node --test tests/test_bash_free_init_sync.mjs
 node --test tests/test_bash_free_installer_contract.mjs
 node --test tests/test_bash_free_security.mjs
 node tests/run_consolidated.mjs --bash-free
+# When network access is explicitly approved, produce installer evidence:
+node tests/run_consolidated.mjs --bash-free --installer
 \`\`\`
 
 POSIX sh/zsh:
