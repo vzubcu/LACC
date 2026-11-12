@@ -48,13 +48,17 @@ class ProjectCase(unittest.TestCase):
                               text=True, capture_output=True)
 
     def snapshot(self):
-        return {str(p.relative_to(self.root)): p.read_bytes() for p in (self.root / "memory").rglob("*") if p.is_file()}
+        return {p.relative_to(self.root).as_posix(): p.read_bytes()
+                for p in (self.root / "memory").rglob("*") if p.is_file()}
 
     def health(self):
         return self.run_tool("memory-health.py", str(self.root))
 
 
 class MemoryHealthTests(ProjectCase):
+    def test_snapshot_keys_are_stable_across_host_path_separators(self):
+        self.assertIn("memory/topics/architecture.md", self.snapshot())
+
     def test_confirmed_unchanged_source_is_healthy_without_writing_memory(self):
         before = self.snapshot()
         result = self.health()
