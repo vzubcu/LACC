@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { classifyPinnedInstallerFailure, resolveWindowsSystemProxy } from './installer_smoke_support.mjs';
+import { classifyPinnedInstallerFailure, resolveWindowsSystemProxy, proxyConfigurationDiagnostics } from './installer_smoke_support.mjs';
 
 const runner = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
   'install_smoke.mjs');
@@ -129,4 +129,57 @@ test('real installer subprocess E407 is UNVERIFIED without exposing npm output o
   assert.match(result.stderr, /UNVERIFIED: pinned installer prerequisite blocked: npm-proxy-auth-required/);
   assert.doesNotMatch(result.stderr + result.stdout, /secret|user@|confidential URL/);
   assert.doesNotMatch(result.stderr + result.stdout, /^FAIL:/m);
+});
+
+
+test('proxy diagnostics disclose only configuration sources, never secret URLs or tokens', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-proxy-safe-diagnostic-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const project = path.join(root, 'project');
+  const home = path.join(root, 'home');
+  fs.mkdirSync(project);
+  fs.mkdirSync(home);
+  fs.writeFileSync(path.join(project, '.npmrc'),
+    'proxy=http://user:COMPANY_SECRET@project.example.test:8000\n' +
+    '_authToken=VERY_SECRET\nregistry=https://project.registry.test/\n');
+  fs.writeFileSync(path.join(home, '.npmrc'),
+    'https-proxy=http://user:COMPANY_SECRET@home.example.test:8000\n');
+  const data = proxyConfigurationDiagnostics({
+    platform: 'win32', cwd: project, home,
+    env: { HTTPS_PROXY: 'http://user:COMPANY_SECRET@windows.example.test:8000',
+      npm_config_registry: 'https://token:COMPANY_SECRET@registry.test/' },
+    spawn: () => ({ status: 0, stdout: 'http://windows.example.test:8000' }),
+  });
+  assert.deepEqual(data.proxy_env_keys, ['HTTPS_PROXY', 'NPM_CONFIG_REGISTRY']);
+  assert.deepEqual(data.project_npmrc.keys, ['proxy', 'registry']);
+  assert.deepEqual(data.user_npmrc.keys, ['https-proxy']);
+  assert.equal(data.windows_system_proxy, 'discovered');
+  assert.equal(data.windows_system_matches_explicit_proxy, 'yes');
+  assert.equal(data.registry_reachability, 'NOT_TESTED');
+  assert.doesNotMatch(JSON.stringify(data), /COMPANY_SECRET|user:|project\.example|windows\.example|VERY_SECRET|token:/);
+});
+test('proxy diagnostic CLI performs no installer or npm network requests', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-proxy-cli-diagnostic-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const result = exec(['--proxy-diagnostics'], root);
+  assert.equal(result.status, 0, result.stderr);
+  const data = JSON.parse(result.stdout);
+  assert.equal(data.registry_reachability, 'NOT_TESTED');
+  assert.equal(data.proxy_authentication, 'NOT_TESTED');
+  assert.doesNotMatch(result.stdout, /https?:\/\/[^\s"]+@/);
+  assert.deepEqual(fs.readdirSync(root), []);
+});
+test('proxy diagnostics refuse mixed network or offline flags', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-proxy-mixed-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  for (const flags of [
+    ['--proxy-diagnostics','--copy-only'],
+    ['--proxy-diagnostics','--windows-system-proxy'],
+    ['--proxy-diagnostics','--offline-local'],
+  ]) {
+    const response = exec(flags, root);
+    assert.equal(response.status, 1, response.stderr);
+    assert.match(response.stderr, /cannot be combined/);
+    assert.deepEqual(fs.readdirSync(root), []);
+  }
 });
