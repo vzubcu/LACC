@@ -90,6 +90,18 @@ test('nested src/memory, src/build and top-level bin remain discoverable', t => 
   for (const folder of ['src/memory','src/build','bin'])
     assert.ok(result.stdout.includes(folder + '/consumer.py:1:'), folder);
 });
+test('isolating host Git config does not bypass the project local ignore policy', t => {
+  const root = fixture(t);
+  write(root, '.gitignore', 'src/ignored-subtree/\n');
+  write(root, 'src/ignored-subtree/consumer.py', 'on("review.event")\n');
+  write(root, 'src/included-subtree/consumer.py', 'on("review.event")\n');
+  const result = run(root, 'reference-scan', 'src/producer.ts',
+    '--signal', 'review.event');
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /src\/included-subtree\/consumer\.py:1:/);
+  assert.doesNotMatch(result.stdout, /src\/ignored-subtree\/consumer\.py:1:/);
+  assert.match(result.stdout, /respects ignore files/);
+});
 test('secrets and ignored locations are omitted from broad candidate scanning', t => {
   const root = fixture(t);
   for (const name of ['src/.env.production','src/client.pem','src/.ssh/id_rsa',
