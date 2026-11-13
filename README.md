@@ -138,9 +138,22 @@ node <skill_dir>/scripts/lacc.mjs signatures src/checkout.ts
 # Partial Node-only acceptance, with optional Python parity
 node tests/run_consolidated.mjs --bash-free
 
+# When npm is blocked by an enterprise proxy: NO network/npm
+node tests/install_smoke.mjs --offline-local
+
 # Only when approved to use the network: isolated pinned installer
 node tests/install_smoke.mjs --copy-only
+
+# Optional Windows system proxy discovery (may still need NTLM/Kerberos SSO)
+node tests/install_smoke.mjs --copy-only --windows-system-proxy
 ```
+
+HTTP 407 from npm is a **proxy authentication prerequisite**, now
+reported as `UNVERIFIED`, not a defective LACC installer. Offline local
+copy checks do **not** certify the external pinned installer. Windows
+proxy auto-discovery is opt-in and never imports credentials or modifies
+npmrc; company-managed NTLM/Kerberos proxy authentication can still
+require an approved corporate gateway. Never disable TLS validation.
 
 The full legacy Python/Bash integration suites remain separately
 required where POSIX Bash exists. The new Bash-free runner does **not**
