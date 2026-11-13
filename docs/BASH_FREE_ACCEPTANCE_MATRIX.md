@@ -89,6 +89,24 @@ access, DNS/timeouts and untrusted TLS chains, which are also classified
 as prerequisites rather than falsely PASS. No automatic credential
 extraction, authentication bypass or TLS verification disablement.
 
+When an approved enterprise proxy blocks npm, first inspect the
+configuration **without network access**:
+
+```powershell
+node tests/install_smoke.mjs --proxy-diagnostics
+```
+
+This command lists only the names of configured proxy environment
+variables, the presence of proxy/registry keys in project/user npmrc,
+and whether Windows resolves a system proxy through manual/PAC/WPAD
+configuration. It does not output proxy URLs, registry URLs, passwords,
+authorization tokens or private npmrc values, and performs no registry
+request. `windows_system_matches_explicit_proxy: no` means the
+effective Windows proxy differs from an explicit HTTP(S) proxy
+environment variable; it does NOT establish that npm can authenticate.
+This inspection does not yet cover npm global/built-in config or
+authenticated proxy negotiation.
+
 When an approved enterprise proxy blocks npm, test the skill payload
 and agent bridges offline with no registry access:
 
