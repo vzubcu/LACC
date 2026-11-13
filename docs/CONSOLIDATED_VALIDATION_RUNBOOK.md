@@ -86,6 +86,17 @@ This runs the Node suites (including optional Node/Python parity), reports
 `node_core_status: PASS` as release acceptance: legacy Bash tests and
 real host/OS checks are still mandatory where appropriate.
 
+If corporate npm egress returns HTTP 407, installer smoke now returns
+`UNVERIFIED` (exit code 3; status reason
+`optional-installer-prerequisite-unavailable`), without treating the
+skill as broken. `node tests/install_smoke.mjs --offline-local` checks
+local copies and agent runtime **without npm/network**, but is NOT
+external installer acceptance. Windows users may opt in to
+`node tests/install_smoke.mjs --copy-only --windows-system-proxy` to
+resolve their effective Windows PAC/manual proxy for npm; NTLM/Kerberos
+proxy authentication can still require administrator-approved tooling.
+Do not weaken TLS verification or store proxy credentials in LACC.
+
 For **experimental BF-5 installer smoke**, opt in separately. It may
 download the pinned `skills@1.7.4` package through npm/npx and
 requires Node 22.20+, npm/npx and approved network access; it does
