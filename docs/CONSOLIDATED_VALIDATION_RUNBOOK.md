@@ -87,7 +87,14 @@ This runs the Node suites (including optional Node/Python parity), reports
 real host/OS checks are still mandatory where appropriate.
 
 For redacted corporate proxy diagnosis use
-`node tests/install_smoke.mjs --proxy-diagnostics` first. It
+`node tests/install_smoke.mjs --proxy-diagnostics` first.
+If the result is `windows_system_proxy: discovered` and
+`windows_system_matches_explicit_proxy: no`, an approved
+one-time test is
+`node tests/install_smoke.mjs --copy-only --prefer-windows-system-proxy`.
+It changes only the npm subprocess proxy environment and deliberately
+keeps `NO_PROXY`, `registry`, and TLS settings. A remaining 407 is
+still UNVERIFIED and may require enterprise proxy authentication. It
 lists only configuration *key names*, distinguishes system proxy vs
 explicit environment proxy when possible, inspects project/user npmrc
 without printing values, and performs **no registry requests**.
