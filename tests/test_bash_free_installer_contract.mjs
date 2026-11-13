@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { classifyPinnedInstallerFailure, resolveWindowsSystemProxy, proxyConfigurationDiagnostics } from './installer_smoke_support.mjs';
+import { classifyPinnedInstallerFailure, resolveWindowsSystemProxy, proxyConfigurationDiagnostics, windowsSystemProxyChildEnv } from './installer_smoke_support.mjs';
 
 const runner = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
   'install_smoke.mjs');
@@ -182,4 +182,55 @@ test('proxy diagnostics refuse mixed network or offline flags', t => {
     assert.match(response.stderr, /cannot be combined/);
     assert.deepEqual(fs.readdirSync(root), []);
   }
+});
+
+
+test('explicit Windows proxy preference overrides conflicting npm/user env only for child', () => {
+  const original = {
+    HTTPS_PROXY: 'http://stale.example.test:1111',
+    https_proxy: 'http://stale.example.test:1111',
+    HTTP_PROXY: 'http://stale.example.test:1111',
+    http_proxy: 'http://stale.example.test:1111',
+    npm_config_proxy: 'http://stale.example.test:1111',
+    NPM_CONFIG_HTTPS_PROXY: 'http://stale.example.test:1111',
+    ALL_PROXY: 'http://another.example.test:2222',
+    NO_PROXY: 'localhost,.internal.test',
+    npm_config_registry: 'https://registry.example.test/',
+    npm_config_strict_ssl: 'true',
+    SECRET_OTHER: 'do-not-change',
+  };
+  const frozen = { ...original };
+  const child = windowsSystemProxyChildEnv(original, {
+    status: 'discovered', proxyUrl: 'http://windows-proxy.example.test:8080',
+  });
+  assert.deepEqual(original, frozen);
+  assert.notEqual(child, original);
+  assert.equal(child.HTTPS_PROXY, 'http://windows-proxy.example.test:8080');
+  assert.equal(child.HTTP_PROXY, child.HTTPS_PROXY);
+  assert.equal(child.npm_config_https_proxy, child.HTTPS_PROXY);
+  assert.equal(child.npm_config_proxy, child.HTTPS_PROXY);
+  for (const key of ['https_proxy','http_proxy','NPM_CONFIG_HTTPS_PROXY','ALL_PROXY'])
+    assert.equal(Object.hasOwn(child, key), false, key);
+  for (const key of ['NO_PROXY','npm_config_registry','npm_config_strict_ssl','SECRET_OTHER'])
+    assert.equal(child[key], original[key], key);
+});
+test('Windows proxy preference fails closed for absent or unsafe proxy endpoint', () => {
+  for (const result of [
+    { status: 'already-configured' }, { status: 'direct' },
+    { status: 'discovery-unavailable' },
+    { status: 'discovered', proxyUrl: 'http://user:password@proxy.test:8080' },
+    { status: 'discovered', proxyUrl: 'file:///etc/passwd' },
+    { status: 'discovered', proxyUrl: 'http://proxy.test:8080/path' },
+  ]) {
+    assert.throws(() => windowsSystemProxyChildEnv({}, result));
+  }
+});
+test('Windows proxy preference has no effect on non-Windows platforms', t => {
+  if (process.platform === 'win32') return;
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-windows-only-proxy-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const result = exec(['--copy-only', '--prefer-windows-system-proxy'], root);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /requires Windows/);
+  assert.deepEqual(fs.readdirSync(root), []);
 });
