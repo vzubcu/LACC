@@ -1,5 +1,21 @@
 # Changes
 
+## BF-5 enterprise npm proxy handling (unreleased, PR #46)
+
+- Classify HTTP 407, registry 401/403, DNS/timeout and untrusted TLS
+  as `UNVERIFIED` external installer prerequisites (exit 3), never
+  successful LACC installation or functional regression.
+- Add opt-in `--windows-system-proxy` using the current user's
+  system proxy discovery (manual/PAC/WPAD) only for the npm child
+  process, without Bash, persistent npm configuration or credentials.
+  Windows SSO/NTLM/Kerberos authentication is not automatically solved.
+- Add `--offline-local` to verify copied skill files, four agent
+  bridges and native runtime without network/npm. Distinguish its
+  local fixture PASS from official external installer acceptance.
+- Add zero-network regression tests including a simulated E407 whose
+  private proxy URL is not disclosed. Native three-OS installer
+  release certification remains outstanding.
+
 ## Integration candidate — PR #40 Windows fixes + BF-1..BF-7 (unreleased)
 
 - Reconcile the historical Windows PR #40 source fixes: normalized
