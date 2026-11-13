@@ -8,13 +8,30 @@ import { fileURLToPath } from 'node:url';
 
 const cli = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
   '../skills/lean-context-memory/scripts/lacc.mjs');
+// The scanner correctly honors Git ignore rules. Its tests must NOT inherit
+// a developer's global excludesFile/XDG ignore list (e.g. a global "memory"
+// pattern on Windows), otherwise src/memory fixtures silently disappear.
+// Keep all repository-local .gitignore semantics intact.
+function isolatedGitEnv(root) {
+  const env = {
+    ...process.env,
+    GIT_CONFIG_NOSYSTEM: '1',
+    GIT_CONFIG_GLOBAL: path.join(root, '.git', 'lacc-test-global.conf'),
+    XDG_CONFIG_HOME: path.join(root, '.git', 'lacc-test-xdg'),
+    GIT_CONFIG_COUNT: '0',
+    GIT_TERMINAL_PROMPT: '0',
+    GCM_INTERACTIVE: 'Never',
+    PYTHONDONTWRITEBYTECODE: '1',
+  };
+  delete env.GIT_DIR;
+  delete env.GIT_WORK_TREE;
+  delete env.GIT_INDEX_FILE;
+  return env;
+}
 function run(root, command, ...args) {
   return spawnSync(process.execPath, [cli, command, ...args], {
     cwd: root, encoding: 'utf8', timeout: 20000, windowsHide: true,
-    maxBuffer: 8 * 1024 * 1024, env: {
-      ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never',
-      PYTHONDONTWRITEBYTECODE: '1',
-    },
+    maxBuffer: 8 * 1024 * 1024, env: isolatedGitEnv(root),
   });
 }
 function write(root, name, content) {
@@ -26,7 +43,8 @@ function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-bf2b-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const git = spawnSync('git', ['init', '-q'], { cwd: root,
-    encoding: 'utf8', windowsHide: true, timeout: 10000 });
+    encoding: 'utf8', windowsHide: true, timeout: 10000,
+    env: isolatedGitEnv(root) });
   assert.equal(git.status, 0, git.stderr);
   write(root, 'src/producer.ts',
     'import { dispatch } from "./bus";\ndispatch("checkout.ready", payload);\n');
