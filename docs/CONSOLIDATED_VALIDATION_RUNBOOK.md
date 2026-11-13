@@ -86,6 +86,14 @@ This runs the Node suites (including optional Node/Python parity), reports
 `node_core_status: PASS` as release acceptance: legacy Bash tests and
 real host/OS checks are still mandatory where appropriate.
 
+For redacted corporate proxy diagnosis use
+`node tests/install_smoke.mjs --proxy-diagnostics` first. It
+lists only configuration *key names*, distinguishes system proxy vs
+explicit environment proxy when possible, inspects project/user npmrc
+without printing values, and performs **no registry requests**.
+Its findings cannot certify authentication, and npm global/built-in
+configuration is not fully inspected.
+
 If corporate npm egress returns HTTP 407, installer smoke now returns
 `UNVERIFIED` (exit code 3; status reason
 `optional-installer-prerequisite-unavailable`), without treating the
