@@ -130,10 +130,26 @@ node tests/install_smoke.mjs --windows-system-proxy
 
 This uses Windows PowerShell/.NET only for discovery (no Bash or
 `shell: true`). Existing explicit `HTTPS_PROXY`, `HTTP_PROXY` and
-npm proxy environment settings take precedence. Discovering the proxy
-**does not authenticate NTLM/Kerberos**; a continuing E407 requires a
-company-approved authenticated proxy bridge or IT-provided registry
-endpoint. Do not embed corporate passwords in code/URLs, copy logs
+npm proxy environment settings take precedence in the standard
+`--windows-system-proxy` mode.
+
+**When diagnostics explicitly show a mismatch**, operators may instead
+opt in to an isolated override:
+
+```powershell
+node tests/install_smoke.mjs --copy-only --prefer-windows-system-proxy
+```
+
+This mode resolves the effective Windows proxy even when environment
+variables already exist and temporarily passes `npm_config_proxy`,
+`npm_config_https_proxy`, `HTTP_PROXY`, and `HTTPS_PROXY` to the **one
+npm child process only**. It preserves `NO_PROXY`, the selected npm
+registry, and all TLS/trust options; it never edits `.npmrc` or exports
+Windows credentials. The Windows proxy URL is never printed. Failure to
+discover a safe HTTP(S) proxy returns UNVERIFIED, not a fallback to a
+conflicting proxy. This option is not an auth bypass: persistent E407
+requires a company-approved NTLM/Kerberos solution or IT-managed npm
+registry endpoint. Do not change `strict-ssl` to bypass TLS. Do not embed corporate passwords in code/URLs, copy logs
 containing credentials, or set `strict-ssl=false`.
 
 Only after network consent and a trusted local source checkout:
