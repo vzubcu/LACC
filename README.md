@@ -147,7 +147,10 @@ node tests/install_smoke.mjs --offline-local
 # Only when approved to use the network: isolated pinned installer
 node tests/install_smoke.mjs --copy-only
 
-# Optional Windows system proxy discovery (may still need NTLM/Kerberos SSO)
+# When explicit proxy env disagrees with Windows (opt in, child process only)
+node tests/install_smoke.mjs --copy-only --prefer-windows-system-proxy
+
+# Original non-overriding discovery mode
 node tests/install_smoke.mjs --copy-only --windows-system-proxy
 ```
 
