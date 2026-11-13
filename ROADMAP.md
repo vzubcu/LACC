@@ -61,9 +61,11 @@ agent-host acceptance remain mandatory before promotion.
   `skills@1.7.4` through Node/npm with argument arrays, local temporary
   projects, copy/link verification and real native bridges; no Bash or
   Python prerequisite. Corporate HTTP 407 is explicitly UNVERIFIED,
-  not a LACC defect. Added an opt-in Windows system-proxy detector
-  and an `--offline-local` file/agent runtime smoke; the offline
-  mode does not replace the external installer acceptance. Actual
+  not a LACC defect. Added an opt-in Windows system-proxy detector,
+  a read-only `--proxy-diagnostics` command and an explicit
+  `--prefer-windows-system-proxy` override for the isolated npm child
+  when proxy configurations disagree. The `--offline-local` file/agent
+  runtime smoke does not replace external installer acceptance. Actual
   copy/link validation with the pinned package still requires
   approved network access and possibly corporate proxy SSO support.
 - **BF-6 — Security:** add Node regression tests for sensitive files,
