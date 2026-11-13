@@ -60,7 +60,12 @@ agent-host acceptance remain mandatory before promotion.
 - **BF-5 — Installer:** opt-in `tests/install_smoke.mjs` invokes pinned
   `skills@1.7.4` through Node/npm with argument arrays, local temporary
   projects, copy/link verification and real native bridges; no Bash or
-  Python prerequisite. Requires separate approved-network acceptance.
+  Python prerequisite. Corporate HTTP 407 is explicitly UNVERIFIED,
+  not a LACC defect. Added an opt-in Windows system-proxy detector
+  and an `--offline-local` file/agent runtime smoke; the offline
+  mode does not replace the external installer acceptance. Actual
+  copy/link validation with the pinned package still requires
+  approved network access and possibly corporate proxy SSO support.
 - **BF-6 — Security:** add Node regression tests for sensitive files,
   symlink refusal, terminal control escaping, source non-execution,
   private retention and Git/source evidence. Authored; native results
