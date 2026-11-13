@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { classifyPinnedInstallerFailure, resolveWindowsSystemProxy } from './installer_smoke_support.mjs';
+import { classifyPinnedInstallerFailure, resolveWindowsSystemProxy, proxyConfigurationDiagnostics } from './installer_smoke_support.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const AGENTS = { codex: '.agents', 'claude-code': '.claude',
@@ -152,9 +152,10 @@ function offlineLocalCopySmoke(source, skills) {
   }
 }
 function usage() {
-  console.log('Usage: node tests/install_smoke.mjs [--source LOCAL_REPO] [--copy-only] [--offline-local] [--windows-system-proxy]\\n' +
+  console.log('Usage: node tests/install_smoke.mjs [--source LOCAL_REPO] [--copy-only] [--offline-local] [--windows-system-proxy] [--proxy-diagnostics]\\n' +
     '--offline-local validates local copy/runtime only; external installer is NOT_VERIFIED.\\n' +
     '--windows-system-proxy resolves Windows proxy for npm (no Windows SSO credentials).\\n' +
+    '--proxy-diagnostics prints redacted configuration sources; no registry access.\\n' +
     'Default: opt-in network install of pinned skills@1.7.4 into disposable temp projects.');
 }
 function main() {
@@ -172,11 +173,20 @@ function main() {
   if (offlineLocal) args.splice(args.indexOf('--offline-local'), 1);
   const windowsProxy = args.includes('--windows-system-proxy');
   if (windowsProxy) args.splice(args.indexOf('--windows-system-proxy'), 1);
+  const proxyDiagnostics = args.includes('--proxy-diagnostics');
+  if (proxyDiagnostics) args.splice(args.indexOf('--proxy-diagnostics'), 1);
+  if (proxyDiagnostics && (offlineLocal || windowsProxy || copyOnly))
+    throw Error('--proxy-diagnostics cannot be combined with installer options');
   if (offlineLocal && windowsProxy)
     throw Error('--offline-local cannot use --windows-system-proxy');
   if (windowsProxy && process.platform !== 'win32')
     throw Error('--windows-system-proxy requires Windows');
   if (args.length) throw Error('unsupported options: ' + args.join(' '));
+  if (proxyDiagnostics) {
+    // Read-only, zero network, never expose URLs/credentials or change npmrc.
+    console.log(JSON.stringify(proxyConfigurationDiagnostics(), null, 2));
+    return 0;
+  }
   if (!nodeSupported()) {
     console.log('UNVERIFIED: Node 22.20+ required for pinned installer');
     return 3;
