@@ -8,6 +8,9 @@
 - Add opt-in `--windows-system-proxy` using the current user's
   system proxy discovery (manual/PAC/WPAD) only for the npm child
   process, without Bash, persistent npm configuration or credentials.
+  Add `--prefer-windows-system-proxy` for an explicit, temporary
+  override of conflicting `npm_config_proxy`/`HTTPS_PROXY` values in
+  the isolated npm child; preserve registry, `NO_PROXY`, and TLS.
   Windows SSO/NTLM/Kerberos authentication is not automatically solved.
 - Add `--offline-local` to verify copied skill files, four agent
   bridges and native runtime without network/npm. Distinguish its
