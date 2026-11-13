@@ -16,6 +16,9 @@ export function classifyPinnedInstallerFailure({ stderr = '', stdout = '' } = {}
 
 
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 // Resolve the effective proxy for exactly the pinned registry URL. On Windows,
 // the current user's WinINET proxy can originate from manual settings,
@@ -31,11 +34,12 @@ const WINDOWS_PROXY_SCRIPT = [
 
 export function resolveWindowsSystemProxy({
   platform = process.platform, env = process.env, spawn = spawnSync,
+  inspectEvenIfConfigured = false,
 } = {}) {
   if (platform !== 'win32') return { status: 'not-windows' };
   // Keep explicit npm/user settings at higher priority. Never mutate
   // machine/user npmrc or environment variables in the parent process.
-  if (['HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy',
+  if (!inspectEvenIfConfigured && ['HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy',
     'npm_config_https_proxy', 'npm_config_proxy',
     'NPM_CONFIG_HTTPS_PROXY', 'NPM_CONFIG_PROXY'].some(k => env[k])) {
     return { status: 'already-configured' };
@@ -64,4 +68,70 @@ export function resolveWindowsSystemProxy({
     // caller may pass it ONLY to the isolated npm subprocess environment.
     return { status: 'discovered', proxyUrl: parsed.origin };
   } catch { return { status: 'proxy-unsupported' }; }
+}
+
+
+const PROXY_ENV = new Set([
+  'https_proxy', 'http_proxy', 'all_proxy', 'no_proxy',
+  'npm_config_proxy', 'npm_config_https_proxy', 'npm_config_registry',
+  'npm_config_userconfig', 'npm_config_globalconfig',
+]);
+const SAFE_NPMRC_KEYS = new Set([
+  'proxy', 'https-proxy', 'noproxy', 'registry',
+  'strict-ssl', 'cafile',
+]);
+function publicNpmrcKeyNames(file, io = fs) {
+  if (!file) return { status: 'not-specified', keys: [] };
+  try {
+    const stat = io.lstatSync(file);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 256 * 1024)
+      return { status: 'unreadable', keys: [] };
+    const text = io.readFileSync(file, 'utf8');
+    const keys = new Set();
+    for (const line of text.split(/\r?\n/)) {
+      // Never expose values, including auth tokens, URLs or proxy credentials.
+      const key = line.match(/^\s*([a-z][a-z-]*)\s*=/i)?.[1]?.toLowerCase();
+      if (SAFE_NPMRC_KEYS.has(key)) keys.add(key);
+    }
+    return { status: 'readable', keys: [...keys].sort() };
+  } catch (e) {
+    return { status: e?.code === 'ENOENT' ? 'absent' : 'unreadable', keys: [] };
+  }
+}
+export function proxyConfigurationDiagnostics({
+  env = process.env, platform = process.platform, cwd = process.cwd(),
+  home = os.homedir(), io = fs, spawn = spawnSync,
+} = {}) {
+  const configured = Object.keys(env)
+    .filter(key => PROXY_ENV.has(key.toLowerCase()) && Boolean(env[key]))
+    .map(key => key.toUpperCase()).sort();
+  const userConfigVar = Object.keys(env).find(key =>
+    key.toLowerCase() === 'npm_config_userconfig' && env[key]);
+  const userConfigPath = userConfigVar ? env[userConfigVar] : path.join(home, '.npmrc');
+  const project = publicNpmrcKeyNames(path.join(cwd, '.npmrc'), io);
+  const user = publicNpmrcKeyNames(userConfigPath, io);
+  // Query Windows only for an explicit diagnostic; do not change npm env.
+  const windows = resolveWindowsSystemProxy({
+    platform, env, spawn, inspectEvenIfConfigured: true,
+  });
+  return {
+    diagnostic_scope: 'environment-and-project-user-npmrc-only',
+    proxy_env_keys: configured,
+    project_npmrc: project,
+    user_npmrc: user,
+    windows_system_proxy: windows.status,
+    windows_system_matches_explicit_proxy: (() => {
+      if (windows.status !== 'discovered') return 'not-compared';
+      const keys = Object.keys(env).filter(k =>
+        ['https_proxy', 'http_proxy'].includes(k.toLowerCase()) && env[k]);
+      if (keys.length === 0) return 'no-explicit-env-proxy';
+      try {
+        return keys.some(k => new URL(env[k]).origin === windows.proxyUrl)
+          ? 'yes' : 'no';
+      } catch { return 'unavailable'; }
+    })(),
+    registry_reachability: 'NOT_TESTED',
+    proxy_authentication: 'NOT_TESTED',
+    note: 'Values, proxy endpoints and credentials are not displayed. npm global/built-in config is not inspected. No settings changed.',
+  };
 }
