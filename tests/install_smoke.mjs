@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { classifyPinnedInstallerFailure, resolveWindowsSystemProxy, proxyConfigurationDiagnostics } from './installer_smoke_support.mjs';
+import { classifyPinnedInstallerFailure, resolveWindowsSystemProxy, proxyConfigurationDiagnostics, windowsSystemProxyChildEnv } from './installer_smoke_support.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const AGENTS = { codex: '.agents', 'claude-code': '.claude',
@@ -152,9 +152,10 @@ function offlineLocalCopySmoke(source, skills) {
   }
 }
 function usage() {
-  console.log('Usage: node tests/install_smoke.mjs [--source LOCAL_REPO] [--copy-only] [--offline-local] [--windows-system-proxy] [--proxy-diagnostics]\\n' +
+  console.log('Usage: node tests/install_smoke.mjs [--source LOCAL_REPO] [--copy-only] [--offline-local] [--windows-system-proxy] [--prefer-windows-system-proxy] [--proxy-diagnostics]\\n' +
     '--offline-local validates local copy/runtime only; external installer is NOT_VERIFIED.\\n' +
-    '--windows-system-proxy resolves Windows proxy for npm (no Windows SSO credentials).\\n' +
+    '--windows-system-proxy discovers proxy unless explicitly configured.\\n' +
+    '--prefer-windows-system-proxy overrides npm child proxy settings for this run only.\\n' +
     '--proxy-diagnostics prints redacted configuration sources; no registry access.\\n' +
     'Default: opt-in network install of pinned skills@1.7.4 into disposable temp projects.');
 }
@@ -173,14 +174,18 @@ function main() {
   if (offlineLocal) args.splice(args.indexOf('--offline-local'), 1);
   const windowsProxy = args.includes('--windows-system-proxy');
   if (windowsProxy) args.splice(args.indexOf('--windows-system-proxy'), 1);
+  const preferWindowsProxy = args.includes('--prefer-windows-system-proxy');
+  if (preferWindowsProxy) args.splice(args.indexOf('--prefer-windows-system-proxy'), 1);
+  if (windowsProxy && preferWindowsProxy)
+    throw Error('choose one Windows proxy mode');
   const proxyDiagnostics = args.includes('--proxy-diagnostics');
   if (proxyDiagnostics) args.splice(args.indexOf('--proxy-diagnostics'), 1);
-  if (proxyDiagnostics && (offlineLocal || windowsProxy || copyOnly))
+  if (proxyDiagnostics && (offlineLocal || windowsProxy || preferWindowsProxy || copyOnly))
     throw Error('--proxy-diagnostics cannot be combined with installer options');
-  if (offlineLocal && windowsProxy)
-    throw Error('--offline-local cannot use --windows-system-proxy');
-  if (windowsProxy && process.platform !== 'win32')
-    throw Error('--windows-system-proxy requires Windows');
+  if (offlineLocal && (windowsProxy || preferWindowsProxy))
+    throw Error('--offline-local cannot use Windows proxy options');
+  if ((windowsProxy || preferWindowsProxy) && process.platform !== 'win32')
+    throw Error('Windows proxy flags require Windows');
   if (args.length) throw Error('unsupported options: ' + args.join(' '));
   if (proxyDiagnostics) {
     // Read-only, zero network, never expose URLs/credentials or change npmrc.
@@ -209,14 +214,21 @@ function main() {
     return 0;
   }
   let npmEnv = process.env;
-  if (windowsProxy) {
-    const detected = resolveWindowsSystemProxy();
+  if (windowsProxy || preferWindowsProxy) {
+    const detected = resolveWindowsSystemProxy({
+      inspectEvenIfConfigured: preferWindowsProxy,
+    });
     console.log('Windows proxy discovery: ' + detected.status);
-    if (detected.status === 'discovered') {
+    if (preferWindowsProxy) {
+      if (detected.status !== 'discovered')
+        throw new InstallerPrerequisiteUnavailable('windows-system-proxy-' + detected.status);
+      npmEnv = windowsSystemProxyChildEnv(process.env, detected);
+      console.log('Proxy precedence: Windows system proxy for isolated npm child');
+    } else if (detected.status === 'discovered') {
       npmEnv = { ...process.env,
         HTTPS_PROXY: detected.proxyUrl, HTTP_PROXY: detected.proxyUrl };
     }
-    // PAC or proxy auth may still require IT-assisted NTLM/Kerberos support.
+    // Neither mode supplies SSO credentials; a 407 can still persist.
   }
   const modes = copyOnly ? ['copy'] : ['copy', 'link'];
   for (const mode of modes) {
