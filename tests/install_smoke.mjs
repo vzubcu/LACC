@@ -6,12 +6,16 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { classifyPinnedInstallerFailure, resolveWindowsSystemProxy } from './installer_smoke_support.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const AGENTS = { codex: '.agents', 'claude-code': '.claude',
   'gemini-cli': '.agents', roo: '.roo' };
 const MAX_LOG = 1800;
 const MAX_SUBPROC = 210000;
+class InstallerPrerequisiteUnavailable extends Error {
+  constructor(reason) { super(reason); this.name = 'InstallerPrerequisiteUnavailable'; }
+}
 function nodeSupported() {
   const [major, minor] = process.versions.node.split('.').map(Number);
   return major > 22 || major === 22 && minor >= 20;
@@ -43,18 +47,23 @@ function npxJs() {
   }
   return null;
 }
-function run(label, bin, args, cwd, timeout = MAX_SUBPROC) {
+function run(label, bin, args, cwd, timeout = MAX_SUBPROC, customEnv = process.env) {
   const result = spawnSync(bin, args, {
     cwd, encoding: 'utf8', windowsHide: true, timeout,
     maxBuffer: 4 * 1024 * 1024,
-    env: { ...process.env, DISABLE_TELEMETRY: '1',
+    env: { ...customEnv, DISABLE_TELEMETRY: '1',
       DO_NOT_TRACK: '1', CI: '1', PYTHONDONTWRITEBYTECODE: '1',
       GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never' },
   });
-  if (result.error || result.status !== 0)
+  if (result.error || result.status !== 0) {
+    if (label.startsWith('pinned installer ')) {
+      const unavailable = classifyPinnedInstallerFailure(result);
+      if (unavailable) throw new InstallerPrerequisiteUnavailable(unavailable);
+    }
     throw Error(label + ' failed (exit=' + result.status +
       ', error=' + (result.error?.code ?? 'none') + '): ' +
       String(result.stderr || result.stdout || '').slice(-MAX_LOG));
+  }
   return result;
 }
 function check(condition, explanation) { if (!condition) throw Error(explanation); }
@@ -114,9 +123,39 @@ function verifyRuntime(installed, cwd) {
     run('reference help', process.execPath, [cli, 'reference-scan', '--help'], root);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 }
+function offlineLocalCopySmoke(source, skills) {
+  const target = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-offline-install-'));
+  try {
+    for (const agentFolder of new Set(Object.values(AGENTS))) {
+      for (const skill of skills) {
+        const origin = path.join(source, 'skills', skill);
+        const installed = path.join(target, agentFolder, 'skills', skill);
+        // Never follow a linked skill file or directory during local copy.
+        const files = relativeFiles(origin);
+        check(files.length > 0, 'empty local skill source: ' + skill);
+        fs.mkdirSync(path.dirname(installed), { recursive: true });
+        fs.cpSync(origin, installed, {
+          recursive: true, force: false, errorOnExist: true,
+          filter: candidate => {
+            const parts = path.relative(origin, candidate).split(path.sep);
+            return !parts.includes('__pycache__') && !candidate.endsWith('.pyc');
+          },
+        });
+        compareInstalled(origin, installed);
+        if (skill === 'lean-context-memory') verifyRuntime(installed, target);
+      }
+    }
+    console.log('PASS: offline local-copy fixture; ' + skills.length +
+      ' skills; all agents; external pinned installer NOT_VERIFIED');
+  } finally {
+    fs.rmSync(target, { recursive: true, force: true });
+  }
+}
 function usage() {
-  console.log('Usage: node tests/install_smoke.mjs [--source LOCAL_REPO] [--copy-only]\n' +
-    'Opt-in network install of pinned skills@1.7.4 into disposable temp projects.');
+  console.log('Usage: node tests/install_smoke.mjs [--source LOCAL_REPO] [--copy-only] [--offline-local] [--windows-system-proxy]\\n' +
+    '--offline-local validates local copy/runtime only; external installer is NOT_VERIFIED.\\n' +
+    '--windows-system-proxy resolves Windows proxy for npm (no Windows SSO credentials).\\n' +
+    'Default: opt-in network install of pinned skills@1.7.4 into disposable temp projects.');
 }
 function main() {
   const argv = process.argv.slice(2);
@@ -129,13 +168,22 @@ function main() {
   if (sourceIndex >= 0) args.splice(sourceIndex, 2);
   const copyOnly = args.includes('--copy-only');
   if (copyOnly) args.splice(args.indexOf('--copy-only'), 1);
+  const offlineLocal = args.includes('--offline-local');
+  if (offlineLocal) args.splice(args.indexOf('--offline-local'), 1);
+  const windowsProxy = args.includes('--windows-system-proxy');
+  if (windowsProxy) args.splice(args.indexOf('--windows-system-proxy'), 1);
+  if (offlineLocal && windowsProxy)
+    throw Error('--offline-local cannot use --windows-system-proxy');
+  if (windowsProxy && process.platform !== 'win32')
+    throw Error('--windows-system-proxy requires Windows');
   if (args.length) throw Error('unsupported options: ' + args.join(' '));
   if (!nodeSupported()) {
     console.log('UNVERIFIED: Node 22.20+ required for pinned installer');
     return 3;
   }
-  const npx = npxJs();
-  if (!npx) {
+  // Offline validation requires neither npm nor access to the registry.
+  const npx = offlineLocal ? null : npxJs();
+  if (!offlineLocal && !npx) {
     console.log('UNVERIFIED: npx-cli.js unavailable; do not invoke shell wrappers');
     return 3;
   }
@@ -146,6 +194,20 @@ function main() {
     catch { return false; }
   });
   check(skills.length > 0, 'no skill manifests');
+  if (offlineLocal) {
+    offlineLocalCopySmoke(source, skills);
+    return 0;
+  }
+  let npmEnv = process.env;
+  if (windowsProxy) {
+    const detected = resolveWindowsSystemProxy();
+    console.log('Windows proxy discovery: ' + detected.status);
+    if (detected.status === 'discovered') {
+      npmEnv = { ...process.env,
+        HTTPS_PROXY: detected.proxyUrl, HTTP_PROXY: detected.proxyUrl };
+    }
+    // PAC or proxy auth may still require IT-assisted NTLM/Kerberos support.
+  }
   const modes = copyOnly ? ['copy'] : ['copy', 'link'];
   for (const mode of modes) {
     const target = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-install-smoke-'));
@@ -154,7 +216,7 @@ function main() {
         '*', '--agent', ...Object.keys(AGENTS), '-y',
         ...(mode === 'copy' ? ['--copy'] : [])];
       try {
-        run('pinned installer ' + mode, process.execPath, cmd, target);
+        run('pinned installer ' + mode, process.execPath, cmd, target, MAX_SUBPROC, npmEnv);
       } catch (error) {
         if (mode === 'link' && process.platform === 'win32' &&
           /EPERM|EACCES|privilege|symlink/i.test(error.message)) {
@@ -178,6 +240,12 @@ function main() {
 }
 try { process.exitCode = main(); }
 catch (error) {
-  process.stderr.write('FAIL: ' + error.message + '\n');
-  process.exitCode = 1;
+  if (error instanceof InstallerPrerequisiteUnavailable) {
+    process.stderr.write('UNVERIFIED: pinned installer prerequisite blocked: ' +
+      error.message + '; inspect corporate proxy/registry policy.\n');
+    process.exitCode = 3;
+  } else {
+    process.stderr.write('FAIL: ' + error.message + '\n');
+    process.exitCode = 1;
+  }
 }
