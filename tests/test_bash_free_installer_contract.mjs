@@ -110,3 +110,23 @@ test('offline-local and Windows proxy flags are mutually exclusive', t => {
   assert.match(result.stderr, /cannot use/);
   assert.deepEqual(fs.readdirSync(root), []);
 });
+
+test('real installer subprocess E407 is UNVERIFIED without exposing npm output or using network', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-installer-e407-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  // Explicit fake Node npm entrypoint: the actual external installer is not
+  // downloaded or invoked, and no user or system npm config is modified.
+  const fake = path.join(root, 'npx-cli.js');
+  fs.writeFileSync(fake,
+    'process.stderr.write("npm error code E407\\n' +
+    'npm error 407 Proxy Authentication Required\\n' +
+    'confidential URL: http://user:secret@proxy.test:8080\\n"); process.exitCode = 1;\n');
+  const result = spawnSync(process.execPath,
+    [runner, '--copy-only'], { cwd: root, encoding: 'utf8',
+      windowsHide: true, timeout: 12000,
+      env: { ...process.env, LACC_NPX_CLI: fake } });
+  assert.equal(result.status, 3, result.stderr);
+  assert.match(result.stderr, /UNVERIFIED: pinned installer prerequisite blocked: npm-proxy-auth-required/);
+  assert.doesNotMatch(result.stderr + result.stdout, /secret|user@|confidential URL/);
+  assert.doesNotMatch(result.stderr + result.stdout, /^FAIL:/m);
+});
