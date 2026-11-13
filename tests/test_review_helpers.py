@@ -8,6 +8,7 @@ import time
 import unittest
 
 from test_memory_tools import ProjectCase, TOOLS
+from legacy_bash_support import require_legacy_bash
 
 
 class HelperReviewTests(ProjectCase):
@@ -38,6 +39,7 @@ class HelperReviewTests(ProjectCase):
         self.assertIn('incomplete', result.stdout.lower())
 
     def test_stdin_slice_cleans_temp_and_validates_limit(self):
+        require_legacy_bash(self)
         with tempfile.TemporaryDirectory() as directory:
             result = subprocess.run(['bash', str(TOOLS/'ctx-slice.sh'), '-', '2'], input='one\ntwo\nthree\n',
                                     env=dict(os.environ, TMPDIR=directory), text=True, capture_output=True)
@@ -48,7 +50,9 @@ class HelperReviewTests(ProjectCase):
         result = self.run_tool('ctx-slice.sh', '-', 'bad')
         self.assertEqual(result.returncode, 2)
 
+    @unittest.skipIf(os.name == "nt", "POSIX chmod mode 0600 must be validated on Linux/macOS")
     def test_saved_stdin_slice_is_private(self):
+        require_legacy_bash(self)
         with tempfile.TemporaryDirectory() as directory:
             result = subprocess.run(['bash', str(TOOLS/'ctx-slice.sh'), '-', '2', '--keep'], input='one\ntwo\nthree\n',
                                     env=dict(os.environ, TMPDIR=directory), text=True, capture_output=True)
@@ -59,6 +63,7 @@ class HelperReviewTests(ProjectCase):
             self.assertEqual(files[0].read_text(), 'one\ntwo\nthree\n')
 
     def test_interrupted_stdin_slice_does_not_spool_by_default(self):
+        require_legacy_bash(self)
         with tempfile.TemporaryDirectory() as directory:
             process = subprocess.Popen(['bash', str(TOOLS/'ctx-slice.sh'), '-', '2'],
                                        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,

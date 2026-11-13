@@ -8,6 +8,8 @@ import sys
 import tempfile
 import unittest
 
+from legacy_bash_support import require_legacy_bash
+
 
 TOOLS = Path(__file__).resolve().parents[1] / "skills/lean-context-memory/scripts"
 
@@ -39,18 +41,24 @@ class ProjectCase(unittest.TestCase):
         return subprocess.run(["git", "-C", str(self.root), *args], text=True, capture_output=True, check=True)
 
     def run_tool(self, name, *args):
+        if name.endswith(".sh"):
+            require_legacy_bash(self)
         interpreter = sys.executable if name.endswith(".py") else "bash"
         return subprocess.run([interpreter, str(TOOLS / name), *args], cwd=self.root,
                               text=True, capture_output=True)
 
     def snapshot(self):
-        return {str(p.relative_to(self.root)): p.read_bytes() for p in (self.root / "memory").rglob("*") if p.is_file()}
+        return {p.relative_to(self.root).as_posix(): p.read_bytes()
+                for p in (self.root / "memory").rglob("*") if p.is_file()}
 
     def health(self):
         return self.run_tool("memory-health.py", str(self.root))
 
 
 class MemoryHealthTests(ProjectCase):
+    def test_snapshot_keys_are_stable_across_host_path_separators(self):
+        self.assertIn("memory/topics/architecture.md", self.snapshot())
+
     def test_confirmed_unchanged_source_is_healthy_without_writing_memory(self):
         before = self.snapshot()
         result = self.health()
@@ -280,8 +288,11 @@ class DependencyTests(ProjectCase):
 
 class BootstrapTests(ProjectCase):
     def test_generated_helper_commands_quote_literal_installation_paths(self):
+        require_legacy_bash(self)
         with tempfile.TemporaryDirectory() as install_dir:
-            for name in ["skill$UNSET_TEST_VARIABLE", "skill 'single' \"double\" $(touch INJECTED) `tick`"]:
+            # Preserve POSIX double-quote injection coverage, but not in NTFS names.
+            complex_name = "skill 'single' " + ('"double" ' if os.name != "nt" else "") + "$(touch INJECTED) `tick`"
+            for name in ["skill$UNSET_TEST_VARIABLE", complex_name]:
                 with self.subTest(name=name):
                     install = Path(install_dir) / name
                     shutil.copytree(TOOLS, install / "scripts")
@@ -290,7 +301,7 @@ class BootstrapTests(ProjectCase):
                     result = subprocess.run(["bash", str(install / "scripts/init-memory.sh"), str(self.root)],
                                             text=True, capture_output=True)
                     self.assertEqual(result.returncode, 0, result.stderr)
-                    line = next(line for line in (self.root / "AGENTS.md").read_text().splitlines() if "run " in line and "sync-memory.sh" in line)
+                    line = next(line for line in (self.root / "AGENTS.md").read_text().splitlines() if "run " in line and "lacc.mjs" in line)
                     match = re.search(r"run (`+)(.+?)\1;", line)
                     self.assertIsNotNone(match, line)
                     env = dict(os.environ)

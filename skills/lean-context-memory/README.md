@@ -8,6 +8,49 @@ Python 3.9+/Bash helpers remain available for advanced maintenance and tools.
 If no Node exists, follow the limited native-agent fallback described below.
 Windows-specific Node validation is pending; Linux local smoke passed.
 
+## Experimental Bash-free context slicing (BF-2a)
+
+The feature branch adds a native streaming context slicer:
+
+```sh
+node <skill_dir>/scripts/lacc.mjs ctx-slice ./log.txt 100
+node <skill_dir>/scripts/lacc.mjs ctx-slice - 100
+node <skill_dir>/scripts/lacc.mjs ctx-slice - 100 --keep
+```
+
+No Bash or Python is needed for this command. The default consumes
+stdin without keeping a complete copy. `--keep` explicitly writes
+private stdin bytes in an OS temporary directory; it never writes to
+project `memory/`. Input lines over 1 MiB, excessive line-count
+requests and captured output over 16 MiB fail visibly. The existing
+`ctx-slice.sh` and `ctx_slice.py` remain for compatibility.
+
+**BF-2b preview:**
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs reference-scan src/api.ts exportClient --signal client.connected
+node <skill_dir>/scripts/lacc.mjs signatures src/api.ts --limit 80
+node <skill_dir>/scripts/lacc.mjs signatures src/handlers.py --require-ast
+```
+
+Reference scanning never executes project scripts and excludes private
+files while disclosing incomplete coverage. It is separate from
+Git-revision-aware `dependency-impact`. Python AST extraction uses the
+existing stdlib parser through a direct Python process when installed;
+Node-only fallback explicitly reports heuristic/AST-unavailable status.
+Neither path guarantees semantic/call-graph correctness.
+Bootstrap/sync safeguards are authored with dedicated native regression
+tests, but cross-OS and legacy parity remain unverified.
+
+The optional installer smoke is `node tests/install_smoke.mjs --copy-only`
+from the repository root; it requires Node 22.20+, pinned npx and
+approved network access, **not** Bash. The consolidated
+`node tests/run_consolidated.mjs --bash-free` mode tests the Bash-free
+core without claiming the historical Python/Bash suite passed.
+See [native acceptance matrix](../../docs/BASH_FREE_ACCEPTANCE_MATRIX.md).
+Legacy wrappers remain supported for backward compatibility.
+See [BF-1 audit](../../docs/BASH_FREE_RUNTIME_MIGRATION.md).
+
 ## Install and initialize
 
 ```bash

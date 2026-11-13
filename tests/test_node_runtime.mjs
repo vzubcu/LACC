@@ -167,7 +167,29 @@ test('sync stamps UNSYNCED only if working tree is clean and health passes', t=>
 test('unsafe topic symlinks fail and do not expose content', t => {
   const dir=fixture(t), target=path.join(dir,'untrusted.md');
   fs.writeFileSync(target,'private secret');
-  try {fs.symlinkSync(target,path.join(dir,'memory/topics/link.md'));}
-  catch { t.skip('symlinks unavailable'); return; }
-  const result=run(dir,'search','--query','tenant isolation','--json');assert.equal(result.status,2);assert.match(result.stderr,/symlink/);
+  try {
+    fs.symlinkSync(target, path.join(dir, 'memory/topics/link.md'), 'file');
+  } catch (error) {
+    if (process.platform !== 'win32' ||
+        !['EPERM', 'EACCES', 'ENOTSUP', 'EINVAL'].includes(error.code)) {
+      if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code))
+        return t.skip('file symlink unavailable');
+      throw error;
+    }
+    const external = path.join(dir, 'untrusted-dir');
+    fs.mkdirSync(external);
+    fs.writeFileSync(path.join(external, 'secret.md'), 'private secret');
+    try {
+      fs.symlinkSync(external, path.join(dir, 'memory/topics/linked-dir'),
+        'junction');
+    } catch (junctionError) {
+      if (['EPERM', 'EACCES', 'ENOTSUP', 'EINVAL'].includes(junctionError.code))
+        return t.skip('Windows symlink and junction unavailable');
+      throw junctionError;
+    }
+  }
+  const result = run(dir, 'search', '--query', 'tenant isolation', '--json');
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /symlink/);
+  assert.doesNotMatch(result.stdout + result.stderr, /private secret/);
 });

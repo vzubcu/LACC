@@ -50,7 +50,9 @@ def main():
             text += '\n[TRUNCATED: memory load budget reached; inspect a narrower topic/range before relying on omitted facts.]\n'
         else:
             text += '\n[Memory selection complete; other topics were not loaded.]\n'
-        sys.stdout.write(text)
+        # Write encoded bytes directly so Windows newline translation cannot
+        # make the UTF-8 output exceed the advertised byte budget.
+        sys.stdout.buffer.write(text.encode('utf-8'))
         return 0
     except (OSError, ValueError) as exc:
         print(f'ERROR: {exc}', file=sys.stderr)

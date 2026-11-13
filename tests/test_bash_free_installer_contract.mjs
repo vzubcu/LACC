@@ -1,0 +1,236 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { classifyPinnedInstallerFailure, resolveWindowsSystemProxy, proxyConfigurationDiagnostics, windowsSystemProxyChildEnv } from './installer_smoke_support.mjs';
+
+const runner = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
+  'install_smoke.mjs');
+function exec(args, cwd, timeout = 12000) {
+  return spawnSync(process.execPath, [runner, ...args], {
+    cwd, encoding: 'utf8', timeout, windowsHide: true,
+    env: { ...process.env, GIT_TERMINAL_PROMPT: '0',
+      GCM_INTERACTIVE: 'Never' },
+  });
+}
+test('installer help has no npx, Bash, Python, network or filesystem side effects', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-installer-help-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const result = exec(['--help'], root);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /opt-in network install/i);
+  assert.deepEqual(fs.readdirSync(root), []);
+});
+test('installer fails closed for unsupported flags and missing source', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-installer-args-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  for (const args of [['--unknown'], ['--source'],
+    ['--source', '--copy-only'], ['--copy-only', '--unknown']]) {
+    const result = exec(args, root);
+    assert.equal(result.status, 1, result.stdout + result.stderr);
+    assert.match(result.stderr, /FAIL/);
+    assert.deepEqual(fs.readdirSync(root), []);
+  }
+});
+test('installer prerequisite cannot be reported as a passing smoke check', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-installer-prereq-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const [major, minor] = process.versions.node.split('.').map(Number);
+  if (major > 22 || major === 22 && minor >= 20) {
+    // An actual pinned installer requires explicit network consent. Help
+    // and bad-argument contracts are exercised above without installing.
+    return;
+  }
+  const result = exec(['--copy-only'], root);
+  assert.equal(result.status, 3, result.stdout + result.stderr);
+  assert.match(result.stdout, /UNVERIFIED/);
+  assert.doesNotMatch(result.stdout, /PASS:/);
+  assert.deepEqual(fs.readdirSync(root), []);
+});
+
+
+test('npm proxy/auth/registry errors are UNVERIFIED prerequisites, not LACC failures', () => {
+  const cases = [
+    ['npm error code E407\nnpm error 407 Proxy Authentication Required', 'npm-proxy-auth-required'],
+    ['npm error code E401', 'npm-registry-auth-required'],
+    ['npm error code E403', 'npm-registry-access-denied'],
+    ['npm error code ENOTFOUND', 'npm-network-unavailable'],
+    ['npm error code SELF_SIGNED_CERT_IN_CHAIN', 'npm-registry-tls-untrusted'],
+  ];
+  for (const [stderr, expected] of cases)
+    assert.equal(classifyPinnedInstallerFailure({ stderr }), expected);
+  assert.equal(classifyPinnedInstallerFailure({ stderr: 'TypeError: missing method' }), null);
+});
+test('Windows proxy auto-discovery is opt-in and does not expose credentials', () => {
+  let called = 0;
+  const good = () => {
+    called++;
+    return { status: 0, stdout: 'http://proxy.example.test:3128' };
+  };
+  const accepted = resolveWindowsSystemProxy({ platform: 'win32',
+    env: {}, spawn: good });
+  assert.equal(accepted.status, 'discovered');
+  assert.equal(accepted.proxyUrl, 'http://proxy.example.test:3128');
+  assert.equal(called, 1);
+  assert.equal(resolveWindowsSystemProxy({ platform: 'win32',
+    env: { HTTPS_PROXY: 'http://managed.example.test:8080' }, spawn: good }).status,
+    'already-configured');
+  assert.equal(called, 1, 'do not bypass explicit user proxy');
+  assert.equal(resolveWindowsSystemProxy({ platform: 'linux',
+    env: {}, spawn: good }).status, 'not-windows');
+  assert.equal(called, 1);
+  const sensitive = resolveWindowsSystemProxy({ platform: 'win32',
+    env: {}, spawn: () => ({ status: 0, stdout: 'http://user:secret@corp.test:8080' }) });
+  assert.equal(sensitive.status, 'proxy-unsupported');
+  assert.equal(sensitive.proxyUrl, undefined);
+  const pacUnavailable = resolveWindowsSystemProxy({ platform: 'win32',
+    env: {}, spawn: () => ({ status: 1, stderr: 'confidential error' }) });
+  assert.equal(pacUnavailable.status, 'discovery-unavailable');
+  assert.equal(resolveWindowsSystemProxy({ platform: 'win32', env: {},
+    spawn: () => ({ status: 0, stdout: 'DIRECT' }) }).status, 'direct');
+});
+test('offline-local checks copies, agents and CLI without npm/network or false installer PASS', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-installer-offline-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const result = exec(['--offline-local'], root, 120000);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /PASS: offline local-copy fixture/);
+  assert.match(result.stdout, /external pinned installer NOT_VERIFIED/);
+  assert.doesNotMatch(result.stdout, /PASS: copy mode/);
+  assert.deepEqual(fs.readdirSync(root), []);
+});
+test('offline-local and Windows proxy flags are mutually exclusive', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-installer-flags-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const result = exec(['--offline-local', '--windows-system-proxy'], root);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /cannot use/);
+  assert.deepEqual(fs.readdirSync(root), []);
+});
+
+test('real installer subprocess E407 is UNVERIFIED without exposing npm output or using network', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-installer-e407-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  // Explicit fake Node npm entrypoint: the actual external installer is not
+  // downloaded or invoked, and no user or system npm config is modified.
+  const fake = path.join(root, 'npx-cli.js');
+  fs.writeFileSync(fake,
+    'process.stderr.write("npm error code E407\\n' +
+    'npm error 407 Proxy Authentication Required\\n' +
+    'confidential URL: http://user:secret@proxy.test:8080\\n"); process.exitCode = 1;\n');
+  const result = spawnSync(process.execPath,
+    [runner, '--copy-only'], { cwd: root, encoding: 'utf8',
+      windowsHide: true, timeout: 12000,
+      env: { ...process.env, LACC_NPX_CLI: fake } });
+  assert.equal(result.status, 3, result.stderr);
+  assert.match(result.stderr, /UNVERIFIED: pinned installer prerequisite blocked: npm-proxy-auth-required/);
+  assert.doesNotMatch(result.stderr + result.stdout, /secret|user@|confidential URL/);
+  assert.doesNotMatch(result.stderr + result.stdout, /^FAIL:/m);
+});
+
+
+test('proxy diagnostics disclose only configuration sources, never secret URLs or tokens', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-proxy-safe-diagnostic-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const project = path.join(root, 'project');
+  const home = path.join(root, 'home');
+  fs.mkdirSync(project);
+  fs.mkdirSync(home);
+  fs.writeFileSync(path.join(project, '.npmrc'),
+    'proxy=http://user:COMPANY_SECRET@project.example.test:8000\n' +
+    '_authToken=VERY_SECRET\nregistry=https://project.registry.test/\n');
+  fs.writeFileSync(path.join(home, '.npmrc'),
+    'https-proxy=http://user:COMPANY_SECRET@home.example.test:8000\n');
+  const data = proxyConfigurationDiagnostics({
+    platform: 'win32', cwd: project, home,
+    env: { HTTPS_PROXY: 'http://user:COMPANY_SECRET@windows.example.test:8000',
+      npm_config_registry: 'https://token:COMPANY_SECRET@registry.test/' },
+    spawn: () => ({ status: 0, stdout: 'http://windows.example.test:8000' }),
+  });
+  assert.deepEqual(data.proxy_env_keys, ['HTTPS_PROXY', 'NPM_CONFIG_REGISTRY']);
+  assert.deepEqual(data.project_npmrc.keys, ['proxy', 'registry']);
+  assert.deepEqual(data.user_npmrc.keys, ['https-proxy']);
+  assert.equal(data.windows_system_proxy, 'discovered');
+  assert.equal(data.windows_system_matches_explicit_proxy, 'yes');
+  assert.equal(data.registry_reachability, 'NOT_TESTED');
+  assert.doesNotMatch(JSON.stringify(data), /COMPANY_SECRET|user:|project\.example|windows\.example|VERY_SECRET|token:/);
+});
+test('proxy diagnostic CLI performs no installer or npm network requests', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-proxy-cli-diagnostic-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const result = exec(['--proxy-diagnostics'], root);
+  assert.equal(result.status, 0, result.stderr);
+  const data = JSON.parse(result.stdout);
+  assert.equal(data.registry_reachability, 'NOT_TESTED');
+  assert.equal(data.proxy_authentication, 'NOT_TESTED');
+  assert.doesNotMatch(result.stdout, /https?:\/\/[^\s"]+@/);
+  assert.deepEqual(fs.readdirSync(root), []);
+});
+test('proxy diagnostics refuse mixed network or offline flags', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-proxy-mixed-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  for (const flags of [
+    ['--proxy-diagnostics','--copy-only'],
+    ['--proxy-diagnostics','--windows-system-proxy'],
+    ['--proxy-diagnostics','--offline-local'],
+  ]) {
+    const response = exec(flags, root);
+    assert.equal(response.status, 1, response.stderr);
+    assert.match(response.stderr, /cannot be combined/);
+    assert.deepEqual(fs.readdirSync(root), []);
+  }
+});
+
+
+test('explicit Windows proxy preference overrides conflicting npm/user env only for child', () => {
+  const original = {
+    HTTPS_PROXY: 'http://stale.example.test:1111',
+    https_proxy: 'http://stale.example.test:1111',
+    HTTP_PROXY: 'http://stale.example.test:1111',
+    http_proxy: 'http://stale.example.test:1111',
+    npm_config_proxy: 'http://stale.example.test:1111',
+    NPM_CONFIG_HTTPS_PROXY: 'http://stale.example.test:1111',
+    ALL_PROXY: 'http://another.example.test:2222',
+    NO_PROXY: 'localhost,.internal.test',
+    npm_config_registry: 'https://registry.example.test/',
+    npm_config_strict_ssl: 'true',
+    SECRET_OTHER: 'do-not-change',
+  };
+  const frozen = { ...original };
+  const child = windowsSystemProxyChildEnv(original, {
+    status: 'discovered', proxyUrl: 'http://windows-proxy.example.test:8080',
+  });
+  assert.deepEqual(original, frozen);
+  assert.notEqual(child, original);
+  assert.equal(child.HTTPS_PROXY, 'http://windows-proxy.example.test:8080');
+  assert.equal(child.HTTP_PROXY, child.HTTPS_PROXY);
+  assert.equal(child.npm_config_https_proxy, child.HTTPS_PROXY);
+  assert.equal(child.npm_config_proxy, child.HTTPS_PROXY);
+  for (const key of ['https_proxy','http_proxy','NPM_CONFIG_HTTPS_PROXY','ALL_PROXY'])
+    assert.equal(Object.hasOwn(child, key), false, key);
+  for (const key of ['NO_PROXY','npm_config_registry','npm_config_strict_ssl','SECRET_OTHER'])
+    assert.equal(child[key], original[key], key);
+});
+test('Windows proxy preference fails closed for absent or unsafe proxy endpoint', () => {
+  for (const result of [
+    { status: 'already-configured' }, { status: 'direct' },
+    { status: 'discovery-unavailable' },
+    { status: 'discovered', proxyUrl: 'http://user:password@proxy.test:8080' },
+    { status: 'discovered', proxyUrl: 'file:///etc/passwd' },
+    { status: 'discovered', proxyUrl: 'http://proxy.test:8080/path' },
+  ]) {
+    assert.throws(() => windowsSystemProxyChildEnv({}, result));
+  }
+});
+test('Windows proxy preference has no effect on non-Windows platforms', t => {
+  if (process.platform === 'win32') return;
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'lacc-windows-only-proxy-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const result = exec(['--copy-only', '--prefer-windows-system-proxy'], root);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /requires Windows/);
+  assert.deepEqual(fs.readdirSync(root), []);
+});
