@@ -138,7 +138,10 @@ node <skill_dir>/scripts/lacc.mjs signatures src/checkout.ts
 # Partial Node-only acceptance, with optional Python parity
 node tests/run_consolidated.mjs --bash-free
 
-# When npm is blocked by an enterprise proxy: NO network/npm
+# When npm is blocked by an enterprise proxy: diagnose sources with no network
+node tests/install_smoke.mjs --proxy-diagnostics
+
+# Validate local skill copies with no network/npm
 node tests/install_smoke.mjs --offline-local
 
 # Only when approved to use the network: isolated pinned installer
