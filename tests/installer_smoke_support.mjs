@@ -135,3 +135,31 @@ export function proxyConfigurationDiagnostics({
     note: 'Values, proxy endpoints and credentials are not displayed. npm global/built-in config is not inspected. No settings changed.',
   };
 }
+
+
+// Opt-in only: override competing environment/user .npmrc proxy values for
+// a single npm child. Do not export credentials, alter NO_PROXY, registry,
+// trust settings, parent environment or system configuration.
+export function windowsSystemProxyChildEnv(env, resolved) {
+  if (!resolved || resolved.status !== 'discovered')
+    throw Error('Windows system proxy was not discovered');
+  const parsed = new URL(resolved.proxyUrl);
+  if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname ||
+      parsed.username || parsed.password || parsed.search || parsed.hash ||
+      parsed.pathname !== '/')
+    throw Error('Windows proxy endpoint is unsupported');
+  const target = {};
+  for (const [key, value] of Object.entries(env)) {
+    if (/^(?:https?_proxy|all_proxy|npm_config_(?:https_proxy|proxy))$/i.test(key))
+      continue;
+    target[key] = value;
+  }
+  const url = parsed.origin;
+  // npm_config_* takes precedence over user .npmrc and is explicit for npm.
+  // Standard env is also provided for underlying fetch implementations.
+  target.HTTPS_PROXY = url;
+  target.HTTP_PROXY = url;
+  target.npm_config_https_proxy = url;
+  target.npm_config_proxy = url;
+  return target;
+}
