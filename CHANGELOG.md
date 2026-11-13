@@ -13,7 +13,10 @@
   bridges and native runtime without network/npm. Distinguish its
   local fixture PASS from official external installer acceptance.
 - Add zero-network regression tests including a simulated E407 whose
-  private proxy URL is not disclosed. Native three-OS installer
+  private proxy URL is not disclosed. Add `--proxy-diagnostics` to
+  identify proxy env key names, project/user npmrc proxy keys and
+  Windows system-proxy match status without printing values or
+  triggering an installer download. Native three-OS installer
   release certification remains outstanding.
 
 ## Integration candidate — PR #40 Windows fixes + BF-1..BF-7 (unreleased)
