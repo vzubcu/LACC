@@ -83,6 +83,41 @@ output. Any other discrepancy requires explicit review.
 
 ## 3. Opt-in installer smoke (BF-5)
 
+A corporate HTTP 407 from npm is **proxy-auth prerequisite UNVERIFIED**,
+not a failed LACC installer. This is distinct from E401/E403 registry
+access, DNS/timeouts and untrusted TLS chains, which are also classified
+as prerequisites rather than falsely PASS. No automatic credential
+extraction, authentication bypass or TLS verification disablement.
+
+When an approved enterprise proxy blocks npm, test the skill payload
+and agent bridges offline with no registry access:
+
+```powershell
+node tests/install_smoke.mjs --offline-local
+```
+
+This local-copy fixture validates exact files, Node entrypoints and
+native Codex/Claude/Gemini/Roo bridges, **not the external skills
+installer**; it must never be used as BF-5 official installer PASS.
+
+On Windows, an optional (explicit) system-proxy lookup resolves the
+current user's effective proxy for the npm registry, including PAC/WPAD
+where Windows supports it, and passes its address to the isolated npm
+child process without changing npmrc or global machine settings:
+
+```powershell
+node tests/install_smoke.mjs --copy-only --windows-system-proxy
+node tests/install_smoke.mjs --windows-system-proxy
+```
+
+This uses Windows PowerShell/.NET only for discovery (no Bash or
+`shell: true`). Existing explicit `HTTPS_PROXY`, `HTTP_PROXY` and
+npm proxy environment settings take precedence. Discovering the proxy
+**does not authenticate NTLM/Kerberos**; a continuing E407 requires a
+company-approved authenticated proxy bridge or IT-provided registry
+endpoint. Do not embed corporate passwords in code/URLs, copy logs
+containing credentials, or set `strict-ssl=false`.
+
 Only after network consent and a trusted local source checkout:
 
 \`\`\`sh
