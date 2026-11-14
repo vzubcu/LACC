@@ -231,6 +231,6 @@ test('Windows proxy preference has no effect on non-Windows platforms', t => {
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const result = exec(['--copy-only', '--prefer-windows-system-proxy'], root);
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /requires Windows/);
+  assert.match(result.stderr, /Windows proxy flags require Windows/);
   assert.deepEqual(fs.readdirSync(root), []);
 });
