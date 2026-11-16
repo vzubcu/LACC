@@ -47,7 +47,8 @@ function populate(root, head) {
   const fact = '- Service enabled | source: ' +
     '`src/service.ts` | verified: `' + head + '`\n';
   fs.writeFileSync(path.join(root, 'memory/topics/architecture.md'), '# Architecture\n' + fact);
-  fs.writeFileSync(path.join(root, 'memory/topics/gotchas.md'), '# Gotchas\n' + fact);
+  // Keep the checkpoint fixture healthy: sync --stamp must reject duplicate
+  // facts. Add the deliberate duplicate only AFTER the clean checkpoint.
   const state = path.join(root, 'memory/ACTIVE_STATE.md');
   const original = fs.readFileSync(state, 'utf8');
   const updated = original
@@ -56,7 +57,9 @@ function populate(root, head) {
     .replace('[Task-local uncertainties only; do not promote guesses into durable topics.]',
       '- Private diagnostic phrase must not appear in the report.');
   fs.writeFileSync(state, updated);
-  assert.equal(node(root, 'sync', '.', '--stamp').status, 0);
+  const stamped = node(root, 'sync', '.', '--stamp');
+  assert.equal(stamped.status, 0, stamped.stdout + stamped.stderr);
+  fs.writeFileSync(path.join(root, 'memory/topics/gotchas.md'), '# Gotchas\n' + fact);
 }
 test('ML-1 Claude bridge is idempotent and retains user instructions', t => {
   const { root } = setup(t);
@@ -97,6 +100,17 @@ test('ML-1 inventory is read-only, bounded, and never certifies semantic review'
   assert.match(result.stdout, /If the user forbids file edits/);
   assert.deepEqual(files.map(name => fs.readFileSync(path.join(root, name))), before);
   assert.equal(git(root, 'status', '--porcelain=v1'), status);
+});
+test('ML-1 fixture refuses a checkpoint with duplicate facts before stamping', t => {
+  const { root, head } = setup(t);
+  const fact = '- Service enabled | source: ' +
+    '`src/service.ts` | verified: `' + head + '`\n';
+  fs.writeFileSync(path.join(root, 'memory/topics/architecture.md'), '# Architecture\n' + fact);
+  fs.writeFileSync(path.join(root, 'memory/topics/gotchas.md'), '# Gotchas\n' + fact);
+  const stamped = node(root, 'sync', '.', '--stamp');
+  assert.equal(stamped.status, 1, stamped.stdout + stamped.stderr);
+  assert.match(stamped.stdout, /memory-health has 1 findings/);
+  assert.match(fs.readFileSync(path.join(root, 'memory/ACTIVE_STATE.md'), 'utf8'), /UNSYNCED/);
 });
 test('ML-1 emits evidence-review-required for changed cited source, without writes', t => {
   const { root, head } = setup(t);
