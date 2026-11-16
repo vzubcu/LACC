@@ -26,6 +26,14 @@ const TYPES = Object.freeze({
   'unavailable-checkpoint': ['stale-checkpoint', 'The recorded checkpoint commit is unavailable.', 'Locate a valid baseline or revalidate session memory.'],
   'invalid-checkpoint': ['stale-checkpoint', 'Session checkpoint format is invalid.', 'Review the checkpoint entry before continuing.'],
 });
+const KIND_PRIORITY = Object.freeze({
+  'source-drift': 0,
+  'indirect-dependency-drift': 1,
+  'evidence-unavailable': 2,
+  'stale-checkpoint': 3,
+  'potential-fact-conflict': 4,
+  'coverage-incomplete': 5,
+});
 function clipped(value) {
   if (typeof value !== 'string' || !value) return null;
   const plain = value.replace(/[\u0000-\u001f\u007f]/g, '?');
@@ -121,6 +129,7 @@ export function normalizeMemoryFindings(issues, opts = {}) {
     if (!found.has(result.finding_id)) found.set(result.finding_id, result);
   }
   const sorted = [...found.values()].sort((a, b) =>
+    (KIND_PRIORITY[a.kind] ?? 99) - (KIND_PRIORITY[b.kind] ?? 99) ||
     a.fact.location.localeCompare(b.fact.location, 'en') ||
     a.kind.localeCompare(b.kind, 'en') ||
     a.finding_id.localeCompare(b.finding_id, 'en'));

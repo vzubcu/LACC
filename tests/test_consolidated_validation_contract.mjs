@@ -63,7 +63,9 @@ test('malformed, symlink and oversized evidence files fail closed', t => {
     const r = exec([aggregate, bad, tooLarge, linked]);
     assert.equal(r.status, 1);
     const data = JSON.parse(r.stdout);
-    assert.equal(data.issues.length, 3);
+    assert.ok(data.issues.length >= 3);
+    for (const name of ['bad.json', 'large.json', 'link.json'])
+      assert.ok(data.issues.some(issue => issue.includes('Rejected report ' + name)), name);
     assert.equal(data.release_gate, 'NOT_PASSED');
   } catch (e) {
     if (process.platform !== 'win32' || !['EPERM', 'EACCES', 'EINVAL', 'ENOTSUP'].includes(e.code))

@@ -80,8 +80,31 @@ test('snapshot refuses symlinked source to prevent unintended disclosure', t => 
   const p = project(t);
   const target = path.join(p.dir, 'secret.md');
   fs.writeFileSync(target, 'private');
-  try { fs.symlinkSync(target, path.join(p.dir, 'memory/topics/leak.md')); }
-  catch { t.skip('symlink creation not permitted'); return; }
+  try {
+    fs.symlinkSync(target, path.join(p.dir, 'memory/topics/leak.md'), 'file');
+  } catch (error) {
+    if (process.platform !== 'win32' ||
+        !['EPERM', 'EACCES', 'ENOTSUP', 'EINVAL'].includes(error.code)) {
+      if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code))
+        return t.skip('file symlink creation unavailable');
+      throw error;
+    }
+    // A junction is available to many standard Windows users even when
+    // file symlinks are denied. The snapshot must reject the linked
+    // directory as firmly as it rejects a linked file.
+    const external = path.join(p.dir, 'outside-memory');
+    fs.mkdirSync(external);
+    fs.writeFileSync(path.join(external, 'secret.md'), 'private');
+    try {
+      fs.symlinkSync(external, path.join(p.dir, 'memory/topics/linked-dir'),
+        'junction');
+    } catch (junctionError) {
+      if (['EPERM', 'EACCES', 'ENOTSUP', 'EINVAL'].includes(junctionError.code))
+        return t.skip('Windows symlink and junction creation unavailable');
+      throw junctionError;
+    }
+  }
   const result = cmd(p.dir, 'migration-backup');
   assert.equal(result.status, 2);
+  assert.doesNotMatch(result.stdout + result.stderr, /private/);
 });

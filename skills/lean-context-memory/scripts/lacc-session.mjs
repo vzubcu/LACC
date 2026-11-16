@@ -84,7 +84,8 @@ export function sessionCheck(root, { json = false, maxBytes = 8192, deps = false
       for (const issue of extra.get(row.location)?.issues ?? [])
         add(issue.code, row.location + ': ' + issue.source + ' -> ' + issue.dependency,
           explain ? { source: issue.source, dependency: issue.dependency,
-            chain: issue.chain, fact: { key: row.key ?? null,
+            chain: issue.chain, evidence_edges: issue.evidence_edges,
+            fact: { key: row.key ?? null,
               location: row.location, revision: row.revision, sources: row.sources } } : null);
     }
   }

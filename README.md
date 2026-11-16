@@ -86,9 +86,85 @@ Replace `<skill_dir>` with the installed skill directory. Do **not** use
 Node commands use no third-party packages or cloud APIs. Git is required to
 confirm sources; without Git, recalled facts must remain unverified.
 
-Advanced Python/Bash helpers (reviewed revalidation, persisted compaction,
-dependency graph, AST and log slicing, provider usage import) are retained
-and **not** claimed as ported. When Node and Python are both absent, agents
+**Bash-Free Runtime migration (BF-1/BF-2a/BF-2b; experimental stacked PRs):**
+[parity and migration audit](docs/BASH_FREE_RUNTIME_MIGRATION.md).
+The first new portable helper is context slicing:
+
+```powershell
+# Read from a file without Git Bash or Python
+node <skill_dir>/scripts/lacc.mjs ctx-slice ./debug.log 100
+
+# Stream stdin without saving full input
+Get-Content ./debug.log | node <skill_dir>/scripts/lacc.mjs ctx-slice - 100
+
+# Explicitly keep stdin only in a private temporary location
+Get-Content ./debug.log | node <skill_dir>/scripts/lacc.mjs ctx-slice - 100 --keep
+```
+
+The new command preserves the bounded head/tail workflow with 60/40
+line allocation; it limits each line to 1 MiB, captured output to 16 MiB,
+and max_lines to 10,000. Oversized input is an explicit error, not silent
+truncation. `--keep` creates a private temporary file **only on request**.
+This development command is not yet in `main`, and full Windows/macOS
+regression has not been executed.
+
+BF-2b adds two experimental commands to the same Node CLI:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs reference-scan src/checkout.ts publishCheckout --signal checkout.ready
+node <skill_dir>/scripts/lacc.mjs signatures src/checkout.py --limit 40
+node <skill_dir>/scripts/lacc.mjs signatures src/checkout.py --require-ast
+```
+
+`reference-scan` is a *heuristic, bounded candidate search*, not a resolved
+call graph and not `dependency-impact`. `signatures` runs directly in
+Node for heuristics; for Python source it optionally invokes the existing
+Python 3.9+ stdlib AST parser **without Bash** when available. If Python
+is absent, the fallback is labeled heuristic; `--require-ast` fails
+instead of pretending to have exact syntax coverage.
+
+Advanced Python/Bash helpers for reviewed revalidation, persisted
+compaction and provider usage import remain available. Legacy shell
+wrappers and original POSIX security tests are **not** removed. The historical
+Bash wrapper for context slicing remains optional for compatibility.
+
+**Experimental BF-3..BF-6 tooling** (not yet released from `main`):
+
+```powershell
+# Native exploration with no Bash or mandatory Python
+node <skill_dir>/scripts/lacc.mjs reference-scan src/checkout.ts --signal checkout.ready
+node <skill_dir>/scripts/lacc.mjs signatures src/checkout.ts
+
+# Partial Node-only acceptance, with optional Python parity
+node tests/run_consolidated.mjs --bash-free
+
+# When npm is blocked by an enterprise proxy: diagnose sources with no network
+node tests/install_smoke.mjs --proxy-diagnostics
+
+# Validate local skill copies with no network/npm
+node tests/install_smoke.mjs --offline-local
+
+# Only when approved to use the network: isolated pinned installer
+node tests/install_smoke.mjs --copy-only
+
+# When explicit proxy env disagrees with Windows (opt in, child process only)
+node tests/install_smoke.mjs --copy-only --prefer-windows-system-proxy
+
+# Original non-overriding discovery mode
+node tests/install_smoke.mjs --copy-only --windows-system-proxy
+```
+
+HTTP 407 from npm is a **proxy authentication prerequisite**, now
+reported as `UNVERIFIED`, not a defective LACC installer. Offline local
+copy checks do **not** certify the external pinned installer. Windows
+proxy auto-discovery is opt-in and never imports credentials or modifies
+npmrc; company-managed NTLM/Kerberos proxy authentication can still
+require an approved corporate gateway. Never disable TLS validation.
+
+The full legacy Python/Bash integration suites remain separately
+required where POSIX Bash exists. The new Bash-free runner does **not**
+promote those skipped/unrun tests to PASS and cannot certify a release.
+See the [native OS and host acceptance matrix](docs/BASH_FREE_ACCEPTANCE_MATRIX.md). When Node and Python are both absent, agents
 can follow a limited manual memory workflow through native file/Git tools
 and must state which guarantees are unavailable.
 

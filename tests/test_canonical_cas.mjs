@@ -116,8 +116,28 @@ test('unsafe destinations, oversize HOT proposal and symlink are refused', t => 
   assert.equal(cliRun(p.dir, 'canonical-preview', '--file', huge,
     '--content-file', p.candidate).status, 2);
   const symlink = path.join(p.dir, '.lacc-proposals/link.md');
-  try { fs.symlinkSync(path.join(p.dir, p.target), symlink); }
-  catch { t.skip('symlinks not available'); return; }
+  let contentFile = '.lacc-proposals/link.md';
+  try {
+    fs.symlinkSync(path.join(p.dir, p.target), symlink, 'file');
+  } catch (error) {
+    // NTFS normally needs Developer Mode for file symlinks. A junction
+    // exercises the same unsafe linked parent check without dropping it.
+    if (process.platform !== 'win32' ||
+        !['EPERM', 'EACCES', 'ENOTSUP', 'EINVAL'].includes(error.code)) {
+      if (['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code))
+        return t.skip('file symlink unavailable');
+      throw error;
+    }
+    try {
+      fs.symlinkSync(path.join(p.dir, 'memory/topics'),
+        path.join(p.dir, '.lacc-proposals/linked-topics'), 'junction');
+      contentFile = '.lacc-proposals/linked-topics/architecture.md';
+    } catch (junctionError) {
+      if (['EPERM', 'EACCES', 'ENOTSUP', 'EINVAL'].includes(junctionError.code))
+        return t.skip('Windows file symlink and directory junction unavailable');
+      throw junctionError;
+    }
+  }
   assert.equal(cliRun(p.dir, 'canonical-preview', '--file', p.target,
-    '--content-file', '.lacc-proposals/link.md').status, 2);
+    '--content-file', contentFile).status, 2);
 });

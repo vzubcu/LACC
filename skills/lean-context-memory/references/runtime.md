@@ -36,7 +36,19 @@ There is no WSL, Bash, Python, provider API, Docker, daemon or network access re
 
 Read-only commands: capabilities, read, search, health, doctor and sync (without `--stamp`). `init` writes agent bridges and missing templates but does not replace existing facts. `sync --stamp` is a write operation guarded by Git and health checks; agents must review semantics and tests before invoking it. No auto-promotion of stale or conflicting facts. `--json` enables structured output on search, health and doctor. `read --topic name.md` and `--max-bytes` remain bounded.
 
-Native Node does **not** yet implement the Python maintenance transaction machinery (`memory-maintain.py compact/revalidate`), AST signatures, dependency-graph discovery or private log slicing. If those are needed, use the existing Python/Bash scripts when available or use native editor tools for a carefully reviewed change; do **not** claim identical automated safety from an improvised fallback. Detailed benchmark adapters also remain Python-only.
+**Experimental BF-2a/BF-2b:** the Node CLI now supports `ctx-slice`,
+`reference-scan` (bounded lexical candidates, not a resolved call graph),
+and `signatures` (multi-language heuristics). Exact Python declaration
+starts can be delegated directly to the existing Python 3.9+ stdlib AST
+script **without Bash**; `--require-ast` fails closed when it is
+unavailable. The Node CLI also has transaction preview/apply/recovery
+functions for the separately documented canonical memory workflow.
+The older Python `memory-maintain.py compact/revalidate` operations and
+detailed benchmark import adapters are **not** claimed as migrated.
+Keep legacy helpers available where their semantic contract differs;
+no native Windows/Linux/macOS release validation has been completed
+for the stacked feature branches. See
+[BF migration contract](../../../docs/BASH_FREE_RUNTIME_MIGRATION.md).
 
 ## If there is no Node.js either
 

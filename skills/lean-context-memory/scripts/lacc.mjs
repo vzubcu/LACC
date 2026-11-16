@@ -18,6 +18,10 @@ import { normalizeMemoryFindings, FINDING_SCHEMA } from './lacc-findings.mjs';
 import { disclosureContract, DISCLOSURE_AGENT_RULES } from './lacc-disclosure.mjs';
 import { buildDisclosureSummary, markDisclosureSeen } from './lacc-disclosure-ux.mjs';
 import { buildAnswerDisclosure, auditSuppliedAnswer } from './lacc-answer-disclosure.mjs';
+import { sliceContext } from './ctx-slice.mjs';
+import { referenceScan } from './reference-scan.mjs';
+import { signatures } from './signatures.mjs';
+import { parsePorcelainZ, parseDiffNameStatusZ, changesOutsideMemory, formatGitChanges } from './lacc-git-parity.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const skill = path.resolve(here, '..');
@@ -61,8 +65,9 @@ function runtimeStatus() {
   const result = {
     platform: process.platform, node: process.version,
     git: probe('git', ['--version']), python: probe('python', ['--version']) ?? probe('python3', ['--version']),
-    bash: probe('bash', ['--version']),
-    commands: { init: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true, 'dependency-impact': true, 'explain-findings': true, 'disclosure-contract': true, 'disclosure-summary': true, 'disclosure-mark-seen': true, 'answer-disclosure': true, 'semantic-hints': true, 'parse-cache': true },
+    // BF core never attempts to launch a legacy shell, even for detection.
+    bash: null,
+    commands: { init: true, 'ctx-slice': true, 'reference-scan': true, signatures: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true, 'dependency-impact': true, 'explain-findings': true, 'disclosure-contract': true, 'disclosure-summary': true, 'disclosure-mark-seen': true, 'answer-disclosure': true, 'semantic-hints': true, 'parse-cache': true },
     strict_git_evidence: Boolean(probe('git', ['--version'])),
     python_maintenance: 'optional separate Python tool; not implemented in Node',
     mode: 'node',
@@ -108,7 +113,10 @@ function init(root, opts) {
   const output = [];
   const manifest = localPath(root, 'memory/.bootstrap.json');
   const generated = fs.existsSync(manifest) ? JSON.parse(readUtf8(manifest)) : {};
-  if (!generated || typeof generated !== 'object' || Array.isArray(generated)) throw Error('invalid bootstrap manifest');
+  if (!generated || typeof generated !== 'object' || Array.isArray(generated) ||
+      Object.entries(generated).some(([key, value]) =>
+        typeof key !== 'string' || typeof value !== 'string'))
+    throw Error('invalid bootstrap manifest');
   const next = { ...generated };
   for (const [dest, block] of selected) {
     const target = localPath(root, dest);
@@ -120,13 +128,30 @@ function init(root, opts) {
     else delete next[dest];
     output.push([target, updated]);
   }
-  const templates = templatePaths.map(rel => [localPath(root, 'memory/' + rel), path.join(skill, 'templates', ...rel.split('/'))]);
-  // All paths were checked before any writes; preserve existing project facts.
-  for (const [dest, template] of templates) if (!fs.existsSync(dest)) { fs.mkdirSync(path.dirname(dest), { recursive: true }); fs.copyFileSync(template, dest); }
-  for (const [dest, value] of output) if (!fs.existsSync(dest) || readUtf8(dest) !== value) safeWrite(dest, value);
+  const templates = templatePaths.map(rel =>
+    [localPath(root, 'memory/' + rel), path.join(skill, 'templates', ...rel.split('/'))]);
+  // Preflight ALL destinations before creating ANY template, instruction,
+  // or manifest file. Existing user memory is never silently replaced.
+  for (const [dest, template] of templates) {
+    if (!fs.statSync(template).isFile()) throw Error('missing skill template: ' + template);
+    if (fs.existsSync(dest) && !fs.statSync(dest).isFile())
+      throw Error('memory template destination is not a regular file: ' + dest);
+  }
+  for (const [dest] of output) if (fs.existsSync(dest) && !fs.statSync(dest).isFile())
+    throw Error('instruction destination is not a regular file: ' + dest);
+  if (fs.existsSync(manifest) && !fs.statSync(manifest).isFile())
+    throw Error('bootstrap manifest destination is not a regular file');
+  const missing = templates.filter(([dest]) => !fs.existsSync(dest));
   const manifestData = JSON.stringify(next, null, 2) + '\n';
+  for (const [dest, template] of missing) {
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(template, dest);
+  }
+  for (const [dest, value] of output)
+    if (!fs.existsSync(dest) || readUtf8(dest) !== value) safeWrite(dest, value);
   if (!fs.existsSync(manifest) || readUtf8(manifest) !== manifestData) safeWrite(manifest, manifestData);
-  return { status: 'initialized', agent, created_templates: templates.filter(([dest]) => fs.existsSync(dest)).length, maintained_paths: [...selected.keys()] };
+  return { status: 'initialized', agent, created_templates: missing.length,
+    maintained_paths: [...selected.keys()] };
 }
 function readMemory(root, opts) {
   const max = cap(root, opts), topic = opts.topic ?? [];
@@ -245,6 +270,8 @@ function doctor(root, opts) {
 }
 function sync(root, opts) {
   const file = localPath(root, 'memory/ACTIVE_STATE.md');
+  if (!fs.existsSync(file) || !fs.statSync(file).isFile())
+    throw Error('missing or unsafe ACTIVE_STATE.md; run init first');
   const state = readUtf8(file);
   const match = [...state.matchAll(/^- \*\*Last Synced Commit\*\*: `([^`]+)`[ \t]*$/gm)];
   const strict = Boolean(opts.strict || opts.stamp);
@@ -255,19 +282,31 @@ function sync(root, opts) {
   const valid = /^[a-f\d]{7,40}$/i.test(previous) && git(root, ['rev-parse', '--verify', previous + '^{commit}']).ok;
   const dirty = git(root, ['status', '--porcelain=v1', '-z', '--untracked-files=all']);
   if (!dirty.ok) throw Error('git status failed');
-  const status = dirty.stdout.toString('utf8').split('\0').filter(Boolean).filter(x => !x.slice(3).startsWith('memory/'));
+  // Git -z rename/copy records include two paths; never treat the second
+  // token as a separate file or silently lose source provenance.
+  const status = changesOutsideMemory(parsePorcelainZ(dirty.stdout));
   const manifest = localPath(root, 'memory/.bootstrap.json');
-  const generated = fs.existsSync(manifest) ? JSON.parse(readUtf8(manifest)) : {};
+  let generated = {};
+  if (fs.existsSync(manifest)) {
+    try {
+      const value = JSON.parse(readUtf8(manifest));
+      if (value && typeof value === 'object' && !Array.isArray(value) &&
+          Object.values(value).every(x => typeof x === 'string')) generated = value;
+    } catch { /* invalid ownership metadata never suppresses dirty files */ }
+  }
+  const whitelist = new Set([
+    'AGENTS.md','CLAUDE.md','GEMINI.md','.roo/rules/lean-context-memory.md',
+  ]);
   const clean = status.filter(row => {
-    const name = row.slice(3);
-    if (!row.startsWith('?? ') || !['AGENTS.md','CLAUDE.md','GEMINI.md','.roo/rules/lean-context-memory.md'].includes(name)) return true;
-    try { return sha(fs.readFileSync(localPath(root, name))) !== generated[name]; }
+    if (row.status !== '??' || !whitelist.has(row.path)) return true;
+    try { return sha(fs.readFileSync(localPath(root, row.path))) !== generated[row.path]; }
     catch { return true; }
   });
-  const diff = valid ? git(root, ['diff', '--name-only', '-z', previous, current]) : null;
+  const diff = valid ? git(root, ['diff', '--name-status', '-z', previous, current]) : null;
   if (valid && !diff.ok) throw Error('Git diff failed');
-  const committed = diff ? diff.stdout.toString('utf8').split('\0').filter(x => x && !x.startsWith('memory/')) : [];
-  let output = `Committed drift: ${committed.length} paths\nWorking-tree drift: ${clean.length} paths\n`;
+  const committed = diff ? changesOutsideMemory(parseDiffNameStatusZ(diff.stdout)) : [];
+  let output = formatGitChanges(committed, 'Committed drift') +
+    formatGitChanges(clean, 'Working-tree drift');
   if (!valid) output += 'REVIEW: checkpoint unavailable or unverified\n';
   if (opts.stamp && ((!valid && previous !== 'UNSYNCED') || clean.length)) return { text: output + 'REVIEW: cannot stamp dirty sources or an unavailable prior commit\n', code: 1 };
   if (strict) {
@@ -283,7 +322,7 @@ function sync(root, opts) {
   const review = !valid || committed.length || clean.length;
   return { text: output + (review ? 'REVIEW: inspect source changes\n' : 'NO SOURCE DRIFT; not semantic proof\n'), code: strict && review ? 1 : 0 };
 }
-function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover, dependency-contract, dependency-impact, disclosure-contract, disclosure-summary, disclosure-mark-seen, answer-disclosure\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --explain (normalized, agent-only); --detail (disclosure summary); --deps (experimental); --semantic (literal JS/TS alias hints); --cache (private parse-token writes); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --task ID; --expect-head SHA; --reviewed; --claim TEXT; --response-file PATH (answer-disclosure only)\nNo Python, Bash, WSL, cloud SDK, or external npm packages required.\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
+function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, ctx-slice, reference-scan, signatures, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover, dependency-contract, dependency-impact, disclosure-contract, disclosure-summary, disclosure-mark-seen, answer-disclosure\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --explain (normalized, agent-only); --detail (disclosure summary); --deps (experimental); --semantic (literal JS/TS alias hints); --cache (private parse-token writes); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --task ID; --expect-head SHA; --reviewed; --claim TEXT; --response-file PATH (answer-disclosure only)\nCore Node commands require no Python, Bash, WSL, cloud SDK, or external npm packages.\nFor ctx-slice: node lacc.mjs ctx-slice [file|-] [max_lines=100] [--keep].\nFor reference-scan: node lacc.mjs reference-scan FILE [SYMBOL] [--signal LITERAL].\nFor signatures: node lacc.mjs signatures FILE [--require-ast | --no-python].\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
 export function main(argv = process.argv.slice(2)) {
   const [command = 'help', ...args] = argv;
   if (['help', '--help', '-h'].includes(command)) { process.stdout.write(help()); return 0; }
@@ -486,5 +525,23 @@ export function main(argv = process.argv.slice(2)) {
   if (command === 'sync') { const r = sync(root, opts); process.stdout.write(r.text); return r.code; }
   throw Error('unsupported command: ' + command);
 }
-try { process.exitCode = main(); }
-catch (error) { process.stderr.write('ERROR: ' + error.message + '\n'); process.exitCode = 2; }
+// Context slicing consumes streamed stdin and is intentionally dispatched
+// outside the project-root CLI parser; it never accesses memory or Git.
+if (['ctx-slice', 'context-slice'].includes(process.argv[2])) {
+  sliceContext(process.argv.slice(3)).then(code => { process.exitCode = code; })
+    .catch(error => {
+      process.stderr.write('ERROR: ' + error.message + '\n'); process.exitCode = 2;
+    });
+} else if (['reference-scan', 'signatures'].includes(process.argv[2])) {
+  // Source discovery is project-CWD scoped, not a Git-memory trust verdict.
+  try {
+    process.exitCode = process.argv[2] === 'reference-scan'
+      ? referenceScan(process.argv.slice(3)) : signatures(process.argv.slice(3));
+  } catch (error) {
+    process.stderr.write('ERROR: ' + error.message + '\n');
+    process.exitCode = 2;
+  }
+} else {
+  try { process.exitCode = main(); }
+  catch (error) { process.stderr.write('ERROR: ' + error.message + '\n'); process.exitCode = 2; }
+}

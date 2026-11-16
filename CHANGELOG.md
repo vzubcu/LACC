@@ -1,5 +1,116 @@
 # Changes
 
+## BF-5 enterprise npm proxy handling (unreleased, PR #46)
+
+- Classify HTTP 407, registry 401/403, DNS/timeout and untrusted TLS
+  as `UNVERIFIED` external installer prerequisites (exit 3), never
+  successful LACC installation or functional regression.
+- Add opt-in `--windows-system-proxy` using the current user's
+  system proxy discovery (manual/PAC/WPAD) only for the npm child
+  process, without Bash, persistent npm configuration or credentials.
+  Add `--prefer-windows-system-proxy` for an explicit, temporary
+  override of conflicting `npm_config_proxy`/`HTTPS_PROXY` values in
+  the isolated npm child; preserve registry, `NO_PROXY`, and TLS.
+  Windows SSO/NTLM/Kerberos authentication is not automatically solved.
+- Add `--offline-local` to verify copied skill files, four agent
+  bridges and native runtime without network/npm. Distinguish its
+  local fixture PASS from official external installer acceptance.
+- Add zero-network regression tests including a simulated E407 whose
+  private proxy URL is not disclosed. Add `--proxy-diagnostics` to
+  identify proxy env key names, project/user npmrc proxy keys and
+  Windows system-proxy match status without printing values or
+  triggering an installer download. Native three-OS installer
+  release certification remains outstanding.
+
+## Integration candidate — PR #40 Windows fixes + BF-1..BF-7 (unreleased)
+
+- Reconcile the historical Windows PR #40 source fixes: normalized
+  findings ordering, parser cache tokens, session evidence edges,
+  Python stdout bytes, and corrected validation assertions.
+- Preserve BF-1..BF-7 Bash-free Node runtime, test harness, isolated
+  installer and native matrix. Bash is NOT a dependency of the
+  Node core or BF installer; the old Bash-execution probe is no
+  longer run from the new Node-first runner.
+- Retain the historical Bash prerequisite classifier as an isolated
+  optional legacy test contract. On blocked Windows the legacy tests
+  are SKIPPED/UNVERIFIED, not falsely PASS.
+- This integration branch is an **authored test candidate**, not an
+  executed cross-OS validation or a merged release. `develop` and
+  `main` remain unmodified.
+
+
+## Stacked feature PR — BF-3 to BF-6, native Bash-free acceptance tooling (unreleased)
+
+- The legacy initializer now generates Node-first sync/health commands,
+  without telling agents to call Bash in their normal workflow.
+- A Python test harness probes **actual** Bash execution. Only historical
+  shell-specific assertions are skipped when Bash is unavailable;
+  they remain executable on POSIX hosts and are never marked PASS
+  when skipped. Original POSIX injection fixtures are retained.
+- Add opt-in Node-only `tests/install_smoke.mjs` for pinned installer
+  copy/link modes in isolated projects, with four native agent bridges,
+  byte-for-byte payload verification, idempotent bootstrap and health.
+  No Bash/WSL/Python needed; missing Node/npm prerequisites are UNVERIFIED.
+- Add `--bash-free` partial consolidated mode and `node_core_status`
+  evidence without relaxing the complete release gate.
+- Add security, installer preflight and native-path source contract tests.
+  The default Node `capabilities` command no longer executes even a
+  Bash capability probe.
+- Add conservative `aggregate_bash_free.mjs` requiring matching SHA
+  native Windows/Linux/macOS Node+installer evidence **and** independent
+  Linux/macOS legacy Bash results; never claim actual agent answer
+  delivery or final release.
+- All code/tests **authored, not validated on three native OSes**.
+  No hosted Actions, external tools installed or `main` merge.
+
+
+## Stacked feature PR — BF-2c native bootstrap and Git drift safeguards (unreleased)
+
+- Preflight all memory template and agent instruction destinations before
+  writing bootstrap state, preserve existing user facts, validate generated
+  ownership metadata and count newly created templates accurately.
+- Parse NUL-delimited porcelain and committed diff Git records including
+  renames/copies, preserve paths with spaces and tabs, separate memory-only
+  changes and disclose bounded evidence without claiming semantic freshness.
+- Add native regression scenarios for malformed Git output, dirty sources,
+  invalid instruction markers, safe idempotent bootstrap and checkpoint
+  non-mutation on refusal.
+- The original Bash/Python scripts are still intact and platform acceptance
+  is **not** claimed. BF-3..BF-8 remain gated.
+
+
+## Stacked feature PR — BF-2b reference candidates and signatures (unreleased)
+
+- Add `reference-scan.mjs` for bounded, ranked import/symbol/literal
+  event evidence, Git-aware candidate inventory with filesystem fallback,
+  private-file exclusions and honest incomplete-coverage output.
+- Add `signatures.mjs` for dependency-free declaration heuristics,
+  using the bundled Python `signatures.py` through isolated subprocess
+  arguments when genuine Python AST is available; `--require-ast`
+  refuses to downgrade to a heuristic silently.
+- Expose both through `lacc.mjs`, with a native regression suite for
+  root/nested imports, path safety, private files, byte budgets,
+  platform-specific optional Python AST and missing parser fallback.
+- No Bash invoked by these Node helpers. Python is **optional for exact
+  AST**, and compiler-level semantic resolution is not claimed.
+- **Authored, not fully executed:** native Windows/Linux/macOS acceptance
+  and comparison against legacy helpers remain open. This is stacked
+  on BF-2a, not merged into `develop` or `main`.
+
+
+## Feature PR — BF-1 audit and BF-2a native context slicer (unreleased)
+
+- Inventory all five Bash wrappers and separate semantic/AST,
+  dependency-search and agent-init/sync parity obligations.
+- Add `ctx-slice.mjs` and `lacc.mjs ctx-slice` for streamed
+  60/40 context slicing, no implicit disk retention, explicit private
+  `--keep`, UTF-8 replacement, CRLF preservation and bounded usage.
+- Add Node regression fixtures for file/stdin/Unicode/error/retention
+  behavior; authored pending the full multi-platform acceptance.
+- Existing Python/Bash utilities retained, so this is **not** a claim
+  of complete Bash removal; no hosted Actions or `main` merge.
+
+
 ## Develop — Windows validation reporter and graph-contract test correction
 
 - Explicitly request Node TAP output and normalize TAP/spec test totals

@@ -8,6 +8,82 @@ This is the **canonical forward-looking roadmap**. `CHANGELOG.md` records shippe
 historical `docs/superpowers/plans/` describe earlier implementation plans, not the current backlog.
 Version labels below are *tentative*; priorities and acceptance criteria matter more than version numbers.
 
+## BF — Bash-Free Runtime 4.0 (experimental)
+
+**Reconciled candidate:** the dedicated
+`integration/bash-free-v4-windows-stabilization-20261113` branch
+combines the historical draft PR #40 Windows source corrections
+and stacked BF feature PRs #42–#45. It has **not been executed as
+a combined native matrix**. The user-reported 19/19 Node PASS on an
+earlier PR #40 SHA is historical, not proof for this candidate.
+Linux/macOS, Node 22.20+ installer, native Windows rerun and real
+agent-host acceptance remain mandatory before promotion.
+
+
+[Audit, parity contract and staged acceptance](docs/BASH_FREE_RUNTIME_MIGRATION.md).
+
+- **BF-1 — Bash entrypoint audit:** map the five legacy `.sh` scripts,
+  their Python implementations, agent/installer references, safety
+  conditions and test coverage. **Authored in feature branch; not
+  merged into develop.**
+- **BF-2a — Node context slice:** streamed stdin/file with head/tail,
+  default no retention, explicit private `--keep`, bounded lines and
+  errors, native CLI exposure and Node regression suite. **Code/tests
+  authored; full cross-OS acceptance pending.**
+- **BF-2b — Native signature and reference-scan adapters:** code
+  authored in stacked feature branch: `reference-scan` provides
+  bounded ranked import/symbol/event candidates with privacy exclusions;
+  `signatures` uses the legacy Python AST parser directly when Python
+  is available (no Bash), otherwise marks its Python fallback explicitly
+  heuristic. Strict `--require-ast` refuses unsupported precision.
+  Tests authored; no full cross-OS/parity execution reported. The
+  reverse-dependency impact command is intentionally separate from
+  the historical general reference search.
+- **BF-2c — Init/sync behavior parity:** new safeguards authored
+  in the stacked feature branch: preflight template/instruction destinations
+  before any bootstrap writes; preserve existing memory, correct created-file
+  accounting and ownership manifest validation; parse NUL-delimited Git
+  rename/copy evidence without losing paths, filter only explicit memory
+  paths and bound disclosed drift. A native regression suite is authored.
+  Full comparison against legacy Python bootstrap, Windows, Linux and
+  macOS execution remains to be validated.
+- **BF-3 — Agent guidance:** existing legacy Bash initializer
+  now generates Node-first sync and health commands, even when launched
+  from Bash. The Node-native initializer remains the default.
+  Authored in stacked feature branch, awaiting native OS tests.
+- **BF-4 — Test migration:** a bounded execution probe classifies legacy
+  Bash tests as SKIP only when the shell truly cannot execute; original
+  POSIX assertions remain required on Linux/macOS. Separate native Node
+  tests exercise the actual Bash-free commands. The consolidated runner
+  has a clearly partial `--bash-free` scope and preserves UNVERIFIED
+  Python legacy acceptance. Authored, not yet executed end-to-end.
+- **BF-5 — Installer:** opt-in `tests/install_smoke.mjs` invokes pinned
+  `skills@1.7.4` through Node/npm with argument arrays, local temporary
+  projects, copy/link verification and real native bridges; no Bash or
+  Python prerequisite. Corporate HTTP 407 is explicitly UNVERIFIED,
+  not a LACC defect. Added an opt-in Windows system-proxy detector,
+  a read-only `--proxy-diagnostics` command and an explicit
+  `--prefer-windows-system-proxy` override for the isolated npm child
+  when proxy configurations disagree. The `--offline-local` file/agent
+  runtime smoke does not replace external installer acceptance. Actual
+  copy/link validation with the pinned package still requires
+  approved network access and possibly corporate proxy SSO support.
+- **BF-6 — Security:** add Node regression tests for sensitive files,
+  symlink refusal, terminal control escaping, source non-execution,
+  private retention and Git/source evidence. Authored; native results
+  pending, no threat-free claim.
+- **BF-7/8 — Same-SHA native Windows/Linux/macOS validation, host
+  responses and controlled deprecation** with a rollback plan. The
+  BF-7 five-report aggregator and native runbook are now **authored**:
+  it requires Node/installer core reports from Windows, Linux and
+  macOS, plus legacy Python/Bash results from Linux and macOS, without
+  demanding Bash on Windows. See the
+  [Bash-free acceptance matrix](docs/BASH_FREE_ACCEPTANCE_MATRIX.md).
+  **Actual three-OS execution, installer network verification and
+  host-generated answers remain unverified.** Until certified and
+  approved the five Bash wrappers stay available, PRs remain Draft,
+  and no `main` release is planned.
+
 ## Design constraints
 
 1. A Git-unchanged source is **evidence freshness**, not proof that the remembered claim is semantically true.
