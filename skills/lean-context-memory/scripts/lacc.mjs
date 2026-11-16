@@ -8,6 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { budget, checkMemory, conflicts, defaults, emitLimited, git, gitText, inventory, isGit, LIMITS, localPath, relevance, utf8, verifySources, words } from './lacc-core.mjs';
 import { sessionCheck } from './lacc-session.mjs';
+import { taskEndReview } from './lacc-task-end.mjs';
 import { migrationAudit, migrationBackup, migrationInspect } from './lacc-migrate.mjs';
 import { analyzeDependencyImpact, registeredImpactAdapters, IMPACT_LIMITS } from './lacc-impact.mjs';
 import { handoffPublish, handoffList, handoffRead } from './lacc-handoff.mjs';
@@ -67,7 +68,7 @@ function runtimeStatus() {
     git: probe('git', ['--version']), python: probe('python', ['--version']) ?? probe('python3', ['--version']),
     // BF core never attempts to launch a legacy shell, even for detection.
     bash: null,
-    commands: { init: true, 'ctx-slice': true, 'reference-scan': true, signatures: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true, 'dependency-impact': true, 'explain-findings': true, 'disclosure-contract': true, 'disclosure-summary': true, 'disclosure-mark-seen': true, 'answer-disclosure': true, 'semantic-hints': true, 'parse-cache': true },
+    commands: { init: true, 'ctx-slice': true, 'reference-scan': true, signatures: true, read: true, search: true, health: true, doctor: true, sync: true, 'session-check': true, 'task-end-review': true, 'migration-audit': true, 'migration-backup': true, 'migration-inspect': true, 'handoff-publish': true, 'handoff-list': true, 'handoff-read': true, 'canonical-preview': true, 'canonical-apply': true, 'migration-plan': true, 'migration-apply': true, 'migration-restore-preview': true, 'migration-restore-apply': true, 'migration-transaction-inspect': true, 'migration-recover': true, 'dependency-contract': true, 'dependency-impact': true, 'explain-findings': true, 'disclosure-contract': true, 'disclosure-summary': true, 'disclosure-mark-seen': true, 'answer-disclosure': true, 'semantic-hints': true, 'parse-cache': true },
     strict_git_evidence: Boolean(probe('git', ['--version'])),
     python_maintenance: 'optional separate Python tool; not implemented in Node',
     mode: 'node',
@@ -89,7 +90,8 @@ function init(root, opts) {
     `- Read ${path.join(skill, 'SKILL.md').replaceAll('\\','/')} and use memory/ as the project fact store.\n` +
     `- Prefer Node CLI: node ${path.join(here, 'lacc.mjs').replaceAll('\\','/')} <command> . (no Python/Bash required).\n` +
     `- At task start run session-check before trusting WARM facts; read HOT and search WARM by task; if review/incomplete, inspect sources and tests.\n` +
-    `- Keep confirmed facts with real sources and checked commits; run health before handoff.\n` +
+    `- At task end, run task-end-review and compare newly verified source/test findings with HOT hypotheses and WARM facts. If memory edits are allowed, correct contradicted facts and persist reusable discoveries with checked sources; otherwise report pending corrections. Do not rewrite unchanged facts, invent proof or promote unresolved claims.\n` +
+    `- Keep confirmed facts with real sources and checked commits; run health and session-check after permitted memory updates.\n` +
     `- If Git or Node is unavailable, use native agent tools and disclose unverified evidence.\n` +
     DISCLOSURE_AGENT_RULES.map(rule => '- ' + rule + '\n').join('') + `${END}`;
   const bridge = `${START}\nRead marked LACC instructions in project-root AGENTS.md once; use the same memory/ facts.\nFollow AGENTS.md CR-3 material-finding disclosure rules; these are guidance only, not delivery receipts.\n${END}`;
@@ -322,7 +324,7 @@ function sync(root, opts) {
   const review = !valid || committed.length || clean.length;
   return { text: output + (review ? 'REVIEW: inspect source changes\n' : 'NO SOURCE DRIFT; not semantic proof\n'), code: strict && review ? 1 : 0 };
 }
-function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, ctx-slice, reference-scan, signatures, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover, dependency-contract, dependency-impact, disclosure-contract, disclosure-summary, disclosure-mark-seen, answer-disclosure\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --explain (normalized, agent-only); --detail (disclosure summary); --deps (experimental); --semantic (literal JS/TS alias hints); --cache (private parse-token writes); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --task ID; --expect-head SHA; --reviewed; --claim TEXT; --response-file PATH (answer-disclosure only)\nCore Node commands require no Python, Bash, WSL, cloud SDK, or external npm packages.\nFor ctx-slice: node lacc.mjs ctx-slice [file|-] [max_lines=100] [--keep].\nFor reference-scan: node lacc.mjs reference-scan FILE [SYMBOL] [--signal LITERAL].\nFor signatures: node lacc.mjs signatures FILE [--require-ast | --no-python].\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
+function help() { return `LACC Runtime v3.2 — node lacc.mjs <command> [project_dir] [flags]\nCommands: capabilities, init, sync, ctx-slice, reference-scan, signatures, read, search, health, doctor, session-check, migration-audit, migration-backup, migration-inspect, task-end-review, handoff-publish, handoff-list, handoff-read, canonical-preview, canonical-apply, migration-plan, migration-apply, migration-restore-preview, migration-restore-apply, migration-transaction-inspect, migration-recover, dependency-contract, dependency-impact, disclosure-contract, disclosure-summary, disclosure-mark-seen, answer-disclosure\nFlags: --agent auto|claude|codex|gemini|roo|all; --query TEXT; --topic FILE;\n --json; --include-review; --explain (normalized, agent-only); --detail (disclosure summary); --deps (experimental); --semantic (literal JS/TS alias hints); --cache (private parse-token writes); --limit N; --max-bytes N; --strict; --stamp; --apply; --expect DIGEST; --snapshot DIGEST; --file PATH; --content-file PATH; --plan PATH; --id DIGEST; --task ID; --expect-head SHA; --reviewed; --claim TEXT; --response-file PATH (answer-disclosure only)\nCore Node commands require no Python, Bash, WSL, cloud SDK, or external npm packages.\nFor ctx-slice: node lacc.mjs ctx-slice [file|-] [max_lines=100] [--keep].\nFor reference-scan: node lacc.mjs reference-scan FILE [SYMBOL] [--signal LITERAL].\nFor signatures: node lacc.mjs signatures FILE [--require-ast | --no-python].\nGit is needed for trusted provenance; without it retrieval excludes unverifiable facts.\n` }
 export function main(argv = process.argv.slice(2)) {
   const [command = 'help', ...args] = argv;
   if (['help', '--help', '-h'].includes(command)) { process.stdout.write(help()); return 0; }
@@ -516,6 +518,11 @@ export function main(argv = process.argv.slice(2)) {
   if (command === 'migration-inspect') {
     const r = migrationInspect(root, { snapshot: opts.snapshot, maxBytes: cap(root, opts) });
     process.stdout.write(r.text); return r.code;
+  }
+  if (command === 'task-end-review') {
+    const r = taskEndReview(root, { json: Boolean(opts.json), maxBytes: cap(root, opts) });
+    process.stdout.write(r.text);
+    return r.code;
   }
   if (command === 'session-check') {
     const r = sessionCheck(root, { json: Boolean(opts.json), maxBytes: cap(root, opts), deps: Boolean(opts.deps), explain: Boolean(opts.explain), semantic: Boolean(opts.semantic), cache: Boolean(opts.cache) });
