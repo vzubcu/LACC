@@ -85,6 +85,54 @@ Exact Python AST declaration extraction remains optional and requires
 Python; Node-only results are explicitly heuristic. Legacy helpers remain
 available until parity and native OS acceptance are verified.
 
+## Task-end memory reconciliation (ML-1 develop preview)
+
+For each nontrivial task **before the final response**, compare the new source/test
+evidence with HOT hypotheses and verified WARM facts. Run:
+
+```powershell
+node <skill_dir>/scripts/lacc.mjs task-end-review . --json
+```
+
+This is a **read-only inventory**, not a background hook, semantic
+contradiction detector, or automatic fact writer. A clean
+`agent-review-required` status means **the agent still has to inspect its
+own findings**; `evidence-review-required` means source or memory evidence
+needs attention. It lists open HOT hypotheses, pending checks and
+*exact-text* duplicate candidates by location only. It cannot read the
+conversation or judge whether discoveries are novel.
+
+Reconcile in this order:
+
+1. Check task-observed findings against existing facts and HOT hypotheses.
+   If a claim is contradicted by verified source/test evidence, **correct
+   the inaccurate claim**, even if the current task was only an analysis,
+   unless the user disallowed file edits. Prefer correcting an existing
+   fact over adding a second contradictory bullet.
+2. When new knowledge is reusable, append concise source-backed facts to the
+   appropriate topic with real `source:` paths and a **checked** `verified:`
+   commit. For uncommitted or unreviewed source changes, keep a
+   `state: review` candidate or a HOT hypothesis; never pretend a committed
+   revision already proves the uncommitted change.
+3. Resolve reviewed HOT hypotheses, retain open ones, and update
+   `MEMORY_INDEX.md` only for important navigation changes. Keep
+   `ACTIVE_STATE.md` within 30 lines/2048 bytes. An exact duplicate
+   candidate is **not** sufficient evidence to delete a distinct
+   constraint. Do not generate a large task log.
+4. After **permitted** memory edits, run `health . --json` and
+   `session-check . --json`. Do not stamp a dirty worktree or treat
+   `healthy` as proof of semantic completeness. Report important
+   uncertainties and any actual test results.
+5. If there are no useful new facts, make no memory edits and state that
+   reconciliation found no durable updates. If the user asked **not to
+   modify any files** or forbids memory changes, obey: perform the
+   read-only review and report pending corrections instead of editing.
+
+Keep the extra work bounded to task-relevant findings; do not perform
+repository-wide rediscovery to satisfy this checklist. `task-end-review`
+does not observe a host-generated response or measure token savings.
+See [ML-1 operating contract](references/task-end-reconciliation.md).
+
 ## Maintenance on demand
 
 - For stale facts, overflow, exact deduplication or batch revalidation, read [maintenance](references/maintenance.md).
