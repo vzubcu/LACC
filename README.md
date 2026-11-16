@@ -14,6 +14,18 @@ community-requested *session-start freshness* and *dependency-aware staleness*
 milestones. The [changelog](CHANGELOG.md) describes changes already shipped;
 historical implementation plans are not a current feature backlog.
 
+## ML-1 task-end memory reconciliation (develop preview)
+
+`lean-context-memory` now includes an advisory `task-end-review . --json`
+command and refreshed Codex/Claude/Gemini/Roo instruction bridges.
+The command is read-only; host agents must still inspect source evidence
+and explicitly reconcile confirmed contradictions when edits are permitted.
+It cannot detect semantic errors automatically or prove task-end learning.
+After updating the skill, re-run `init . --agent claude` (or the host's
+agent) to refresh project instructions while preserving existing memory.
+See the [ML-1 operating contract](skills/lean-context-memory/references/task-end-reconciliation.md).
+Acceptance testing and real usage measurement are pending.
+
 ## Branch policy
 
 **main** is the last validated release line; **develop** collects

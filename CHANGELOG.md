@@ -1,5 +1,17 @@
 # Changes
 
+## ML-1 — task-end reconciliation contract (develop candidate, 2026-11-16)
+
+- Add Node-only, read-only `task-end-review` advisory command for HOT
+  hypothesis/unchecked-item counts, exact-text duplicate locations and
+  source-backed session freshness. Bounded output omits raw HOT contents.
+- Add task-end instructions for Codex/Claude/Gemini/Roo that ask the host
+  to correct verified memory contradictions, preserve unverified claims,
+  honor user requests forbidding file edits, and run post-update checks.
+- Add local regression tests and operating contract. No automatic background
+  agent, semantic auto-writer, real-host acceptance or token savings is
+  claimed. Tests on Windows/Linux/macOS remain to be executed.
+
 ## BF-5 enterprise npm proxy handling (unreleased, PR #46)
 
 - Classify HTTP 407, registry 401/403, DNS/timeout and untrusted TLS

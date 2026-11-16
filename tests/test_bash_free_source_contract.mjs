@@ -11,6 +11,7 @@ const sources = [
   'skills/lean-context-memory/scripts/reference-scan.mjs',
   'skills/lean-context-memory/scripts/signatures.mjs',
   'skills/lean-context-memory/scripts/lacc-git-parity.mjs',
+  'skills/lean-context-memory/scripts/lacc-task-end.mjs',
   'tests/install_smoke.mjs',
 ];
 test('portable Node path never invokes Bash or shell-evaluates untrusted arguments', () => {
@@ -27,7 +28,7 @@ test('portable Node path never invokes Bash or shell-evaluates untrusted argumen
 });
 test('bundled CLI provides Native BF commands from one portable entrypoint', () => {
   const cli = fs.readFileSync(path.join(root, sources[0]), 'utf8');
-  for (const command of ['ctx-slice','reference-scan','signatures','sync','init'])
+  for (const command of ['ctx-slice','reference-scan','signatures','sync','init','task-end-review'])
     assert.ok(cli.includes(command), 'missing native command ' + command);
   assert.doesNotMatch(cli, /probe\(['"]bash['"]/,
     'native capabilities must not launch Bash to detect it');

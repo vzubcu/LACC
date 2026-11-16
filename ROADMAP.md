@@ -8,6 +8,34 @@ This is the **canonical forward-looking roadmap**. `CHANGELOG.md` records shippe
 historical `docs/superpowers/plans/` describe earlier implementation plans, not the current backlog.
 Version labels below are *tentative*; priorities and acceptance criteria matter more than version numbers.
 
+## ML-1 — Task-end Memory Reconciliation (develop implementation; host test pending)
+
+**Problem:** Real Rider Claude Agent usage showed that an agent can discover
+a false HOT hypothesis (incorrectly claiming no CoreService unit tests)
+but leave it uncorrected unless the user explicitly requests a memory edit.
+A source-backed memory database alone does not guarantee task-end learning.
+
+**Implemented on this feature branch for develop integration:**
+- A read-only, bounded `task-end-review . --json` Node/Git command exposing
+  pending HOT hypotheses, unchecked items, exact-text duplicate candidates
+  and the existing freshness gate. No auto-promotion or memory mutation.
+- Task-end reconciliation rules injected through project `AGENTS.md`,
+  imported by Claude and reused by Codex/Gemini/Roo: reconcile verified
+  contradictions, retain unverified claims, and avoid needless writes.
+- Regression fixtures for read-only behavior, dirty source, fresh/UNSYNCED
+  state, privacy, idempotent Claude bridge and legacy Bash-free contracts.
+
+**Acceptance still required:** native Windows Rider Claude real-host test
+with an ordinary task, read-only user instruction test, tests of the helper,
+native Linux/macOS smoke, token/credit overhead and quality. A host agent
+still owns semantic review. No periodic hook, autonomous background work,
+semantic contradiction detection or measured token savings is claimed.
+
+**Next:** ML-2 evaluate semantic overlap and retrieval relevance using
+independently labeled fixtures (do not conflate exact duplicate candidates
+with semantic proof); ML-3 evaluate memory persistence and host usage
+economics. BF release gate remains separate.
+
 ## BF — Bash-Free Runtime 4.0 (experimental)
 
 **Reconciled candidate:** the dedicated
